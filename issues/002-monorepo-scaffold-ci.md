@@ -4,9 +4,9 @@ AFK
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (Ch.3, Ch.15)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (Ch.3, Ch.15)
 
 ## What to build
 
@@ -16,12 +16,12 @@ End-to-end deliverable: `docker compose up` starts infrastructure; sample API re
 
 ## Acceptance criteria
 
-- [ ] Monorepo directory structure matches EP-001 §3.5
-- [ ] `examples/sample-service` (or equivalent) exposes `/health` and builds via Docker
-- [ ] `docker-compose.yml` starts Postgres, Redis, and RabbitMQ locally
-- [ ] Minimal Next.js app in `apps/` builds and runs
-- [ ] GitHub Actions workflow runs build + test on pull requests
-- [ ] Root README documents local setup (`docker compose up`, how to run services)
+- [x] Monorepo directory structure matches EP-001 §3.5
+- [x] `examples/sample-service` (or equivalent) exposes `/health` and builds via Docker
+- [x] `docker-compose.yml` starts Postgres, Redis, and RabbitMQ locally
+- [x] Minimal Next.js app in `apps/` builds and runs
+- [x] GitHub Actions workflow runs build + test on pull requests
+- [x] Root README documents local setup (`docker compose up`, how to run services)
 
 ## Blocked by
 

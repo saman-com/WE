@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{F345DEC2-82F5-46C2-9CF0-D97F49EA0AE6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample-service", "sample-service", "{CC1CDC09-6983-448B-B339-2CA6FA207719}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{13401D3A-4319-43BE-9DBD-CE70C6B5CA3C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleService.Api", "examples\sample-service\src\Api\SampleService.Api.csproj", "{9053A03A-1930-49B4-8C56-88D97404BB86}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleService.Tests", "examples\sample-service\tests\SampleService.Tests.csproj", "{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9053A03A-1930-49B4-8C56-88D97404BB86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9053A03A-1930-49B4-8C56-88D97404BB86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9053A03A-1930-49B4-8C56-88D97404BB86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9053A03A-1930-49B4-8C56-88D97404BB86}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CC1CDC09-6983-448B-B339-2CA6FA207719} = {F345DEC2-82F5-46C2-9CF0-D97F49EA0AE6}
+		{13401D3A-4319-43BE-9DBD-CE70C6B5CA3C} = {CC1CDC09-6983-448B-B339-2CA6FA207719}
+		{9053A03A-1930-49B4-8C56-88D97404BB86} = {13401D3A-4319-43BE-9DBD-CE70C6B5CA3C}
+		{7BEBD8D4-5AB1-42FB-8AC2-D0D86E612B5C} = {CC1CDC09-6983-448B-B339-2CA6FA207719}
+	EndGlobalSection
+EndGlobal

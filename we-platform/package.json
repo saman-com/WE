@@ -1,0 +1,9 @@
+{
+  "name": "we-platform",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web-portal dev",
+    "build": "pnpm --filter web-portal build",
+    "lint": "pnpm --filter web-portal lint"
+  }
+}
