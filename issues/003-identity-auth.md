@@ -14,12 +14,12 @@ Includes: PostgreSQL schema for users/roles/permissions, ASP.NET Core Identity S
 
 ## Acceptance criteria
 
-- [ ] Users can log in and receive a JWT; `/api/v1/auth/me` returns user + roles
-- [ ] RBAC enforced: endpoints reject requests without required role
-- [ ] At least 5 platform roles seeded (Student, Teacher, Parent, School Leader, System Administrator)
-- [ ] Passwords hashed; secrets not committed to git
-- [ ] Login UI works end-to-end against local Docker stack
-- [ ] Unit and integration tests cover auth success and failure paths
+- [x] Users can log in and receive a JWT; `/api/v1/auth/me` returns user + roles
+- [x] RBAC enforced: endpoints reject requests without required role
+- [x] At least 5 platform roles seeded (Student, Teacher, Parent, School Leader, System Administrator)
+- [x] Passwords hashed; secrets not committed to git
+- [x] Login UI works end-to-end against local Docker stack
+- [x] Unit and integration tests cover auth success and failure paths
 
 ## Blocked by
 

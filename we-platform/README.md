@@ -24,7 +24,8 @@ curl http://localhost:8080/health
 # 3. Run backend tests
 dotnet test WePlatform.sln
 
-# 4. Run frontend
+# 4. Run frontend (copy .env.local.example to .env.local first)
+cp apps/web-portal/.env.local.example apps/web-portal/.env.local
 pnpm install
 pnpm dev
 ```
@@ -59,6 +60,7 @@ we-platform/
 | Redis | 6379 | Cache |
 | RabbitMQ | 5672 / 15672 | Message broker (management UI) |
 | sample-service | 8080 | Reference API with `/health` |
+| identity-service | 8081 | Authentication (`/api/v1/auth/login`, `/api/v1/auth/me`) |
 
 ## Development
 

@@ -33,10 +33,10 @@ Engineering decisions are documented in [`docs/adr/`](docs/adr/) — **all accep
 The platform is built as **46 vertical slices** in [`issues/`](issues/), ordered by dependency:
 
 ```
-001 Engineering ADRs ✅ → 002 Monorepo scaffold ✅ → 003 Auth → ... → 046 Platform gate
+001 Engineering ADRs ✅ → 002 Monorepo scaffold ✅ → 003 Auth ✅ → ... → 046 Platform gate
 ```
 
-Next: [`issues/003-identity-auth.md`](issues/003-identity-auth.md)
+Next: [`issues/004-organisation-classes-enrollment.md`](issues/004-organisation-classes-enrollment.md)
 
 ### How to implement an issue
 

@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: we_platform
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./databases/identity/init.sql:/docker-entrypoint-initdb.d/01-create-we-identity.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -51,6 +52,22 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__IdentityDb: Host=postgres;Port=5432;Database=we_identity;Username=we;Password=we_dev
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
