@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -18,7 +20,18 @@ export default function DashboardPage() {
     }
 
     fetchProfile(token)
-      .then(setProfile)
+      .then(async (loaded) => {
+        setProfile(loaded);
+        try {
+          const organisations = await listOrganisations(token);
+          const scoped = await Promise.all(
+            organisations.map((organisation) => listClasses(token, organisation.id))
+          );
+          setClasses(scoped.flat());
+        } catch {
+          setClasses([]);
+        }
+      })
       .catch(() => {
         localStorage.removeItem("we_access_token");
         setError("Session expired. Please sign in again.");
@@ -73,9 +86,33 @@ export default function DashboardPage() {
             <span className="font-medium">Email:</span> {profile.email}
           </p>
           <p>
+            <span className="font-medium">User id:</span> {profile.id}
+          </p>
+          <p>
             <span className="font-medium">Roles:</span>{" "}
             {profile.roles.join(", ")}
           </p>
+        </div>
+
+        {profile.roles.includes("SystemAdministrator") ? (
+          <Link href="/organisation" className="text-sm underline">
+            Organisation setup
+          </Link>
+        ) : null}
+
+        <div className="rounded-lg border border-black/10 p-6 space-y-2">
+          <h2 className="font-medium">Classes</h2>
+          {classes.length === 0 ? (
+            <p className="text-sm text-black/60">No classes in your scope.</p>
+          ) : (
+            <ul className="list-disc pl-5 space-y-1">
+              {classes.map((schoolClass) => (
+                <li key={schoolClass.id}>
+                  {schoolClass.name} ({schoolClass.code})
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <Link href="/" className="text-sm underline">

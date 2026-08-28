@@ -17,6 +17,7 @@ Built-in authentication for the WE Platform (issue 003).
 |-------|----------|------|
 | `teacher@school.local` | `Password123!` | Teacher |
 | `admin@school.local` | `Password123!` | SystemAdministrator |
+| `student@school.local` | `Password123!` | Student (id `22222222-2222-2222-2222-222222222222`) |
 
 ## Configuration
 

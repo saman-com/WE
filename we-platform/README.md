@@ -61,6 +61,7 @@ we-platform/
 | RabbitMQ | 5672 / 15672 | Message broker (management UI) |
 | sample-service | 8080 | Reference API with `/health` |
 | identity-service | 8081 | Authentication (`/api/v1/auth/login`, `/api/v1/auth/me`) |
+| organisation-service | 8082 | Schools, year levels, classes, enrollment (`/api/v1/organisations`) |
 
 ## Development
 
@@ -76,4 +77,4 @@ pnpm build    # Production build
 pnpm lint     # ESLint
 ```
 
-See [`examples/sample-service/README.md`](examples/sample-service/README.md) for the reference service pattern.
+See [`examples/sample-service/README.md`](examples/sample-service/README.md) for the reference service pattern, [`services/identity-service/README.md`](services/identity-service/README.md) for auth, and [`services/organisation-service/README.md`](services/organisation-service/README.md) for organisation setup.
