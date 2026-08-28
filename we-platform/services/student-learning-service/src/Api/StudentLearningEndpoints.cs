@@ -1,0 +1,186 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using StudentLearningService.Application;
+using StudentLearningService.Domain;
+using StudentLearningService.Infrastructure.Data;
+
+namespace StudentLearningService.Api;
+
+public static class StudentLearningEndpoints
+{
+    public static void MapStudentLearningEndpoints(this WebApplication app)
+    {
+        var api = app.MapGroup("/api/v1/students").RequireAuthorization();
+
+        api.MapGet("/{studentUserId}/profile", GetProfile);
+        api.MapPost("/{studentUserId}/profile/enrollments", SyncEnrollment);
+    }
+
+    private static async Task<IResult> GetProfile(
+        string studentUserId,
+        ClaimsPrincipal principal,
+        StudentLearningDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        var access = await EvaluateProfileAccessAsync(
+            principal,
+            studentUserId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var profile = await db.Profiles
+            .Include(p => p.Enrollments)
+            .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
+
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(ToResponse(profile));
+    }
+
+    private static async Task<IResult> SyncEnrollment(
+        string studentUserId,
+        SyncProfileEnrollmentRequest request,
+        ClaimsPrincipal principal,
+        StudentLearningDbContext db)
+    {
+        if (!principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(studentUserId)
+            || string.IsNullOrWhiteSpace(request.ClassName)
+            || string.IsNullOrWhiteSpace(request.ClassCode))
+        {
+            return Results.BadRequest();
+        }
+
+        var profile = await db.Profiles
+            .Include(p => p.Enrollments)
+            .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
+
+        var now = DateTimeOffset.UtcNow;
+        if (profile is null)
+        {
+            profile = new StudentLearningProfile
+            {
+                Id = Guid.CreateVersion7(),
+                StudentUserId = studentUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            db.Profiles.Add(profile);
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.ProfileEnrollments.AnyAsync(e =>
+                e.ProfileId == profile.Id && e.ClassId == request.ClassId))
+        {
+            db.ProfileEnrollments.Add(new ProfileClassEnrollment
+            {
+                Id = Guid.CreateVersion7(),
+                ProfileId = profile.Id,
+                OrganisationId = request.OrganisationId,
+                ClassId = request.ClassId,
+                ClassName = request.ClassName.Trim(),
+                ClassCode = request.ClassCode.Trim(),
+                EnrolledAt = now
+            });
+        }
+
+        profile.UpdatedAt = now;
+        await db.SaveChangesAsync();
+
+        var saved = await db.Profiles
+            .Include(p => p.Enrollments)
+            .FirstAsync(p => p.Id == profile.Id);
+
+        return Results.Ok(ToResponse(saved));
+    }
+
+    private static async Task<IResult?> EvaluateProfileAccessAsync(
+        ClaimsPrincipal principal,
+        string studentUserId,
+        IOrganisationAccessChecker accessChecker,
+        string authorizationHeader)
+    {
+        if (principal.IsAdmin())
+        {
+            return null;
+        }
+
+        var userId = principal.UserId();
+        if (principal.IsStudent())
+        {
+            return userId == studentUserId ? null : Results.Forbid();
+        }
+
+        if (principal.IsTeacher())
+        {
+            var token = ExtractBearerToken(authorizationHeader);
+            if (token is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await accessChecker.TeacherCanViewStudentAsync(userId, studentUserId, token);
+            return allowed ? null : Results.Forbid();
+        }
+
+        return Results.Forbid();
+    }
+
+    private static StudentProfileResponse ToResponse(StudentLearningProfile profile) =>
+        new(
+            profile.StudentUserId,
+            profile.Enrollments
+                .OrderBy(e => e.EnrolledAt)
+                .Select(e => new ClassEnrollmentSummary(
+                    e.OrganisationId,
+                    e.ClassId,
+                    e.ClassName,
+                    e.ClassCode,
+                    e.EnrolledAt))
+                .ToList(),
+            []);
+
+    private static string? ExtractBearerToken(string authorizationHeader)
+    {
+        const string prefix = "Bearer ";
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = authorizationHeader[prefix.Length..].Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+
+    private static string UserId(this ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? string.Empty;
+
+    private static bool IsAdmin(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SystemAdministrator);
+
+    private static bool IsTeacher(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsStudent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Student);
+}

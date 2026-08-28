@@ -7,10 +7,12 @@ namespace OrganisationService.Tests;
 public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly FakeStudentLearningProfileClient _profileClient;
 
     public OrganisationEndpointTests(OrganisationWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
+        _profileClient = factory.ProfileClient;
     }
 
     [Fact]
@@ -169,6 +171,28 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             adminId,
             TestJwt.AdminRole);
         Assert.Contains(enrollments, member => member.UserId == studentId);
+        Assert.Contains(_profileClient.SyncCalls, call =>
+            call.StudentUserId == studentId && call.Enrollment.ClassId == schoolClass.Id);
+    }
+
+    [Fact]
+    public async Task EnrollStudent_AutoCreatesStudentLearningProfile()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Bayview School", UniqueCode("BAY"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 1", 1);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "1A", UniqueCode("1A"));
+
+        _profileClient.SyncCalls.Clear();
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        var sync = Assert.Single(_profileClient.SyncCalls);
+        Assert.Equal(studentId, sync.StudentUserId);
+        Assert.Equal(org.Id, sync.Enrollment.OrganisationId);
+        Assert.Equal(schoolClass.Id, sync.Enrollment.ClassId);
+        Assert.Equal("1A", sync.Enrollment.ClassName);
+        Assert.Equal(schoolClass.Code, sync.Enrollment.ClassCode);
     }
 
     [Fact]

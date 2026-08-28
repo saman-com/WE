@@ -591,7 +591,9 @@ public static class OrganisationEndpoints
         Guid classId,
         EnrollStudentRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        IStudentLearningProfileClient profileClient,
+        HttpContext httpContext)
     {
         if (!principal.IsAdmin())
         {
@@ -620,6 +622,26 @@ public static class OrganisationEndpoints
             StudentUserId = request.UserId
         });
         await db.SaveChangesAsync();
+
+        var bearerToken = httpContext.Request.Headers.Authorization.ToString();
+        if (bearerToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            bearerToken = bearerToken["Bearer ".Length..].Trim();
+        }
+        else
+        {
+            bearerToken = string.Empty;
+        }
+
+        await profileClient.SyncEnrollmentAsync(
+            request.UserId,
+            new StudentProfileEnrollmentSync(
+                organisationId,
+                schoolClass.Id,
+                schoolClass.Name,
+                schoolClass.Code),
+            bearerToken);
+
         return Results.Created(
             $"/api/v1/organisations/{organisationId}/classes/{classId}/enrollments/{request.UserId}",
             new ClassMemberResponse(request.UserId));

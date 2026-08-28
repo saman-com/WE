@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OrganisationService.Application;
 using OrganisationService.Infrastructure.Data;
+using OrganisationService.Infrastructure.StudentLearning;
 
 namespace OrganisationService.Infrastructure;
 
@@ -23,6 +25,8 @@ public static class DependencyInjection
 
             options.UseNpgsql(connectionString);
         });
+
+        services.AddHttpClient<IStudentLearningProfileClient, HttpStudentLearningProfileClient>();
 
         return services;
     }

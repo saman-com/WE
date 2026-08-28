@@ -112,10 +112,35 @@ export default function DashboardPage() {
           {classes.length === 0 ? (
             <p className="text-sm text-black/60">No classes in your scope.</p>
           ) : (
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="space-y-3">
               {classes.map((schoolClass) => (
                 <li key={schoolClass.id}>
-                  {schoolClass.name} ({schoolClass.code})
+                  <p className="font-medium">
+                    {schoolClass.name} ({schoolClass.code})
+                  </p>
+                  {schoolClass.studentUserIds && schoolClass.studentUserIds.length > 0 ? (
+                    <ul className="list-disc pl-5 mt-1 space-y-1">
+                      {schoolClass.studentUserIds.map((studentUserId) => (
+                        <li key={studentUserId}>
+                          <Link
+                            href={`/students/${studentUserId}/profile`}
+                            className="text-sm underline"
+                          >
+                            View profile — {studentUserId}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : profile.roles.includes("Student") ? (
+                    <Link
+                      href={`/students/${profile.id}/profile`}
+                      className="text-sm underline"
+                    >
+                      View my learning profile
+                    </Link>
+                  ) : (
+                    <p className="text-sm text-black/60">No students enrolled.</p>
+                  )}
                 </li>
               ))}
             </ul>

@@ -12,6 +12,7 @@ services:
       - ./databases/identity/init.sql:/docker-entrypoint-initdb.d/01-create-we-identity.sql:ro
       - ./databases/organisation/init.sql:/docker-entrypoint-initdb.d/02-create-we-organisation.sql:ro
       - ./databases/curriculum/init.sql:/docker-entrypoint-initdb.d/03-create-we-curriculum.sql:ro
+      - ./databases/learning/init.sql:/docker-entrypoint-initdb.d/04-create-we-learning.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -84,6 +85,7 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+      StudentLearning__BaseUrl: http://student-learning-service:8080
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,6 +105,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  student-learning-service:
+    build:
+      context: .
+      dockerfile: services/student-learning-service/Dockerfile
+    ports:
+      - "8084:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__StudentLearningDb: Host=postgres;Port=5432;Database=we_learning;Username=we;Password=we_dev
+      Organisation__BaseUrl: http://organisation-service:8080
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      organisation-service:
+        condition: service_started
 
 volumes:
   postgres_data:
