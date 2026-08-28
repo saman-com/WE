@@ -6,7 +6,7 @@ COPY services/identity-service/src/Infrastructure/IdentityService.Infrastructure
 COPY services/identity-service/src/Api/IdentityService.Api.csproj services/identity-service/src/Api/
 RUN dotnet restore services/identity-service/src/Api/IdentityService.Api.csproj
 COPY services/identity-service/src/ services/identity-service/src/
-RUN dotnet publish services/identity-service/src/Api/IdentityService.Api.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish services/identity-service/src/Api/IdentityService.Api.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app

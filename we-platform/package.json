@@ -1,6 +1,7 @@
 {
   "name": "we-platform",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "pnpm --filter web-portal dev",
     "build": "pnpm --filter web-portal build",
