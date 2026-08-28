@@ -100,6 +100,13 @@ export default function DashboardPage() {
           </Link>
         ) : null}
 
+        {profile.roles.includes("SystemAdministrator") ||
+        profile.roles.includes("Teacher") ? (
+          <Link href="/curriculum" className="text-sm underline">
+            Curriculum
+          </Link>
+        ) : null}
+
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <h2 className="font-medium">Classes</h2>
           {classes.length === 0 ? (

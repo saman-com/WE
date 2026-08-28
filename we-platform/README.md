@@ -62,6 +62,7 @@ we-platform/
 | sample-service | 8080 | Reference API with `/health` |
 | identity-service | 8081 | Authentication (`/api/v1/auth/login`, `/api/v1/auth/me`) |
 | organisation-service | 8082 | Schools, year levels, classes, enrollment (`/api/v1/organisations`) |
+| curriculum-service | 8083 | Curriculum, subjects, units, topics (`/api/v1/curriculum`) |
 
 ## Development
 
@@ -77,4 +78,4 @@ pnpm build    # Production build
 pnpm lint     # ESLint
 ```
 
-See [`examples/sample-service/README.md`](examples/sample-service/README.md) for the reference service pattern, [`services/identity-service/README.md`](services/identity-service/README.md) for auth, and [`services/organisation-service/README.md`](services/organisation-service/README.md) for organisation setup.
+See [`examples/sample-service/README.md`](examples/sample-service/README.md) for the reference service pattern, [`services/identity-service/README.md`](services/identity-service/README.md) for auth, [`services/organisation-service/README.md`](services/organisation-service/README.md) for organisation setup, and [`services/curriculum-service/README.md`](services/curriculum-service/README.md) for curriculum management.

@@ -11,6 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./databases/identity/init.sql:/docker-entrypoint-initdb.d/01-create-we-identity.sql:ro
       - ./databases/organisation/init.sql:/docker-entrypoint-initdb.d/02-create-we-organisation.sql:ro
+      - ./databases/curriculum/init.sql:/docker-entrypoint-initdb.d/03-create-we-curriculum.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -80,6 +81,22 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__OrganisationDb: Host=postgres;Port=5432;Database=we_organisation;Username=we;Password=we_dev
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  curriculum-service:
+    build:
+      context: .
+      dockerfile: services/curriculum-service/Dockerfile
+    ports:
+      - "8083:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__CurriculumDb: Host=postgres;Port=5432;Database=we_curriculum;Username=we;Password=we_dev
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
