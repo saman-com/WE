@@ -9,6 +9,8 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Topic> Topics => Set<Topic>();
+    public DbSet<LearningObjective> LearningObjectives => Set<LearningObjective>();
+    public DbSet<MicroSkill> MicroSkills => Set<MicroSkill>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +54,33 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.HasIndex(e => e.SubjectId);
             entity.HasMany(e => e.Topics).WithOne(e => e.Unit).HasForeignKey(e => e.UnitId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.LearningObjectives).WithOne(e => e.Unit).HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LearningObjective>(entity =>
+        {
+            entity.ToTable("learning_objectives");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UnitId).HasColumnName("unit_id").IsRequired();
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired();
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.HasIndex(e => e.UnitId);
+            entity.HasMany(e => e.MicroSkills).WithOne(e => e.LearningObjective)
+                .HasForeignKey(e => e.LearningObjectiveId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MicroSkill>(entity =>
+        {
+            entity.ToTable("micro_skills");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.LearningObjectiveId).HasColumnName("learning_objective_id").IsRequired();
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.HasIndex(e => e.LearningObjectiveId);
         });
 
         modelBuilder.Entity<Topic>(entity =>

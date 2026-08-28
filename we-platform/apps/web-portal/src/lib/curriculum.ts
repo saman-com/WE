@@ -34,11 +34,44 @@ export type Topic = {
   sortOrder: number;
 };
 
+export type MicroSkill = {
+  id: string;
+  learningObjectiveId: string;
+  unitId: string;
+  subjectId: string;
+  curriculumId: string;
+  name: string;
+  sortOrder: number;
+};
+
+export type MicroSkillTree = {
+  id: string;
+  name: string;
+  sortOrder: number;
+};
+
+export type LearningObjective = {
+  id: string;
+  unitId: string;
+  subjectId: string;
+  curriculumId: string;
+  title: string;
+  sortOrder: number;
+};
+
+export type LearningObjectiveTree = {
+  id: string;
+  title: string;
+  sortOrder: number;
+  microSkills: MicroSkillTree[];
+};
+
 export type UnitTree = {
   id: string;
   name: string;
   sortOrder: number;
   topics: Topic[];
+  learningObjectives: LearningObjectiveTree[];
 };
 
 export type SubjectTree = {
@@ -165,6 +198,43 @@ export function createTopic(
   return curriculumRequest<Topic>(
     token,
     `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}/topics`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name, sortOrder }),
+    }
+  );
+}
+
+export function createLearningObjective(
+  token: string,
+  curriculumId: string,
+  subjectId: string,
+  unitId: string,
+  title: string,
+  sortOrder: number
+): Promise<LearningObjective> {
+  return curriculumRequest<LearningObjective>(
+    token,
+    `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}/learning-objectives`,
+    {
+      method: "POST",
+      body: JSON.stringify({ title, sortOrder }),
+    }
+  );
+}
+
+export function createMicroSkill(
+  token: string,
+  curriculumId: string,
+  subjectId: string,
+  unitId: string,
+  learningObjectiveId: string,
+  name: string,
+  sortOrder: number
+): Promise<MicroSkill> {
+  return curriculumRequest<MicroSkill>(
+    token,
+    `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}/learning-objectives/${learningObjectiveId}/micro-skills`,
     {
       method: "POST",
       body: JSON.stringify({ name, sortOrder }),

@@ -9,4 +9,5 @@ public sealed class Unit
 
     public Subject Subject { get; set; } = null!;
     public ICollection<Topic> Topics { get; set; } = new List<Topic>();
+    public ICollection<LearningObjective> LearningObjectives { get; set; } = new List<LearningObjective>();
 }

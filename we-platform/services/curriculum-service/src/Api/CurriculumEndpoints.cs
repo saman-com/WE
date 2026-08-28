@@ -36,6 +36,18 @@ public static class CurriculumEndpoints
         api.MapGet("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}", GetTopic);
         api.MapPut("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}", UpdateTopic);
         api.MapDelete("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}", DeleteTopic);
+
+        api.MapGet("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives", ListLearningObjectives);
+        api.MapPost("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives", CreateLearningObjective);
+        api.MapGet("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}", GetLearningObjective);
+        api.MapPut("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}", UpdateLearningObjective);
+        api.MapDelete("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}", DeleteLearningObjective);
+
+        api.MapGet("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills", ListMicroSkills);
+        api.MapPost("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills", CreateMicroSkill);
+        api.MapGet("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}", GetMicroSkill);
+        api.MapPut("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}", UpdateMicroSkill);
+        api.MapDelete("/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}", DeleteMicroSkill);
     }
 
     private static async Task<IResult> ListCurricula(
@@ -188,6 +200,10 @@ public static class CurriculumEndpoints
             .Include(item => item.Subjects)
             .ThenInclude(subject => subject.Units)
             .ThenInclude(unit => unit.Topics)
+            .Include(item => item.Subjects)
+            .ThenInclude(subject => subject.Units)
+            .ThenInclude(unit => unit.LearningObjectives)
+            .ThenInclude(objective => objective.MicroSkills)
             .FirstOrDefaultAsync(item => item.Id == curriculumId);
 
         if (curriculum is null)
@@ -214,6 +230,22 @@ public static class CurriculumEndpoints
                             .OrderBy(topic => topic.SortOrder)
                             .ThenBy(topic => topic.Name)
                             .Select(topic => ToTopic(topic, subject.Id, curriculum.Id))
+                            .ToList(),
+                        unit.LearningObjectives
+                            .OrderBy(objective => objective.SortOrder)
+                            .ThenBy(objective => objective.Title)
+                            .Select(objective => new LearningObjectiveTreeResponse(
+                                objective.Id,
+                                objective.Title,
+                                objective.SortOrder,
+                                objective.MicroSkills
+                                    .OrderBy(skill => skill.SortOrder)
+                                    .ThenBy(skill => skill.Name)
+                                    .Select(skill => new MicroSkillTreeResponse(
+                                        skill.Id,
+                                        skill.Name,
+                                        skill.SortOrder))
+                                    .ToList()))
                             .ToList()))
                     .ToList()))
             .ToList();
@@ -654,6 +686,322 @@ public static class CurriculumEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> ListLearningObjectives(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        if (unit is null)
+        {
+            return Results.NotFound();
+        }
+
+        var items = await db.LearningObjectives
+            .Where(objective => objective.UnitId == unit.Id)
+            .OrderBy(objective => objective.SortOrder)
+            .Select(objective => new LearningObjectiveResponse(
+                objective.Id,
+                objective.UnitId,
+                subjectId,
+                curriculumId,
+                objective.Title,
+                objective.SortOrder))
+            .ToListAsync();
+
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> CreateLearningObjective(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        CreateLearningObjectiveRequest request,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        if (unit is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return Results.BadRequest();
+        }
+
+        var objective = new LearningObjective
+        {
+            Id = Guid.CreateVersion7(),
+            UnitId = unit.Id,
+            Title = request.Title.Trim(),
+            SortOrder = request.SortOrder
+        };
+
+        db.LearningObjectives.Add(objective);
+        await db.SaveChangesAsync();
+        return Results.Created(
+            $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units/{unitId}/learning-objectives/{objective.Id}",
+            ToLearningObjective(objective, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> GetLearningObjective(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        return objective is null
+            ? Results.NotFound()
+            : Results.Ok(ToLearningObjective(objective, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> UpdateLearningObjective(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        UpdateLearningObjectiveRequest request,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        if (objective is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return Results.BadRequest();
+        }
+
+        objective.Title = request.Title.Trim();
+        objective.SortOrder = request.SortOrder;
+        await db.SaveChangesAsync();
+        return Results.Ok(ToLearningObjective(objective, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> DeleteLearningObjective(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        if (objective is null)
+        {
+            return Results.NotFound();
+        }
+
+        db.LearningObjectives.Remove(objective);
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ListMicroSkills(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        if (objective is null)
+        {
+            return Results.NotFound();
+        }
+
+        var items = await db.MicroSkills
+            .Where(skill => skill.LearningObjectiveId == objective.Id)
+            .OrderBy(skill => skill.SortOrder)
+            .Select(skill => new MicroSkillResponse(
+                skill.Id,
+                skill.LearningObjectiveId,
+                unitId,
+                subjectId,
+                curriculumId,
+                skill.Name,
+                skill.SortOrder))
+            .ToListAsync();
+
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> CreateMicroSkill(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        CreateMicroSkillRequest request,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        if (objective is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return Results.BadRequest();
+        }
+
+        var microSkill = new MicroSkill
+        {
+            Id = Guid.CreateVersion7(),
+            LearningObjectiveId = objective.Id,
+            Name = request.Name.Trim(),
+            SortOrder = request.SortOrder
+        };
+
+        db.MicroSkills.Add(microSkill);
+        await db.SaveChangesAsync();
+        return Results.Created(
+            $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units/{unitId}/learning-objectives/{learningObjectiveId}/micro-skills/{microSkill.Id}",
+            ToMicroSkill(microSkill, unitId, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> GetMicroSkill(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        Guid microSkillId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var microSkill = await FindMicroSkillAsync(
+            db,
+            curriculumId,
+            subjectId,
+            unitId,
+            learningObjectiveId,
+            microSkillId);
+        return microSkill is null
+            ? Results.NotFound()
+            : Results.Ok(ToMicroSkill(microSkill, unitId, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> UpdateMicroSkill(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        Guid microSkillId,
+        UpdateMicroSkillRequest request,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var microSkill = await FindMicroSkillAsync(
+            db,
+            curriculumId,
+            subjectId,
+            unitId,
+            learningObjectiveId,
+            microSkillId);
+        if (microSkill is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return Results.BadRequest();
+        }
+
+        microSkill.Name = request.Name.Trim();
+        microSkill.SortOrder = request.SortOrder;
+        await db.SaveChangesAsync();
+        return Results.Ok(ToMicroSkill(microSkill, unitId, subjectId, curriculumId));
+    }
+
+    private static async Task<IResult> DeleteMicroSkill(
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        Guid microSkillId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var microSkill = await FindMicroSkillAsync(
+            db,
+            curriculumId,
+            subjectId,
+            unitId,
+            learningObjectiveId,
+            microSkillId);
+        if (microSkill is null)
+        {
+            return Results.NotFound();
+        }
+
+        db.MicroSkills.Remove(microSkill);
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
     private static async Task<Subject?> FindSubjectAsync(
         CurriculumDbContext db,
         Guid curriculumId,
@@ -683,6 +1031,32 @@ public static class CurriculumEndpoints
             && topic.Unit.SubjectId == subjectId
             && topic.Unit.Subject.CurriculumId == curriculumId);
 
+    private static async Task<LearningObjective?> FindLearningObjectiveAsync(
+        CurriculumDbContext db,
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId) =>
+        await db.LearningObjectives.FirstOrDefaultAsync(objective =>
+            objective.Id == learningObjectiveId
+            && objective.UnitId == unitId
+            && objective.Unit.SubjectId == subjectId
+            && objective.Unit.Subject.CurriculumId == curriculumId);
+
+    private static async Task<MicroSkill?> FindMicroSkillAsync(
+        CurriculumDbContext db,
+        Guid curriculumId,
+        Guid subjectId,
+        Guid unitId,
+        Guid learningObjectiveId,
+        Guid microSkillId) =>
+        await db.MicroSkills.FirstOrDefaultAsync(skill =>
+            skill.Id == microSkillId
+            && skill.LearningObjectiveId == learningObjectiveId
+            && skill.LearningObjective.UnitId == unitId
+            && skill.LearningObjective.Unit.SubjectId == subjectId
+            && skill.LearningObjective.Unit.Subject.CurriculumId == curriculumId);
+
     private static CurriculumResponse ToCurriculum(Curriculum curriculum) =>
         new(curriculum.Id, curriculum.OrganisationId, curriculum.Name, curriculum.Version, curriculum.Status);
 
@@ -694,6 +1068,26 @@ public static class CurriculumEndpoints
 
     private static TopicResponse ToTopic(Topic topic, Guid subjectId, Guid curriculumId) =>
         new(topic.Id, topic.UnitId, subjectId, curriculumId, topic.Name, topic.SortOrder);
+
+    private static LearningObjectiveResponse ToLearningObjective(
+        LearningObjective objective,
+        Guid subjectId,
+        Guid curriculumId) =>
+        new(objective.Id, objective.UnitId, subjectId, curriculumId, objective.Title, objective.SortOrder);
+
+    private static MicroSkillResponse ToMicroSkill(
+        MicroSkill microSkill,
+        Guid unitId,
+        Guid subjectId,
+        Guid curriculumId) =>
+        new(
+            microSkill.Id,
+            microSkill.LearningObjectiveId,
+            unitId,
+            subjectId,
+            curriculumId,
+            microSkill.Name,
+            microSkill.SortOrder);
 
     private static bool IsValidStatus(string? status) =>
         !string.IsNullOrWhiteSpace(status) && CurriculumStatuses.All.Contains(status.Trim());

@@ -52,11 +52,48 @@ public sealed record TopicResponse(
     string Name,
     int SortOrder);
 
+public sealed record CreateLearningObjectiveRequest(string Title, int SortOrder);
+
+public sealed record UpdateLearningObjectiveRequest(string Title, int SortOrder);
+
+public sealed record LearningObjectiveResponse(
+    Guid Id,
+    Guid UnitId,
+    Guid SubjectId,
+    Guid CurriculumId,
+    string Title,
+    int SortOrder);
+
+public sealed record CreateMicroSkillRequest(string Name, int SortOrder);
+
+public sealed record UpdateMicroSkillRequest(string Name, int SortOrder);
+
+public sealed record MicroSkillResponse(
+    Guid Id,
+    Guid LearningObjectiveId,
+    Guid UnitId,
+    Guid SubjectId,
+    Guid CurriculumId,
+    string Name,
+    int SortOrder);
+
+public sealed record MicroSkillTreeResponse(
+    Guid Id,
+    string Name,
+    int SortOrder);
+
+public sealed record LearningObjectiveTreeResponse(
+    Guid Id,
+    string Title,
+    int SortOrder,
+    IReadOnlyList<MicroSkillTreeResponse> MicroSkills);
+
 public sealed record UnitTreeResponse(
     Guid Id,
     string Name,
     int SortOrder,
-    IReadOnlyList<TopicResponse> Topics);
+    IReadOnlyList<TopicResponse> Topics,
+    IReadOnlyList<LearningObjectiveTreeResponse> LearningObjectives);
 
 public sealed record SubjectTreeResponse(
     Guid Id,

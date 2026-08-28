@@ -7,6 +7,8 @@ import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
 import {
   createCurriculum,
+  createLearningObjective,
+  createMicroSkill,
   createSubject,
   createTopic,
   createUnit,
@@ -46,6 +48,10 @@ export default function CurriculumPage() {
   const [unitSubjectId, setUnitSubjectId] = useState("");
   const [topicName, setTopicName] = useState("Physical Changes");
   const [topicUnitId, setTopicUnitId] = useState("");
+  const [objectiveTitle, setObjectiveTitle] = useState("Balance chemical equations");
+  const [objectiveUnitId, setObjectiveUnitId] = useState("");
+  const [microSkillName, setMicroSkillName] = useState("Identify reactants and products");
+  const [microSkillObjectiveId, setMicroSkillObjectiveId] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -89,6 +95,15 @@ export default function CurriculumPage() {
     if (firstUnit && !topicUnitId) {
       setTopicUnitId(firstUnit.id);
     }
+    if (firstUnit && !objectiveUnitId) {
+      setObjectiveUnitId(firstUnit.id);
+    }
+    const firstObjective = loaded.subjects
+      .flatMap((subject) => subject.units)
+      .flatMap((unit) => unit.learningObjectives)[0];
+    if (firstObjective && !microSkillObjectiveId) {
+      setMicroSkillObjectiveId(firstObjective.id);
+    }
   }
 
   async function loadCurricula(accessToken: string, orgId: string) {
@@ -129,6 +144,13 @@ export default function CurriculumPage() {
           const firstUnit = loaded.subjects.flatMap((subject) => subject.units)[0];
           if (firstUnit) {
             setTopicUnitId(firstUnit.id);
+            setObjectiveUnitId(firstUnit.id);
+          }
+          const firstObjective = loaded.subjects
+            .flatMap((subject) => subject.units)
+            .flatMap((unit) => unit.learningObjectives)[0];
+          if (firstObjective) {
+            setMicroSkillObjectiveId(firstObjective.id);
           }
         } else {
           setSelectedCurriculumId("");
@@ -195,6 +217,20 @@ export default function CurriculumPage() {
   const selectedUnit = tree?.subjects
     .flatMap((subject) => subject.units.map((unit) => ({ ...unit, subjectId: subject.id })))
     .find((unit) => unit.id === topicUnitId);
+  const selectedObjectiveUnit = tree?.subjects
+    .flatMap((subject) => subject.units.map((unit) => ({ ...unit, subjectId: subject.id })))
+    .find((unit) => unit.id === objectiveUnitId);
+  const selectedObjective = tree?.subjects
+    .flatMap((subject) =>
+      subject.units.flatMap((unit) =>
+        unit.learningObjectives.map((objective) => ({
+          ...objective,
+          unitId: unit.id,
+          subjectId: subject.id,
+        }))
+      )
+    )
+    .find((objective) => objective.id === microSkillObjectiveId);
 
   return (
     <div className="min-h-screen p-8">
@@ -207,7 +243,7 @@ export default function CurriculumPage() {
         </div>
 
         <p className="text-sm text-black/60">
-          Browse and edit the school curriculum tree: subject → units → topics.
+          Browse and edit the school curriculum tree: subject → units → topics, learning objectives, and micro-skills.
         </p>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -345,6 +381,22 @@ export default function CurriculumPage() {
                                   ))}
                                 </ul>
                               ) : null}
+                              {unit.learningObjectives.length > 0 ? (
+                                <ul className="ml-5 mt-1 space-y-1">
+                                  {unit.learningObjectives.map((objective) => (
+                                    <li key={objective.id}>
+                                      <span className="font-medium">LO:</span> {objective.title}
+                                      {objective.microSkills.length > 0 ? (
+                                        <ul className="ml-5 list-[square]">
+                                          {objective.microSkills.map((skill) => (
+                                            <li key={skill.id}>{skill.name}</li>
+                                          ))}
+                                        </ul>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
                             </li>
                           ))
                         )}
@@ -420,6 +472,7 @@ export default function CurriculumPage() {
                 (selectedSubject?.units.length ?? 0) + 1
               );
               setTopicUnitId(created.id);
+              setObjectiveUnitId(created.id);
               setMessage(`Added unit ${created.name}.`);
               await refreshTree(token, selectedCurriculumId);
             });
@@ -504,6 +557,121 @@ export default function CurriculumPage() {
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
             Add topic
+          </button>
+        </form>
+
+        <form
+          className="rounded-lg border border-black/10 p-6 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!selectedCurriculumId || !selectedObjectiveUnit) {
+              setError("Add a unit first.");
+              return;
+            }
+            void run(async () => {
+              const created = await createLearningObjective(
+                token,
+                selectedCurriculumId,
+                selectedObjectiveUnit.subjectId,
+                selectedObjectiveUnit.id,
+                objectiveTitle,
+                (selectedObjectiveUnit.learningObjectives?.length ?? 0) + 1
+              );
+              setMicroSkillObjectiveId(created.id);
+              setMessage(`Added learning objective ${created.title}.`);
+              await refreshTree(token, selectedCurriculumId);
+            });
+          }}
+        >
+          <h2 className="font-medium">Add learning objective</h2>
+          <select
+            className="w-full rounded border border-black/20 px-3 py-2"
+            value={objectiveUnitId}
+            onChange={(event) => setObjectiveUnitId(event.target.value)}
+            disabled={!tree || tree.subjects.every((subject) => subject.units.length === 0)}
+          >
+            {(tree?.subjects ?? []).flatMap((subject) =>
+              subject.units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {subject.name} / {unit.name}
+                </option>
+              ))
+            )}
+          </select>
+          <input
+            className="w-full rounded border border-black/20 px-3 py-2"
+            value={objectiveTitle}
+            onChange={(event) => setObjectiveTitle(event.target.value)}
+            placeholder="Learning objective title"
+            required
+          />
+          <button
+            type="submit"
+            disabled={busy || !objectiveUnitId}
+            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+          >
+            Add learning objective
+          </button>
+        </form>
+
+        <form
+          className="rounded-lg border border-black/10 p-6 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!selectedCurriculumId || !selectedObjective) {
+              setError("Add a learning objective first.");
+              return;
+            }
+            void run(async () => {
+              const created = await createMicroSkill(
+                token,
+                selectedCurriculumId,
+                selectedObjective.subjectId,
+                selectedObjective.unitId,
+                selectedObjective.id,
+                microSkillName,
+                selectedObjective.microSkills.length + 1
+              );
+              setMessage(`Added micro-skill ${created.name} (id ${created.id}).`);
+              await refreshTree(token, selectedCurriculumId);
+            });
+          }}
+        >
+          <h2 className="font-medium">Add micro-skill</h2>
+          <select
+            className="w-full rounded border border-black/20 px-3 py-2"
+            value={microSkillObjectiveId}
+            onChange={(event) => setMicroSkillObjectiveId(event.target.value)}
+            disabled={
+              !tree ||
+              tree.subjects.every((subject) =>
+                subject.units.every((unit) => unit.learningObjectives.length === 0)
+              )
+            }
+          >
+            {(tree?.subjects ?? []).flatMap((subject) =>
+              subject.units.flatMap((unit) =>
+                unit.learningObjectives.map((objective) => (
+                  <option key={objective.id} value={objective.id}>
+                    {subject.name} / {unit.name} / {objective.title}
+                  </option>
+                ))
+              )
+            )}
+          </select>
+          <input
+            className="w-full rounded border border-black/20 px-3 py-2"
+            value={microSkillName}
+            onChange={(event) => setMicroSkillName(event.target.value)}
+            placeholder="Micro-skill name"
+            required
+          />
+          <button
+            type="submit"
+            disabled={busy || !microSkillObjectiveId}
+            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+          >
+            Add micro-skill
           </button>
         </form>
       </div>
