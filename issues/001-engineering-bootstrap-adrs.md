@@ -1,12 +1,12 @@
 ## Type
 
-HITL
+HITL — **Completed**
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (Ch.1–3), `ABC.md` (Ch.2)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (Ch.1–3), `docs/architecture/TD-001-technical-architecture.md` (Ch.2)
 
 ## What to build
 
@@ -18,11 +18,11 @@ This slice produces documentation only — no application services yet. Human re
 
 ## Acceptance criteria
 
-- [ ] `docs/adr/` directory exists with at least 5 ADRs (stack, monorepo, database, auth, messaging)
-- [ ] Each ADR follows a consistent format: context, decision, consequences
-- [ ] ADRs align with TD-001 technology recommendations and EP-001 engineering standards
-- [ ] A root `README.md` section links to ADRs and describes how to start development
-- [ ] Human has reviewed and approved all ADRs (record approval date in each ADR)
+- [x] `docs/adr/` directory exists with at least 5 ADRs (stack, monorepo, database, auth, messaging)
+- [x] Each ADR follows a consistent format: context, decision, consequences
+- [x] ADRs align with TD-001 technology recommendations and EP-001 engineering standards
+- [x] A root `README.md` section links to ADRs and describes how to start development
+- [x] Human has reviewed and approved all ADRs (record approval date in each ADR) — Saman, 2026-08-28
 
 ## Blocked by
 

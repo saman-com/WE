@@ -4,9 +4,9 @@ HITL
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (§18.16), `BP-001_WE_Platform_Business_Package.md` (§16.6)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (§18.16), `docs/product/BP-001-business-package.md` (§16.6)
 
 ## What to build
 
@@ -31,5 +31,5 @@ Produce a `docs/validation/pilot-gate-report.md` documenting pass/fail for each 
 ## User stories addressed
 
 - EP-001 §18.16 (Validation Gates)
-- BP-001 §16.6 (Starting with a Pilot Programme)
+- `docs/product/BP-001-business-package.md` §16.6 (Starting with a Pilot Programme)
 - SP-001 Ch.3 (Complete Educational Workflow — Stages 1–12)

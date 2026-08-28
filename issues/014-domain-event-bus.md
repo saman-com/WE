@@ -4,9 +4,9 @@ AFK
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (Ch.10), `ABC.md` (§2.8)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (Ch.10), `docs/architecture/TD-001-technical-architecture.md` (§2.8)
 
 ## What to build
 

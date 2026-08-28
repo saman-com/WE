@@ -4,9 +4,9 @@ AFK
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (§18.11)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (§18.11)
 
 ## What to build
 
@@ -31,4 +31,4 @@ Includes: tenant ID on all tables, middleware for tenant resolution, migration o
 
 - SP-001 Ch.21 (System Administration and Platform Configuration)
 - EP-001 §18.11 (Phase 7 — Multi-School Deployment)
-- ABC.md (multi-tenancy architecture)
+- `docs/architecture/TD-001-technical-architecture.md` (multi-tenancy architecture)

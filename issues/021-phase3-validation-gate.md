@@ -4,9 +4,9 @@ HITL
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (§18.16)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (§18.16)
 
 ## What to build
 

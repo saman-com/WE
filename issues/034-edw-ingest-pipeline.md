@@ -4,9 +4,9 @@ AFK
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC.md` (Ch.14)
+Supporting references: `docs/architecture/TD-001-technical-architecture.md` (Ch.14)
 
 ## What to build
 
@@ -30,5 +30,5 @@ Includes: EDW ingest service, event subscribers, analytics schema (star/snowflak
 ## User stories addressed
 
 - SP-001 Ch.18 (Reporting and Analytics — data warehouse)
-- ABC.md Ch.14 (Learning Analytics, Reporting & Data Warehouse)
+- `docs/architecture/TD-001-technical-architecture.md` Ch.14 (Learning Analytics, Reporting & Data Warehouse)
 - EP-001 §18.10 (Phase 6 — Advanced Analytics)

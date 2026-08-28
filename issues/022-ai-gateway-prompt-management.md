@@ -4,9 +4,9 @@ HITL
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (Ch.12), `ABC.md` (Ch.10)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (Ch.12), `docs/architecture/TD-001-technical-architecture.md` (Ch.10)
 
 ## What to build
 
@@ -32,4 +32,4 @@ Includes: AI Gateway service, prompt registry in `ai/prompts/`, provider adapter
 
 - SP-001 Ch.19 (AI Assistant and Intelligent Services)
 - EP-001 Ch.12 (Artificial Intelligence Implementation Guide)
-- ABC.md Ch.10 (AI Architecture)
+- `docs/architecture/TD-001-technical-architecture.md` Ch.10 (AI Architecture)

@@ -4,9 +4,9 @@ HITL
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
-Supporting references: `ABC_EP001.md` (§18.16)
+Supporting references: `docs/engineering/EP-001-engineering-package.md` (§18.16)
 
 ## What to build
 
@@ -31,4 +31,4 @@ Conduct the Phase 8 and final platform validation gate. Human review checkpoint 
 - EP-001 §18.16 (Validation Gates)
 - EP-001 §18.12 (Phase 8 — National Education Platform)
 - SP-001 Ch.1 (Introduction — complete platform vision)
-- BP-001 (Educational Framework — vision fulfilled)
+- `docs/product/BP-001-business-package.md` (Educational Framework — vision fulfilled)

@@ -4,7 +4,7 @@ AFK
 
 ## Parent PRD
 
-`SP-001_WE_Platform_Functional_Specification.md`
+`docs/product/SP-001-functional-specification.md`
 
 ## What to build
 
