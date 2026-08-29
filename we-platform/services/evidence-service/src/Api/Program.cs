@@ -7,7 +7,7 @@ using EvidenceService.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEvidenceInfrastructure(builder.Configuration);
+builder.Services.AddEvidenceInfrastructure(builder.Configuration, builder.Environment);
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["Key"]

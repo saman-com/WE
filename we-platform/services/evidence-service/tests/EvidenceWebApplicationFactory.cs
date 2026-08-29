@@ -10,6 +10,7 @@ public sealed class EvidenceWebApplicationFactory : WebApplicationFactory<Progra
 {
     public FakeClassAccessChecker AccessChecker { get; } = new();
     public FakeStudentLearningProfileClient ProfileClient { get; } = new();
+    public FakeDomainEventPublisher EventPublisher { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -20,6 +21,8 @@ public sealed class EvidenceWebApplicationFactory : WebApplicationFactory<Progra
             services.AddSingleton<IClassAccessChecker>(AccessChecker);
             services.RemoveAll<IStudentLearningProfileClient>();
             services.AddSingleton<IStudentLearningProfileClient>(ProfileClient);
+            services.RemoveAll<IDomainEventPublisher>();
+            services.AddSingleton<IDomainEventPublisher>(EventPublisher);
         });
     }
 }

@@ -157,6 +157,9 @@ services:
       ConnectionStrings__EvidenceDb: Host=postgres;Port=5432;Database=we_evidence;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
       StudentLearning__BaseUrl: http://student-learning-service:8080
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -167,6 +170,23 @@ services:
         condition: service_started
       student-learning-service:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  event-subscriber-service:
+    build:
+      context: .
+      dockerfile: services/event-subscriber-service/Dockerfile
+    ports:
+      - "8087:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_data:

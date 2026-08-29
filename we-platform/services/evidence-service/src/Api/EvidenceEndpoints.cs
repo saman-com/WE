@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using EvidenceService.Application;
 using EvidenceService.Domain;
 using EvidenceService.Infrastructure.Data;
+using EvidenceService.Infrastructure.Messaging;
 
 namespace EvidenceService.Api;
 
@@ -28,6 +29,7 @@ public static class EvidenceEndpoints
         EvidenceDbContext db,
         IClassAccessChecker accessChecker,
         IStudentLearningProfileClient profileClient,
+        IDomainEventPublisher eventPublisher,
         HttpContext httpContext)
     {
         if (!principal.IsTeacher())
@@ -93,6 +95,9 @@ public static class EvidenceEndpoints
 
         db.Evidence.Add(evidence);
         await db.SaveChangesAsync();
+
+        await eventPublisher.PublishEvidenceCreatedAsync(EvidenceApprovalEventFactory.CreateEvidenceCreated(evidence));
+        await eventPublisher.PublishAssessmentApprovedAsync(EvidenceApprovalEventFactory.CreateAssessmentApproved(evidence));
 
         await profileClient.RecordEvidenceAsync(
             evidence.StudentUserId,

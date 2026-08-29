@@ -4,11 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>WePlatform.Events</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\shared\events\WePlatform.Events.csproj" />
-    <ProjectReference Include="..\Domain\EvidenceService.Domain.csproj" />
-  </ItemGroup>
 
 </Project>
