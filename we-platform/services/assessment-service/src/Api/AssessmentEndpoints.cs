@@ -15,6 +15,7 @@ public static class AssessmentEndpoints
 
         api.MapPost("/", CreateAssessment);
         api.MapGet("/", ListAssessments);
+        api.MapGet("/class-summary", ListClassAssessmentSummary);
         api.MapGet("/{assessmentId:guid}", GetAssessment);
         api.MapPut("/{assessmentId:guid}", UpdateAssessment);
         api.MapPost("/{assessmentId:guid}/publish", PublishAssessment);
@@ -128,6 +129,50 @@ public static class AssessmentEndpoints
         }
 
         return Results.Ok(visible.Select(ToResponse).ToList());
+    }
+
+    private static async Task<IResult> ListClassAssessmentSummary(
+        Guid organisationId,
+        Guid classId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            organisationId,
+            classId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var assessments = await db.Assessments
+            .Include(a => a.Submissions)
+            .Where(a => a.OrganisationId == organisationId && a.ClassId == classId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+
+        var summaries = assessments
+            .Select(a => new ClassAssessmentSummaryResponse(
+                a.Id,
+                a.Title,
+                a.Status,
+                a.DueAt,
+                a.Submissions.Count,
+                0))
+            .ToList();
+
+        return Results.Ok(summaries);
     }
 
     private static async Task<IResult> GetAssessment(

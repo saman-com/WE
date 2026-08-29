@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/auth";
+import { login, fetchProfile } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +19,12 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       localStorage.setItem("we_access_token", result.accessToken);
-      router.push("/dashboard");
+      const profile = await fetchProfile(result.accessToken);
+      if (profile.roles.includes("Teacher")) {
+        router.push("/teacher");
+      } else {
+        router.push("/dashboard");
+      }
     } catch {
       setError("Login failed. Check your email and password.");
     } finally {

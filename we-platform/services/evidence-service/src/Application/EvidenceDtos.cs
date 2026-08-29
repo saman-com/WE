@@ -23,3 +23,7 @@ public record EvidenceResponse(
     IReadOnlyList<MicroSkillMarkResponse> MicroSkillMarks,
     string ApprovedByTeacherUserId,
     DateTimeOffset ApprovedAt);
+
+public record ClassEvidenceSummaryResponse(
+    Guid AssessmentId,
+    int ReviewedCount);

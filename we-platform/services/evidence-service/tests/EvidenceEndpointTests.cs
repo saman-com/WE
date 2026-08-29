@@ -216,6 +216,63 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
         Assert.Equal(recordedBefore, _profileClient.Recorded.Count);
     }
 
+    [Fact]
+    public async Task Teacher_CanViewClassEvidenceSummary()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        var assessmentId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        await ApproveAsync(
+            teacherId,
+            organisationId,
+            classId,
+            assessmentId,
+            Guid.CreateVersion7(),
+            studentId,
+            "Quiz evidence",
+            Guid.CreateVersion7(),
+            4,
+            "Good work.");
+
+        var summaries = await SendAsAsync<List<ClassEvidenceSummaryResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/evidence/class-summary?organisationId={organisationId}&classId={classId}",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Contains(summaries, item => item.AssessmentId == assessmentId && item.ReviewedCount == 1);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewClassEvidenceSummaryForUnassignedClass()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/evidence/class-summary?organisationId={organisationId}&classId={classId}",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    {
+        using var request = TestJwt.Authorized(method, url, userId, role);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>()
+            ?? throw new InvalidOperationException("Missing response payload.");
+    }
+
     private async Task<EvidenceResponse> ApproveAsync(
         string teacherId,
         Guid organisationId,

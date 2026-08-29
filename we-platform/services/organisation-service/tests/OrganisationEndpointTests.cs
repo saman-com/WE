@@ -8,11 +8,15 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
 {
     private readonly HttpClient _client;
     private readonly FakeStudentLearningProfileClient _profileClient;
+    private readonly FakeAssessmentDashboardClient _assessmentClient;
+    private readonly FakeEvidenceDashboardClient _evidenceClient;
 
     public OrganisationEndpointTests(OrganisationWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         _profileClient = factory.ProfileClient;
+        _assessmentClient = factory.AssessmentClient;
+        _evidenceClient = factory.EvidenceClient;
     }
 
     [Fact]
@@ -282,6 +286,88 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             teacherId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(enrollmentsRequest)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_CanViewClassDashboardForAssignedClass()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var assessmentId = Guid.CreateVersion7();
+        var latestActivity = DateTimeOffset.UtcNow;
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Willow School", UniqueCode("WIL"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 5", 5);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "5A", UniqueCode("5A"));
+
+        await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        _assessmentClient.Summaries =
+        [
+            new AssessmentSummaryData(assessmentId, "Unit Quiz", "Published", DateTimeOffset.UtcNow.AddDays(3), 2)
+        ];
+        _evidenceClient.Summaries = [new EvidenceSummaryData(assessmentId, 1)];
+        _profileClient.Summaries[studentId] = new StudentProfileSummaryData(studentId, 3, latestActivity);
+
+        var dashboard = await SendAsAsync<ClassDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/dashboard",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Equal(schoolClass.Id, dashboard.Class.Id);
+        Assert.Single(dashboard.Roster);
+        Assert.Equal(studentId, dashboard.Roster[0].StudentUserId);
+        Assert.Equal(3, dashboard.Roster[0].EvidenceCount);
+        Assert.Equal(latestActivity, dashboard.Roster[0].LatestActivityAt);
+        Assert.Single(dashboard.RecentAssessments);
+        Assert.Equal("Unit Quiz", dashboard.RecentAssessments[0].Title);
+        Assert.Equal(2, dashboard.RecentAssessments[0].SubmissionCount);
+        Assert.Equal(1, dashboard.RecentAssessments[0].ReviewedCount);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewClassDashboardForUnassignedClass()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var otherTeacherId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Birch School", UniqueCode("BIR"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 7", 7);
+        var assigned = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "7A", UniqueCode("7A"));
+        var other = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "7B", UniqueCode("7B"));
+
+        await AssignTeacherAsync(adminId, org.Id, assigned.Id, teacherId);
+        await AssignTeacherAsync(adminId, org.Id, other.Id, otherTeacherId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{other.Id}/dashboard",
+            teacherId,
+            TestJwt.TeacherRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Student_CannotViewClassDashboard()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Elm School", UniqueCode("ELM"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 8", 8);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "8A", UniqueCode("8A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/dashboard",
+            studentId,
+            TestJwt.StudentRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
 
     [Fact]

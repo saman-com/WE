@@ -183,6 +183,61 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     }
 
     [Fact]
+    public async Task Teacher_CanViewStudentProfileSummary()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var evidenceId = Guid.CreateVersion7();
+        var assessmentId = Guid.CreateVersion7();
+        var microSkillId = Guid.CreateVersion7();
+        var recordedAt = DateTimeOffset.UtcNow;
+        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        _accessChecker.Allow(teacherId, studentId);
+
+        using var recordRequest = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/students/{studentId}/profile/evidence",
+            teacherId,
+            TestJwt.TeacherRole);
+        recordRequest.Content = JsonContent.Create(new RecordProfileEvidenceRequest(
+            evidenceId,
+            assessmentId,
+            [microSkillId],
+            "Quiz 1 evidence",
+            recordedAt));
+        Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(recordRequest)).StatusCode);
+
+        var summary = await SendAsAsync<StudentProfileSummaryResponse>(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/profile/summary",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Equal(studentId, summary.StudentUserId);
+        Assert.Equal(1, summary.EvidenceCount);
+        Assert.NotNull(summary.LatestActivityAt);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewProfileSummaryOutsideClass()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/profile/summary",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetProfile_ReturnsNotFoundWhenMissing()
     {
         var adminId = Guid.NewGuid().ToString();

@@ -103,6 +103,9 @@ export default function DashboardPage() {
         {profile.roles.includes("SystemAdministrator") ||
         profile.roles.includes("Teacher") ? (
           <>
+            <Link href="/teacher" className="text-sm underline">
+              Teacher workspace
+            </Link>
             <Link href="/curriculum" className="text-sm underline">
               Curriculum
             </Link>

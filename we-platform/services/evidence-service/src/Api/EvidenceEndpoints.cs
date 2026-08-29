@@ -15,6 +15,7 @@ public static class EvidenceEndpoints
 
         api.MapPost("/", ApproveEvidence);
         api.MapGet("/", ListEvidence);
+        api.MapGet("/class-summary", ListClassEvidenceSummary);
         api.MapGet("/{evidenceId:guid}", GetEvidence);
         api.MapPut("/{evidenceId:guid}", RejectMutation);
         api.MapDelete("/{evidenceId:guid}", RejectMutation);
@@ -144,6 +145,39 @@ public static class EvidenceEndpoints
         }
 
         return Results.Ok(visible.Select(ToResponse).ToList());
+    }
+
+    private static async Task<IResult> ListClassEvidenceSummary(
+        Guid organisationId,
+        Guid classId,
+        ClaimsPrincipal principal,
+        EvidenceDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            organisationId,
+            classId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var summaries = await db.Evidence
+            .Where(e => e.OrganisationId == organisationId && e.ClassId == classId)
+            .GroupBy(e => e.AssessmentId)
+            .Select(group => new ClassEvidenceSummaryResponse(group.Key, group.Count()))
+            .ToListAsync();
+
+        return Results.Ok(summaries);
     }
 
     private static async Task<IResult> GetEvidence(

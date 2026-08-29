@@ -9,6 +9,8 @@ namespace OrganisationService.Tests;
 public sealed class OrganisationWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeStudentLearningProfileClient ProfileClient { get; } = new();
+    public FakeAssessmentDashboardClient AssessmentClient { get; } = new();
+    public FakeEvidenceDashboardClient EvidenceClient { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -17,6 +19,10 @@ public sealed class OrganisationWebApplicationFactory : WebApplicationFactory<Pr
         {
             services.RemoveAll<IStudentLearningProfileClient>();
             services.AddSingleton<IStudentLearningProfileClient>(ProfileClient);
+            services.RemoveAll<IAssessmentDashboardClient>();
+            services.AddSingleton<IAssessmentDashboardClient>(AssessmentClient);
+            services.RemoveAll<IEvidenceDashboardClient>();
+            services.AddSingleton<IEvidenceDashboardClient>(EvidenceClient);
         });
     }
 }

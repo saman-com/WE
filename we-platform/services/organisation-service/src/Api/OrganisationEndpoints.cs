@@ -38,6 +38,8 @@ public static class OrganisationEndpoints
         api.MapGet("/{organisationId:guid}/classes/{classId:guid}/enrollments", ListEnrollments);
         api.MapPost("/{organisationId:guid}/classes/{classId:guid}/enrollments", EnrollStudent);
         api.MapDelete("/{organisationId:guid}/classes/{classId:guid}/enrollments/{userId}", UnenrollStudent);
+
+        api.MapGet("/{organisationId:guid}/classes/{classId:guid}/dashboard", GetClassDashboard);
     }
 
     private static async Task<IResult> ListOrganisations(
@@ -676,6 +678,77 @@ public static class OrganisationEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> GetClassDashboard(
+        Guid organisationId,
+        Guid classId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        IAssessmentDashboardClient assessmentClient,
+        IEvidenceDashboardClient evidenceClient,
+        IStudentLearningProfileClient profileClient,
+        HttpContext httpContext)
+    {
+        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        if (schoolClass is null)
+        {
+            return Results.NotFound();
+        }
+
+        var access = await EvaluateClassAccessAsync(principal, schoolClass, db);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var assessmentSummaries = await assessmentClient.ListClassAssessmentSummariesAsync(
+            organisationId,
+            classId,
+            bearerToken);
+        var evidenceSummaries = await evidenceClient.ListClassEvidenceSummariesAsync(
+            organisationId,
+            classId,
+            bearerToken);
+        var reviewedByAssessment = evidenceSummaries.ToDictionary(item => item.AssessmentId, item => item.ReviewedCount);
+
+        var rosterTasks = schoolClass.Enrollments
+            .Select(async enrollment =>
+            {
+                var summary = await profileClient.GetProfileSummaryAsync(enrollment.StudentUserId, bearerToken);
+                return new ClassDashboardStudentSummary(
+                    enrollment.StudentUserId,
+                    summary?.EvidenceCount ?? 0,
+                    summary?.LatestActivityAt);
+            })
+            .ToList();
+        var roster = await Task.WhenAll(rosterTasks);
+
+        var recentAssessments = assessmentSummaries
+            .Select(item => new ClassDashboardAssessmentSummary(
+                item.Id,
+                item.Title,
+                item.Status,
+                item.DueAt,
+                item.SubmissionCount,
+                reviewedByAssessment.GetValueOrDefault(item.Id)))
+            .ToList();
+
+        return Results.Ok(new ClassDashboardResponse(
+            ToClass(schoolClass, principal),
+            roster,
+            recentAssessments));
+    }
+
     private static async Task<IResult?> EvaluateClassAccessAsync(
         ClaimsPrincipal principal,
         SchoolClass schoolClass,
@@ -778,4 +851,16 @@ public static class OrganisationEndpoints
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);
+
+    private static string? ExtractBearerToken(string authorizationHeader)
+    {
+        const string prefix = "Bearer ";
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = authorizationHeader[prefix.Length..].Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
 }

@@ -14,6 +14,7 @@ public static class StudentLearningEndpoints
         var api = app.MapGroup("/api/v1/students").RequireAuthorization();
 
         api.MapGet("/{studentUserId}/profile", GetProfile);
+        api.MapGet("/{studentUserId}/profile/summary", GetProfileSummary);
         api.MapPost("/{studentUserId}/profile/enrollments", SyncEnrollment);
         api.MapPost("/{studentUserId}/profile/evidence", RecordEvidence);
     }
@@ -51,6 +52,40 @@ public static class StudentLearningEndpoints
         }
 
         return Results.Ok(ToResponse(profile));
+    }
+
+    private static async Task<IResult> GetProfileSummary(
+        string studentUserId,
+        ClaimsPrincipal principal,
+        StudentLearningDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        var access = await EvaluateProfileAccessAsync(
+            principal,
+            studentUserId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var profile = await db.Profiles
+            .Include(p => p.EvidenceEntries)
+            .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
+
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(ToSummaryResponse(profile));
     }
 
     private static async Task<IResult> SyncEnrollment(
@@ -219,6 +254,18 @@ public static class StudentLearningEndpoints
         }
 
         return Results.Forbid();
+    }
+
+    private static StudentProfileSummaryResponse ToSummaryResponse(StudentLearningProfile profile)
+    {
+        var latest = profile.EvidenceEntries
+            .OrderByDescending(e => e.RecordedAt)
+            .FirstOrDefault();
+
+        return new StudentProfileSummaryResponse(
+            profile.StudentUserId,
+            profile.EvidenceEntries.Count,
+            latest?.RecordedAt);
     }
 
     private static StudentProfileResponse ToResponse(StudentLearningProfile profile) =>

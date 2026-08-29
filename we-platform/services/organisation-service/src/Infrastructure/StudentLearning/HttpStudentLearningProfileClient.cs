@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OrganisationService.Application;
 
 namespace OrganisationService.Infrastructure.StudentLearning;
 
@@ -44,4 +45,50 @@ public sealed class HttpStudentLearningProfileClient(
             response.EnsureSuccessStatusCode();
         }
     }
+
+    public async Task<StudentProfileSummaryData?> GetProfileSummaryAsync(
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["StudentLearning:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            logger.LogWarning("Student learning base URL is not configured.");
+            throw new InvalidOperationException("Student learning service is not configured.");
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}/api/v1/students/{studentUserId}/profile/summary");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning(
+                "Student learning profile summary failed with status {StatusCode}.",
+                response.StatusCode);
+            response.EnsureSuccessStatusCode();
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<ProfileSummaryPayload>(
+            cancellationToken: cancellationToken);
+        return payload is null
+            ? null
+            : new StudentProfileSummaryData(
+                payload.StudentUserId,
+                payload.EvidenceCount,
+                payload.LatestActivityAt);
+    }
+
+    private sealed record ProfileSummaryPayload(
+        string StudentUserId,
+        int EvidenceCount,
+        DateTimeOffset? LatestActivityAt);
 }

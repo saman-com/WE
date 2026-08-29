@@ -30,3 +30,21 @@ public sealed record AssignTeacherRequest(string UserId);
 public sealed record EnrollStudentRequest(string UserId);
 
 public sealed record ClassMemberResponse(string UserId);
+
+public sealed record ClassDashboardStudentSummary(
+    string StudentUserId,
+    int EvidenceCount,
+    DateTimeOffset? LatestActivityAt);
+
+public sealed record ClassDashboardAssessmentSummary(
+    Guid Id,
+    string Title,
+    string Status,
+    DateTimeOffset? DueAt,
+    int SubmissionCount,
+    int ReviewedCount);
+
+public sealed record ClassDashboardResponse(
+    ClassResponse Class,
+    IReadOnlyList<ClassDashboardStudentSummary> Roster,
+    IReadOnlyList<ClassDashboardAssessmentSummary> RecentAssessments);

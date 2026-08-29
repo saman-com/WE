@@ -219,6 +219,58 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
         Assert.Equal(HttpStatusCode.Forbidden, publishResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task Teacher_CanViewClassAssessmentSummary()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Weekly Quiz",
+            null,
+            DateTimeOffset.UtcNow.AddDays(2),
+            [],
+            []);
+        var published = await PublishAssessmentAsync(teacherId, draft.Id);
+
+        var summaries = await SendAsAsync<List<ClassAssessmentSummaryResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Contains(summaries, item => item.Id == published.Id && item.SubmissionCount == 0);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewClassAssessmentSummaryForUnassignedClass()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private async Task<AssessmentResponse> PublishAssessmentAsync(string teacherId, Guid assessmentId) =>
+        await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{assessmentId}/publish",
+            teacherId,
+            TestJwt.TeacherRole);
+
     private async Task<AssessmentResponse> CreateAssessmentAsync(
         string teacherId,
         Guid organisationId,

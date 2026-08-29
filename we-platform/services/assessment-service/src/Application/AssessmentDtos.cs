@@ -43,3 +43,11 @@ public record SubmissionResponse(
     DateTimeOffset SubmittedAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public record ClassAssessmentSummaryResponse(
+    Guid Id,
+    string Title,
+    string Status,
+    DateTimeOffset? DueAt,
+    int SubmissionCount,
+    int ReviewedCount);

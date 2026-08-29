@@ -17,6 +17,11 @@ public sealed record StudentProfileResponse(
     IReadOnlyList<ClassEnrollmentSummary> Enrollments,
     IReadOnlyList<EvidenceTimelineEntry> EvidenceTimeline);
 
+public sealed record StudentProfileSummaryResponse(
+    string StudentUserId,
+    int EvidenceCount,
+    DateTimeOffset? LatestActivityAt);
+
 public sealed record SyncProfileEnrollmentRequest(
     Guid OrganisationId,
     Guid ClassId,
