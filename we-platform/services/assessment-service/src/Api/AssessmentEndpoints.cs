@@ -1,0 +1,456 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using AssessmentService.Application;
+using AssessmentService.Domain;
+using AssessmentService.Infrastructure.Data;
+
+namespace AssessmentService.Api;
+
+public static class AssessmentEndpoints
+{
+    public static void MapAssessmentEndpoints(this WebApplication app)
+    {
+        var api = app.MapGroup("/api/v1/assessments").RequireAuthorization();
+
+        api.MapPost("/", CreateAssessment);
+        api.MapGet("/", ListAssessments);
+        api.MapGet("/{assessmentId:guid}", GetAssessment);
+        api.MapPut("/{assessmentId:guid}", UpdateAssessment);
+        api.MapPost("/{assessmentId:guid}/publish", PublishAssessment);
+        api.MapDelete("/{assessmentId:guid}", DeleteAssessment);
+    }
+
+    private static async Task<IResult> CreateAssessment(
+        CreateAssessmentRequest request,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return Results.BadRequest();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            request.OrganisationId,
+            request.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var assessment = new Assessment
+        {
+            Id = Guid.CreateVersion7(),
+            OrganisationId = request.OrganisationId,
+            ClassId = request.ClassId,
+            CreatedByTeacherUserId = principal.UserId(),
+            Title = request.Title.Trim(),
+            Instructions = string.IsNullOrWhiteSpace(request.Instructions) ? null : request.Instructions.Trim(),
+            DueAt = request.DueAt,
+            Status = AssessmentStatuses.Draft,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        ApplyCurriculumLinks(assessment, request.LearningObjectiveIds, request.MicroSkillIds);
+        db.Assessments.Add(assessment);
+        await db.SaveChangesAsync();
+
+        var saved = await LoadAssessmentAsync(db, assessment.Id);
+        return Results.Created($"/api/v1/assessments/{assessment.Id}", ToResponse(saved!));
+    }
+
+    private static async Task<IResult> ListAssessments(
+        Guid? organisationId,
+        Guid? classId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (principal.IsStudent() && !classId.HasValue)
+        {
+            return Results.BadRequest();
+        }
+
+        var query = db.Assessments
+            .Include(a => a.LearningObjectives)
+            .Include(a => a.MicroSkills)
+            .AsQueryable();
+
+        if (organisationId.HasValue)
+        {
+            query = query.Where(a => a.OrganisationId == organisationId.Value);
+        }
+
+        if (classId.HasValue)
+        {
+            query = query.Where(a => a.ClassId == classId.Value);
+        }
+
+        if (principal.IsStudent())
+        {
+            query = query.Where(a => a.Status == AssessmentStatuses.Published);
+        }
+
+        var assessments = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
+        var visible = new List<Assessment>();
+
+        foreach (var assessment in assessments)
+        {
+            var access = await EvaluateViewAccessAsync(
+                principal,
+                assessment.OrganisationId,
+                assessment.ClassId,
+                assessment.Status,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (access is null)
+            {
+                visible.Add(assessment);
+            }
+        }
+
+        return Results.Ok(visible.Select(ToResponse).ToList());
+    }
+
+    private static async Task<IResult> GetAssessment(
+        Guid assessmentId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        var access = await EvaluateViewAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            assessment.Status,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        return Results.Ok(ToResponse(assessment));
+    }
+
+    private static async Task<IResult> UpdateAssessment(
+        Guid assessmentId,
+        UpdateAssessmentRequest request,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (assessment.Status != AssessmentStatuses.Draft)
+        {
+            return Results.Conflict();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return Results.BadRequest();
+        }
+
+        assessment.Title = request.Title.Trim();
+        assessment.Instructions = string.IsNullOrWhiteSpace(request.Instructions) ? null : request.Instructions.Trim();
+        assessment.DueAt = request.DueAt;
+        assessment.UpdatedAt = DateTimeOffset.UtcNow;
+
+        db.AssessmentLearningObjectives.RemoveRange(assessment.LearningObjectives);
+        db.AssessmentMicroSkills.RemoveRange(assessment.MicroSkills);
+        assessment.LearningObjectives.Clear();
+        assessment.MicroSkills.Clear();
+        ApplyCurriculumLinks(assessment, request.LearningObjectiveIds, request.MicroSkillIds);
+
+        await db.SaveChangesAsync();
+
+        var saved = await LoadAssessmentAsync(db, assessmentId);
+        return Results.Ok(ToResponse(saved!));
+    }
+
+    private static async Task<IResult> PublishAssessment(
+        Guid assessmentId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (assessment.Status != AssessmentStatuses.Draft)
+        {
+            return Results.Conflict();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        assessment.Status = AssessmentStatuses.Published;
+        assessment.PublishedAt = now;
+        assessment.UpdatedAt = now;
+        await db.SaveChangesAsync();
+
+        var saved = await LoadAssessmentAsync(db, assessmentId);
+        return Results.Ok(ToResponse(saved!));
+    }
+
+    private static async Task<IResult> DeleteAssessment(
+        Guid assessmentId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (assessment.Status != AssessmentStatuses.Draft)
+        {
+            return Results.Conflict();
+        }
+
+        var access = await EvaluateTeacherClassAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        db.Assessments.Remove(assessment);
+        await db.SaveChangesAsync();
+
+        return Results.NoContent();
+    }
+
+    private static void ApplyCurriculumLinks(
+        Assessment assessment,
+        IReadOnlyList<Guid> learningObjectiveIds,
+        IReadOnlyList<Guid> microSkillIds)
+    {
+        foreach (var learningObjectiveId in learningObjectiveIds.Distinct())
+        {
+            assessment.LearningObjectives.Add(new AssessmentLearningObjective
+            {
+                AssessmentId = assessment.Id,
+                LearningObjectiveId = learningObjectiveId
+            });
+        }
+
+        foreach (var microSkillId in microSkillIds.Distinct())
+        {
+            assessment.MicroSkills.Add(new AssessmentMicroSkill
+            {
+                AssessmentId = assessment.Id,
+                MicroSkillId = microSkillId
+            });
+        }
+    }
+
+    private static async Task<Assessment?> LoadAssessmentAsync(AssessmentDbContext db, Guid assessmentId) =>
+        await db.Assessments
+            .Include(a => a.LearningObjectives)
+            .Include(a => a.MicroSkills)
+            .FirstOrDefaultAsync(a => a.Id == assessmentId);
+
+    private static AssessmentResponse ToResponse(Assessment assessment) =>
+        new(
+            assessment.Id,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            assessment.Title,
+            assessment.Instructions,
+            assessment.DueAt,
+            assessment.Status,
+            assessment.PublishedAt,
+            assessment.LearningObjectives.Select(l => l.LearningObjectiveId).ToList(),
+            assessment.MicroSkills.Select(m => m.MicroSkillId).ToList(),
+            assessment.CreatedByTeacherUserId,
+            assessment.CreatedAt,
+            assessment.UpdatedAt);
+
+    private static bool CanManageAssessments(ClaimsPrincipal principal) =>
+        principal.IsAdmin() || principal.IsTeacher();
+
+    private static async Task<IResult?> EvaluateTeacherClassAccessAsync(
+        ClaimsPrincipal principal,
+        Guid organisationId,
+        Guid classId,
+        IClassAccessChecker accessChecker,
+        string authorizationHeader)
+    {
+        if (principal.IsAdmin())
+        {
+            return null;
+        }
+
+        if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        var token = ExtractBearerToken(authorizationHeader);
+        if (token is null)
+        {
+            return Results.Forbid();
+        }
+
+        var allowed = await accessChecker.TeacherCanManageClassAsync(
+            principal.UserId(),
+            organisationId,
+            classId,
+            token);
+        return allowed ? null : Results.Forbid();
+    }
+
+    private static async Task<IResult?> EvaluateViewAccessAsync(
+        ClaimsPrincipal principal,
+        Guid organisationId,
+        Guid classId,
+        string status,
+        IClassAccessChecker accessChecker,
+        string authorizationHeader)
+    {
+        if (principal.IsAdmin())
+        {
+            return null;
+        }
+
+        if (principal.IsStudent())
+        {
+            if (status != AssessmentStatuses.Published)
+            {
+                return Results.NotFound();
+            }
+
+            var token = ExtractBearerToken(authorizationHeader);
+            if (token is null)
+            {
+                return Results.Forbid();
+            }
+
+            var enrolled = await accessChecker.StudentIsEnrolledInClassAsync(
+                principal.UserId(),
+                organisationId,
+                classId,
+                token);
+            return enrolled ? null : Results.Forbid();
+        }
+
+        if (principal.IsTeacher())
+        {
+            var token = ExtractBearerToken(authorizationHeader);
+            if (token is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await accessChecker.TeacherCanManageClassAsync(
+                principal.UserId(),
+                organisationId,
+                classId,
+                token);
+            return allowed ? null : Results.Forbid();
+        }
+
+        return Results.Forbid();
+    }
+
+    private static string? ExtractBearerToken(string authorizationHeader)
+    {
+        const string prefix = "Bearer ";
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = authorizationHeader[prefix.Length..].Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+
+    private static string UserId(this ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? string.Empty;
+
+    private static bool IsAdmin(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SystemAdministrator);
+
+    private static bool IsTeacher(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsStudent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Student);
+}

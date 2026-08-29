@@ -102,9 +102,14 @@ export default function DashboardPage() {
 
         {profile.roles.includes("SystemAdministrator") ||
         profile.roles.includes("Teacher") ? (
-          <Link href="/curriculum" className="text-sm underline">
-            Curriculum
-          </Link>
+          <>
+            <Link href="/curriculum" className="text-sm underline">
+              Curriculum
+            </Link>
+            <Link href="/assessments" className="text-sm underline">
+              Assessments
+            </Link>
+          </>
         ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">

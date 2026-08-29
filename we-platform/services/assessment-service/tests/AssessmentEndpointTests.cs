@@ -1,0 +1,260 @@
+using System.Net;
+using System.Net.Http.Json;
+using AssessmentService.Application;
+using AssessmentService.Domain;
+
+namespace AssessmentService.Tests;
+
+public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFactory>
+{
+    private readonly HttpClient _client;
+    private readonly FakeClassAccessChecker _accessChecker;
+
+    public AssessmentEndpointTests(AssessmentWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient();
+        _accessChecker = factory.AccessChecker;
+    }
+
+    [Fact]
+    public async Task UnauthenticatedRequest_ReturnsUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/v1/assessments");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_CanCreateDraftAssessment_LinkedToClassAndCurriculumIds()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        var learningObjectiveId = Guid.NewGuid();
+        var microSkillId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var assessment = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Unit 3 Quiz",
+            "Complete all questions.",
+            DateTimeOffset.UtcNow.AddDays(7),
+            [learningObjectiveId],
+            [microSkillId]);
+
+        Assert.Equal("Unit 3 Quiz", assessment.Title);
+        Assert.Equal(AssessmentStatuses.Draft, assessment.Status);
+        Assert.Equal(classId, assessment.ClassId);
+        Assert.Equal(organisationId, assessment.OrganisationId);
+        Assert.Contains(learningObjectiveId, assessment.LearningObjectiveIds);
+        Assert.Contains(microSkillId, assessment.MicroSkillIds);
+        Assert.Null(assessment.PublishedAt);
+    }
+
+    [Fact]
+    public async Task Teacher_CanPublishAssessment_DraftBecomesPublished()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Midterm",
+            null,
+            null,
+            [],
+            []);
+
+        var published = await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{draft.Id}/publish",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Equal(AssessmentStatuses.Published, published.Status);
+        Assert.NotNull(published.PublishedAt);
+    }
+
+    [Fact]
+    public async Task Student_CannotCreateAssessment()
+    {
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/assessments",
+            studentId,
+            TestJwt.StudentRole);
+        request.Content = JsonContent.Create(new CreateAssessmentRequest(
+            organisationId,
+            classId,
+            "Student attempt",
+            null,
+            null,
+            [],
+            []));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Student_CanListPublishedAssessments_ForEnrolledClassOnly()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var otherStudentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+        _accessChecker.AllowStudent(otherStudentId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Draft only",
+            null,
+            null,
+            [],
+            []);
+        var published = await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{draft.Id}/publish",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        var visible = await SendAsAsync<List<AssessmentResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/assessments?organisationId={organisationId}&classId={classId}",
+            studentId,
+            TestJwt.StudentRole);
+
+        Assert.Single(visible);
+        Assert.Equal(published.Id, visible[0].Id);
+    }
+
+    [Fact]
+    public async Task Student_CannotSeeDraftAssessments()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Hidden draft",
+            null,
+            null,
+            [],
+            []);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{draft.Id}",
+            studentId,
+            TestJwt.StudentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_NotAssignedToClass_CannotCreateOrPublish()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var otherTeacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(otherTeacherId, organisationId, classId);
+
+        using var createRequest = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/assessments",
+            teacherId,
+            TestJwt.TeacherRole);
+        createRequest.Content = JsonContent.Create(new CreateAssessmentRequest(
+            organisationId,
+            classId,
+            "Unauthorized",
+            null,
+            null,
+            [],
+            []));
+        var createResponse = await _client.SendAsync(createRequest);
+        Assert.Equal(HttpStatusCode.Forbidden, createResponse.StatusCode);
+
+        var draft = await CreateAssessmentAsync(
+            otherTeacherId,
+            organisationId,
+            classId,
+            "Other teacher draft",
+            null,
+            null,
+            [],
+            []);
+
+        using var publishRequest = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{draft.Id}/publish",
+            teacherId,
+            TestJwt.TeacherRole);
+        var publishResponse = await _client.SendAsync(publishRequest);
+        Assert.Equal(HttpStatusCode.Forbidden, publishResponse.StatusCode);
+    }
+
+    private async Task<AssessmentResponse> CreateAssessmentAsync(
+        string teacherId,
+        Guid organisationId,
+        Guid classId,
+        string title,
+        string? instructions,
+        DateTimeOffset? dueAt,
+        IReadOnlyList<Guid> learningObjectiveIds,
+        IReadOnlyList<Guid> microSkillIds)
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/assessments",
+            teacherId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateAssessmentRequest(
+            organisationId,
+            classId,
+            title,
+            instructions,
+            dueAt,
+            learningObjectiveIds,
+            microSkillIds));
+
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return await response.Content.ReadFromJsonAsync<AssessmentResponse>()
+            ?? throw new InvalidOperationException("Missing assessment payload.");
+    }
+
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    {
+        using var request = TestJwt.Authorized(method, url, userId, role);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>()
+            ?? throw new InvalidOperationException("Missing response payload.");
+    }
+}

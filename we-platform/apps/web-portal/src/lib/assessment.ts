@@ -1,0 +1,127 @@
+const assessmentApiUrl =
+  process.env.NEXT_PUBLIC_ASSESSMENT_API_URL ?? "http://localhost:8085";
+
+export type Assessment = {
+  id: string;
+  organisationId: string;
+  classId: string;
+  title: string;
+  instructions: string | null;
+  dueAt: string | null;
+  status: string;
+  publishedAt: string | null;
+  learningObjectiveIds: string[];
+  microSkillIds: string[];
+  createdByTeacherUserId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateAssessmentInput = {
+  organisationId: string;
+  classId: string;
+  title: string;
+  instructions?: string | null;
+  dueAt?: string | null;
+  learningObjectiveIds: string[];
+  microSkillIds: string[];
+};
+
+export type UpdateAssessmentInput = {
+  title: string;
+  instructions?: string | null;
+  dueAt?: string | null;
+  learningObjectiveIds: string[];
+  microSkillIds: string[];
+};
+
+async function assessmentRequest<T>(
+  token: string,
+  path: string,
+  init?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${assessmentApiUrl}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Assessment request failed (${response.status}).`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export function listAssessments(
+  token: string,
+  organisationId: string,
+  classId: string
+): Promise<Assessment[]> {
+  const params = new URLSearchParams({
+    organisationId,
+    classId,
+  });
+  return assessmentRequest<Assessment[]>(
+    token,
+    `/api/v1/assessments?${params.toString()}`
+  );
+}
+
+export function createAssessment(
+  token: string,
+  input: CreateAssessmentInput
+): Promise<Assessment> {
+  return assessmentRequest<Assessment>(token, "/api/v1/assessments", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAssessment(
+  token: string,
+  assessmentId: string,
+  input: UpdateAssessmentInput
+): Promise<Assessment> {
+  return assessmentRequest<Assessment>(
+    token,
+    `/api/v1/assessments/${assessmentId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }
+  );
+}
+
+export function publishAssessment(
+  token: string,
+  assessmentId: string
+): Promise<Assessment> {
+  return assessmentRequest<Assessment>(
+    token,
+    `/api/v1/assessments/${assessmentId}/publish`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export function deleteAssessment(
+  token: string,
+  assessmentId: string
+): Promise<void> {
+  return assessmentRequest<void>(
+    token,
+    `/api/v1/assessments/${assessmentId}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
