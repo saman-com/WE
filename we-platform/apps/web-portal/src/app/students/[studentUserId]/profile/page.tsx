@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
+import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
 
 export default function StudentProfilePage() {
@@ -15,6 +16,7 @@ export default function StudentProfilePage() {
   const [viewer, setViewer] = useState<UserProfile | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [diagnostics, setDiagnostics] = useState<StudentDiagnostics | null>(null);
+  const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +50,13 @@ export default function StudentProfilePage() {
             setDiagnostics(studentDiagnostics);
           } catch {
             setDiagnostics({ studentUserId, diagnostics: [] });
+          }
+
+          try {
+            const studentGaps = await fetchStudentGaps(token, studentUserId);
+            setGaps(studentGaps);
+          } catch {
+            setGaps({ studentUserId, gaps: [] });
           }
         }
       })
@@ -135,6 +144,35 @@ export default function StudentProfilePage() {
             </ul>
           )}
         </div>
+
+        {gaps ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-2">
+            <h2 className="font-medium">Learning gaps</h2>
+            {gaps.gaps.length === 0 ? (
+              <p className="text-sm text-black/60">
+                No learning gaps identified yet. Gaps appear when diagnostics show a difference from expected mastery.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {gaps.gaps.map((item) => (
+                  <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
+                    <p className="text-sm font-medium">
+                      {item.severity} severity — {item.urgency} urgency
+                    </p>
+                    <p className="text-xs text-black/60">
+                      Micro-skill: {item.microSkillId}
+                      {item.learningObjectiveId ? ` · LO: ${item.learningObjectiveId}` : null}
+                    </p>
+                    <p className="text-xs text-black/60">
+                      Expected: {item.expectedMastery} · Demonstrated: {item.actualMastery} (mark {item.mark}/5)
+                    </p>
+                    <p className="text-sm">{item.explanation}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
 
         {diagnostics ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">

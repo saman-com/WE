@@ -1,0 +1,54 @@
+using LearningGapService.Application;
+using LearningGapService.Domain;
+using LearningGapService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Events;
+
+namespace LearningGapService.Infrastructure;
+
+public sealed class GapProcessor(
+    GapDbContext db,
+    IGapCalculationEngine calculationEngine) : IGapProcessor
+{
+    public async Task ProcessEvidenceCreatedAsync(
+        EvidenceCreated evidence,
+        CancellationToken cancellationToken = default)
+    {
+        var diagnostics = evidence.MicroSkillMarks
+            .Select(mark => DiagnosticClassifier.ToDiagnosticInput(evidence, mark))
+            .ToList();
+        var calculated = calculationEngine.CalculateFromDiagnostics(diagnostics);
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var gap in calculated)
+        {
+            var exists = await db.Gaps.AnyAsync(
+                g => g.EvidenceId == gap.EvidenceId && g.MicroSkillId == gap.MicroSkillId,
+                cancellationToken);
+            if (exists)
+            {
+                continue;
+            }
+
+            db.Gaps.Add(new LearningGap
+            {
+                Id = Guid.CreateVersion7(),
+                StudentUserId = evidence.StudentUserId,
+                OrganisationId = evidence.OrganisationId,
+                EvidenceId = gap.EvidenceId,
+                AssessmentId = gap.AssessmentId,
+                MicroSkillId = gap.MicroSkillId,
+                LearningObjectiveId = null,
+                ExpectedMastery = gap.ExpectedMastery,
+                ActualMastery = gap.ActualMastery,
+                Mark = gap.Mark,
+                Severity = gap.Severity,
+                Urgency = gap.Urgency,
+                Explanation = gap.Explanation,
+                CreatedAt = now
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
