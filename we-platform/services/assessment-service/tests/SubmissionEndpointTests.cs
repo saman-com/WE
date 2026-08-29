@@ -164,6 +164,63 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
     }
 
     [Fact]
+    public async Task Teacher_CanListSubmissionsForReview()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var published = await PublishAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Review quiz",
+            null);
+        var submitted = await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+
+        var listed = await SendAsAsync<List<SubmissionResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{published.Id}/submissions",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Single(listed);
+        Assert.Equal(submitted.Id, listed[0].Id);
+        Assert.Equal("Student work.", listed[0].Responses);
+    }
+
+    [Fact]
+    public async Task Student_CannotListAllSubmissionsForReview()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var published = await PublishAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Private submissions",
+            null);
+        await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{published.Id}/submissions",
+            studentId,
+            TestJwt.StudentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Student_CannotSubmitToDraftAssessment()
     {
         var teacherId = Guid.NewGuid().ToString();

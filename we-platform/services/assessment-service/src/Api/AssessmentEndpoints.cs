@@ -20,6 +20,7 @@ public static class AssessmentEndpoints
         api.MapPost("/{assessmentId:guid}/publish", PublishAssessment);
         api.MapDelete("/{assessmentId:guid}", DeleteAssessment);
         api.MapPost("/{assessmentId:guid}/submissions", SubmitAssessment);
+        api.MapGet("/{assessmentId:guid}/submissions", ListSubmissions);
         api.MapGet("/{assessmentId:guid}/submissions/me", GetMySubmission);
         api.MapGet("/{assessmentId:guid}/submissions/{submissionId:guid}", GetSubmission);
     }
@@ -365,6 +366,43 @@ public static class AssessmentEndpoints
         return Results.Created(
             $"/api/v1/assessments/{assessmentId}/submissions/{submission.Id}",
             ToSubmissionResponse(submission));
+    }
+
+    private static async Task<IResult> ListSubmissions(
+        Guid assessmentId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        var teacherAccess = await EvaluateTeacherClassAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (teacherAccess is not null)
+        {
+            return teacherAccess;
+        }
+
+        var submissions = await db.Submissions
+            .Where(s => s.AssessmentId == assessmentId)
+            .OrderBy(s => s.SubmittedAt)
+            .ToListAsync();
+
+        return Results.Ok(submissions.Select(ToSubmissionResponse).ToList());
     }
 
     private static async Task<IResult> GetMySubmission(

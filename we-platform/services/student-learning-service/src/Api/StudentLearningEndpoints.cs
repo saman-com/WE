@@ -15,6 +15,7 @@ public static class StudentLearningEndpoints
 
         api.MapGet("/{studentUserId}/profile", GetProfile);
         api.MapPost("/{studentUserId}/profile/enrollments", SyncEnrollment);
+        api.MapPost("/{studentUserId}/profile/evidence", RecordEvidence);
     }
 
     private static async Task<IResult> GetProfile(
@@ -41,6 +42,7 @@ public static class StudentLearningEndpoints
 
         var profile = await db.Profiles
             .Include(p => p.Enrollments)
+            .Include(p => p.EvidenceEntries)
             .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
 
         if (profile is null)
@@ -107,6 +109,81 @@ public static class StudentLearningEndpoints
 
         var saved = await db.Profiles
             .Include(p => p.Enrollments)
+            .Include(p => p.EvidenceEntries)
+            .FirstAsync(p => p.Id == profile.Id);
+
+        return Results.Ok(ToResponse(saved));
+    }
+
+    private static async Task<IResult> RecordEvidence(
+        string studentUserId,
+        RecordProfileEvidenceRequest request,
+        ClaimsPrincipal principal,
+        StudentLearningDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId) || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return Results.BadRequest();
+        }
+
+        var access = await EvaluateProfileAccessAsync(
+            principal,
+            studentUserId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        if (principal.IsStudent())
+        {
+            return Results.Forbid();
+        }
+
+        var profile = await db.Profiles
+            .Include(p => p.Enrollments)
+            .Include(p => p.EvidenceEntries)
+                .ThenInclude(e => e.MicroSkills)
+            .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (profile.EvidenceEntries.Any(e => e.Id == request.EvidenceId))
+        {
+            return Results.Ok(ToResponse(profile));
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entry = new ProfileEvidenceEntry
+        {
+            Id = request.EvidenceId,
+            ProfileId = profile.Id,
+            AssessmentId = request.AssessmentId,
+            Title = request.Title.Trim(),
+            RecordedAt = request.RecordedAt
+        };
+
+        foreach (var microSkillId in (request.MicroSkillIds ?? []).Distinct())
+        {
+            entry.MicroSkills.Add(new ProfileEvidenceMicroSkill
+            {
+                EvidenceEntryId = request.EvidenceId,
+                MicroSkillId = microSkillId
+            });
+        }
+
+        db.EvidenceEntries.Add(entry);
+        profile.UpdatedAt = now;
+        await db.SaveChangesAsync();
+
+        var saved = await db.Profiles
+            .Include(p => p.Enrollments)
+            .Include(p => p.EvidenceEntries)
             .FirstAsync(p => p.Id == profile.Id);
 
         return Results.Ok(ToResponse(saved));
@@ -156,7 +233,10 @@ public static class StudentLearningEndpoints
                     e.ClassCode,
                     e.EnrolledAt))
                 .ToList(),
-            []);
+            profile.EvidenceEntries
+                .OrderBy(e => e.RecordedAt)
+                .Select(e => new EvidenceTimelineEntry(e.Id, e.Title, e.RecordedAt))
+                .ToList());
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

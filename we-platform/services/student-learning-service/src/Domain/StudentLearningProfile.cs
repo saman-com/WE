@@ -7,4 +7,5 @@ public sealed class StudentLearningProfile
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public List<ProfileClassEnrollment> Enrollments { get; set; } = [];
+    public List<ProfileEvidenceEntry> EvidenceEntries { get; set; } = [];
 }

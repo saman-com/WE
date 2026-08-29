@@ -178,3 +178,13 @@ export function submitAssessment(
     }
   );
 }
+
+export function listSubmissions(
+  token: string,
+  assessmentId: string
+): Promise<AssessmentSubmission[]> {
+  return assessmentRequest<AssessmentSubmission[]>(
+    token,
+    `/api/v1/assessments/${assessmentId}/submissions`
+  );
+}

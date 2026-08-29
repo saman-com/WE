@@ -63,6 +63,9 @@ we-platform/
 | identity-service | 8081 | Authentication (`/api/v1/auth/login`, `/api/v1/auth/me`) |
 | organisation-service | 8082 | Schools, year levels, classes, enrollment (`/api/v1/organisations`) |
 | curriculum-service | 8083 | Curriculum, subjects, units, topics (`/api/v1/curriculum`) |
+| student-learning-service | 8084 | Student Learning Profiles (`/api/v1/students`) |
+| assessment-service | 8085 | Assessments and submissions (`/api/v1/assessments`) |
+| evidence-service | 8086 | Evidence approval and immutability (`/api/v1/evidence`) |
 
 ## Development
 

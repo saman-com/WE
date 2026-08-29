@@ -145,6 +145,44 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     }
 
     [Fact]
+    public async Task Teacher_RecordEvidence_AppearsOnSlpTimeline()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var evidenceId = Guid.CreateVersion7();
+        var assessmentId = Guid.CreateVersion7();
+        var microSkillId = Guid.CreateVersion7();
+        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        _accessChecker.Allow(teacherId, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/students/{studentId}/profile/evidence",
+            teacherId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new RecordProfileEvidenceRequest(
+            evidenceId,
+            assessmentId,
+            [microSkillId],
+            "Quiz 1 evidence",
+            DateTimeOffset.UtcNow));
+
+        var recordResponse = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, recordResponse.StatusCode);
+
+        var profile = await SendAsAsync<StudentProfileResponse>(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/profile",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Single(profile.EvidenceTimeline);
+        Assert.Equal(evidenceId, profile.EvidenceTimeline[0].Id);
+        Assert.Equal("Quiz 1 evidence", profile.EvidenceTimeline[0].Title);
+    }
+
+    [Fact]
     public async Task GetProfile_ReturnsNotFoundWhenMissing()
     {
         var adminId = Guid.NewGuid().ToString();

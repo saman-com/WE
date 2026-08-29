@@ -22,3 +22,10 @@ public sealed record SyncProfileEnrollmentRequest(
     Guid ClassId,
     string ClassName,
     string ClassCode);
+
+public sealed record RecordProfileEvidenceRequest(
+    Guid EvidenceId,
+    Guid AssessmentId,
+    IReadOnlyList<Guid> MicroSkillIds,
+    string Title,
+    DateTimeOffset RecordedAt);

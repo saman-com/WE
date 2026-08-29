@@ -417,7 +417,14 @@ export default function AssessmentsPage() {
                     >
                       Publish
                     </button>
-                  ) : null}
+                  ) : (
+                    <Link
+                      href={`/assessments/${assessment.id}/review`}
+                      className="text-sm underline"
+                    >
+                      Review submissions
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
