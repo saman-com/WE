@@ -1,0 +1,112 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using DiagnosticService.Application;
+using DiagnosticService.Domain;
+using DiagnosticService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace DiagnosticService.Api;
+
+public static class DiagnosticEndpoints
+{
+    public static void MapDiagnosticEndpoints(this WebApplication app)
+    {
+        var api = app.MapGroup("/api/v1/diagnostics").RequireAuthorization();
+
+        api.MapGet("/students/{studentUserId}", GetStudentDiagnostics);
+    }
+
+    private static async Task<IResult> GetStudentDiagnostics(
+        string studentUserId,
+        ClaimsPrincipal principal,
+        DiagnosticDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        var access = await EvaluateAccessAsync(
+            principal,
+            studentUserId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var diagnostics = await db.Diagnostics
+            .Where(d => d.StudentUserId == studentUserId)
+            .OrderBy(d => d.CreatedAt)
+            .ThenBy(d => d.MicroSkillId)
+            .ToListAsync();
+
+        return Results.Ok(new StudentDiagnosticsResponse(
+            studentUserId,
+            diagnostics.Select(ToResponse).ToList()));
+    }
+
+    private static async Task<IResult?> EvaluateAccessAsync(
+        ClaimsPrincipal principal,
+        string studentUserId,
+        IOrganisationAccessChecker accessChecker,
+        string authorizationHeader)
+    {
+        if (principal.IsAdmin())
+        {
+            return null;
+        }
+
+        var userId = principal.UserId();
+        if (principal.IsTeacher())
+        {
+            var token = ExtractBearerToken(authorizationHeader);
+            if (token is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await accessChecker.TeacherCanViewStudentAsync(userId, studentUserId, token);
+            return allowed ? null : Results.Forbid();
+        }
+
+        return Results.Forbid();
+    }
+
+    private static MicroSkillDiagnosticResponse ToResponse(MicroSkillDiagnostic diagnostic) =>
+        new(
+            diagnostic.Id,
+            diagnostic.EvidenceId,
+            diagnostic.AssessmentId,
+            diagnostic.MicroSkillId,
+            diagnostic.Status,
+            diagnostic.Mark,
+            diagnostic.Reason,
+            diagnostic.CreatedAt);
+
+    private static string? ExtractBearerToken(string authorizationHeader)
+    {
+        const string prefix = "Bearer ";
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = authorizationHeader[prefix.Length..].Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+
+    private static string UserId(this ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? string.Empty;
+
+    private static bool IsAdmin(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SystemAdministrator);
+
+    private static bool IsTeacher(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Teacher);
+}

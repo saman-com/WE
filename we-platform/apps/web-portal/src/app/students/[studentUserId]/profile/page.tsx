@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
 
 export default function StudentProfilePage() {
@@ -13,6 +14,7 @@ export default function StudentProfilePage() {
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [diagnostics, setDiagnostics] = useState<StudentDiagnostics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,6 +39,17 @@ export default function StudentProfilePage() {
         setViewer(loaded);
         const studentProfile = await fetchStudentProfile(token, studentUserId);
         setProfile(studentProfile);
+
+        const isTeacherOrAdmin =
+          loaded.roles.includes("SystemAdministrator") || loaded.roles.includes("Teacher");
+        if (isTeacherOrAdmin) {
+          try {
+            const studentDiagnostics = await fetchStudentDiagnostics(token, studentUserId);
+            setDiagnostics(studentDiagnostics);
+          } catch {
+            setDiagnostics({ studentUserId, diagnostics: [] });
+          }
+        }
       })
       .catch(() => {
         setError("Unable to load student learning profile.");
@@ -122,6 +135,29 @@ export default function StudentProfilePage() {
             </ul>
           )}
         </div>
+
+        {diagnostics ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-2">
+            <h2 className="font-medium">Diagnostic insights</h2>
+            {diagnostics.diagnostics.length === 0 ? (
+              <p className="text-sm text-black/60">
+                No diagnostics yet. Insights appear after approved evidence is analysed.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {diagnostics.diagnostics.map((item) => (
+                  <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
+                    <p className="text-sm font-medium">
+                      {item.status} — mark {item.mark}/5
+                    </p>
+                    <p className="text-xs text-black/60">Micro-skill: {item.microSkillId}</p>
+                    <p className="text-sm">{item.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
