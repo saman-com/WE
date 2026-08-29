@@ -125,3 +125,56 @@ export function deleteAssessment(
     }
   );
 }
+
+export type AssessmentSubmission = {
+  id: string;
+  assessmentId: string;
+  studentUserId: string;
+  responses: string;
+  status: string;
+  isLate: boolean;
+  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getAssessment(
+  token: string,
+  assessmentId: string
+): Promise<Assessment> {
+  return assessmentRequest<Assessment>(token, `/api/v1/assessments/${assessmentId}`);
+}
+
+export function getMySubmission(
+  token: string,
+  assessmentId: string
+): Promise<AssessmentSubmission | null> {
+  return fetch(`${assessmentApiUrl}/api/v1/assessments/${assessmentId}/submissions/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(async (response) => {
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(`Submission request failed (${response.status}).`);
+    }
+    return response.json() as Promise<AssessmentSubmission>;
+  });
+}
+
+export function submitAssessment(
+  token: string,
+  assessmentId: string,
+  responses: string
+): Promise<AssessmentSubmission> {
+  return assessmentRequest<AssessmentSubmission>(
+    token,
+    `/api/v1/assessments/${assessmentId}/submissions`,
+    {
+      method: "POST",
+      body: JSON.stringify({ responses }),
+    }
+  );
+}

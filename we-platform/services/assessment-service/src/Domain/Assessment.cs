@@ -15,4 +15,5 @@ public sealed class Assessment
     public DateTimeOffset UpdatedAt { get; set; }
     public ICollection<AssessmentLearningObjective> LearningObjectives { get; set; } = [];
     public ICollection<AssessmentMicroSkill> MicroSkills { get; set; } = [];
+    public ICollection<AssessmentSubmission> Submissions { get; set; } = [];
 }

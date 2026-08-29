@@ -8,6 +8,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
     public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<AssessmentLearningObjective> AssessmentLearningObjectives => Set<AssessmentLearningObjective>();
     public DbSet<AssessmentMicroSkill> AssessmentMicroSkills => Set<AssessmentMicroSkill>();
+    public DbSet<AssessmentSubmission> Submissions => Set<AssessmentSubmission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +34,8 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
                 .HasForeignKey(e => e.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(e => e.MicroSkills).WithOne(e => e.Assessment)
                 .HasForeignKey(e => e.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Submissions).WithOne(e => e.Assessment)
+                .HasForeignKey(e => e.AssessmentId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AssessmentLearningObjective>(entity =>
@@ -49,6 +52,24 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.HasKey(e => new { e.AssessmentId, e.MicroSkillId });
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
+        });
+
+        modelBuilder.Entity<AssessmentSubmission>(entity =>
+        {
+            entity.ToTable("assessment_submissions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
+            entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
+            entity.Property(e => e.Responses).HasColumnName("responses").IsRequired();
+            entity.Property(e => e.Status).HasColumnName("status").IsRequired();
+            entity.Property(e => e.IsLate).HasColumnName("is_late");
+            entity.Property(e => e.SubmittedAt).HasColumnName("submitted_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(e => e.AssessmentId);
+            entity.HasIndex(e => e.StudentUserId);
+            entity.HasIndex(e => new { e.AssessmentId, e.StudentUserId }).IsUnique();
         });
     }
 }

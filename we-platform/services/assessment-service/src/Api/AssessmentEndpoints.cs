@@ -19,6 +19,9 @@ public static class AssessmentEndpoints
         api.MapPut("/{assessmentId:guid}", UpdateAssessment);
         api.MapPost("/{assessmentId:guid}/publish", PublishAssessment);
         api.MapDelete("/{assessmentId:guid}", DeleteAssessment);
+        api.MapPost("/{assessmentId:guid}/submissions", SubmitAssessment);
+        api.MapGet("/{assessmentId:guid}/submissions/me", GetMySubmission);
+        api.MapGet("/{assessmentId:guid}/submissions/{submissionId:guid}", GetSubmission);
     }
 
     private static async Task<IResult> CreateAssessment(
@@ -295,6 +298,177 @@ public static class AssessmentEndpoints
         return Results.NoContent();
     }
 
+    // Late submissions are accepted after the due date and flagged with IsLate = true
+    // so teachers can review them separately. Students cannot edit after submit.
+    private static async Task<IResult> SubmitAssessment(
+        Guid assessmentId,
+        SubmitAssessmentRequest request,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsStudent())
+        {
+            return Results.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Responses))
+        {
+            return Results.BadRequest();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null || assessment.Status != AssessmentStatuses.Published)
+        {
+            return Results.NotFound();
+        }
+
+        var access = await EvaluateViewAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            assessment.Status,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var studentUserId = principal.UserId();
+        var existing = await db.Submissions.FirstOrDefaultAsync(
+            s => s.AssessmentId == assessmentId && s.StudentUserId == studentUserId);
+        if (existing is not null)
+        {
+            return Results.Conflict();
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var isLate = assessment.DueAt.HasValue && now > assessment.DueAt.Value;
+        var submission = new AssessmentSubmission
+        {
+            Id = Guid.CreateVersion7(),
+            AssessmentId = assessmentId,
+            StudentUserId = studentUserId,
+            Responses = request.Responses.Trim(),
+            Status = SubmissionStatuses.Submitted,
+            IsLate = isLate,
+            SubmittedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        db.Submissions.Add(submission);
+        await db.SaveChangesAsync();
+
+        return Results.Created(
+            $"/api/v1/assessments/{assessmentId}/submissions/{submission.Id}",
+            ToSubmissionResponse(submission));
+    }
+
+    private static async Task<IResult> GetMySubmission(
+        Guid assessmentId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsStudent())
+        {
+            return Results.Forbid();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null || assessment.Status != AssessmentStatuses.Published)
+        {
+            return Results.NotFound();
+        }
+
+        var access = await EvaluateViewAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            assessment.Status,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var submission = await db.Submissions.FirstOrDefaultAsync(
+            s => s.AssessmentId == assessmentId && s.StudentUserId == principal.UserId());
+        if (submission is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(ToSubmissionResponse(submission));
+    }
+
+    private static async Task<IResult> GetSubmission(
+        Guid assessmentId,
+        Guid submissionId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        var submission = await db.Submissions.FirstOrDefaultAsync(
+            s => s.Id == submissionId && s.AssessmentId == assessmentId);
+        if (submission is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (principal.IsStudent())
+        {
+            if (submission.StudentUserId != principal.UserId())
+            {
+                return Results.Forbid();
+            }
+
+            var access = await EvaluateViewAccessAsync(
+                principal,
+                assessment.OrganisationId,
+                assessment.ClassId,
+                assessment.Status,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (access is not null)
+            {
+                return access;
+            }
+
+            return Results.Ok(ToSubmissionResponse(submission));
+        }
+
+        if (CanManageAssessments(principal))
+        {
+            var teacherAccess = await EvaluateTeacherClassAccessAsync(
+                principal,
+                assessment.OrganisationId,
+                assessment.ClassId,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (teacherAccess is not null)
+            {
+                return teacherAccess;
+            }
+
+            return Results.Ok(ToSubmissionResponse(submission));
+        }
+
+        return Results.Forbid();
+    }
+
     private static void ApplyCurriculumLinks(
         Assessment assessment,
         IReadOnlyList<Guid> learningObjectiveIds,
@@ -340,6 +514,18 @@ public static class AssessmentEndpoints
             assessment.CreatedByTeacherUserId,
             assessment.CreatedAt,
             assessment.UpdatedAt);
+
+    private static SubmissionResponse ToSubmissionResponse(AssessmentSubmission submission) =>
+        new(
+            submission.Id,
+            submission.AssessmentId,
+            submission.StudentUserId,
+            submission.Responses,
+            submission.Status,
+            submission.IsLate,
+            submission.SubmittedAt,
+            submission.CreatedAt,
+            submission.UpdatedAt);
 
     private static bool CanManageAssessments(ClaimsPrincipal principal) =>
         principal.IsAdmin() || principal.IsTeacher();

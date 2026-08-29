@@ -30,3 +30,16 @@ public record AssessmentResponse(
     string CreatedByTeacherUserId,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public record SubmitAssessmentRequest(string Responses);
+
+public record SubmissionResponse(
+    Guid Id,
+    Guid AssessmentId,
+    string StudentUserId,
+    string Responses,
+    string Status,
+    bool IsLate,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
