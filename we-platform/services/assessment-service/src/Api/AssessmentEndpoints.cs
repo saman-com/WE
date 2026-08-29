@@ -16,6 +16,7 @@ public static class AssessmentEndpoints
         api.MapPost("/", CreateAssessment);
         api.MapGet("/", ListAssessments);
         api.MapGet("/class-summary", ListClassAssessmentSummary);
+        api.MapGet("/student-summary", ListStudentAssessmentSummary);
         api.MapGet("/{assessmentId:guid}", GetAssessment);
         api.MapPut("/{assessmentId:guid}", UpdateAssessment);
         api.MapPost("/{assessmentId:guid}/publish", PublishAssessment);
@@ -170,6 +171,59 @@ public static class AssessmentEndpoints
                 a.DueAt,
                 a.Submissions.Count,
                 0))
+            .ToList();
+
+        return Results.Ok(summaries);
+    }
+
+    private static async Task<IResult> ListStudentAssessmentSummary(
+        Guid organisationId,
+        Guid classId,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsStudent())
+        {
+            return Results.Forbid();
+        }
+
+        var access = await EvaluateViewAccessAsync(
+            principal,
+            organisationId,
+            classId,
+            AssessmentStatuses.Published,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var studentUserId = principal.UserId();
+        var assessments = await db.Assessments
+            .Include(a => a.LearningObjectives)
+            .Include(a => a.Submissions)
+            .Where(a =>
+                a.OrganisationId == organisationId
+                && a.ClassId == classId
+                && a.Status == AssessmentStatuses.Published)
+            .OrderByDescending(a => a.DueAt ?? a.PublishedAt ?? a.CreatedAt)
+            .ToListAsync();
+
+        var summaries = assessments
+            .Select(a =>
+            {
+                var submission = a.Submissions.FirstOrDefault(s => s.StudentUserId == studentUserId);
+                return new StudentAssessmentSummaryResponse(
+                    a.Id,
+                    a.Title,
+                    a.DueAt,
+                    a.LearningObjectives.Select(l => l.LearningObjectiveId).ToList(),
+                    submission is not null,
+                    submission?.SubmittedAt);
+            })
             .ToList();
 
         return Results.Ok(summaries);

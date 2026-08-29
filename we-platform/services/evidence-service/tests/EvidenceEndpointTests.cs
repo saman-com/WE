@@ -264,6 +264,68 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Student_CanViewOwnApprovedFeedback()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var otherStudentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        var assessmentId = Guid.CreateVersion7();
+        var microSkillId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var evidence = await ApproveAsync(
+            teacherId,
+            organisationId,
+            classId,
+            assessmentId,
+            Guid.CreateVersion7(),
+            studentId,
+            "My approved work",
+            microSkillId,
+            4,
+            "Strong reasoning.");
+
+        await ApproveAsync(
+            teacherId,
+            organisationId,
+            classId,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            otherStudentId,
+            "Other student work",
+            microSkillId,
+            3,
+            "Private feedback.");
+
+        var feedback = await SendAsAsync<List<StudentFeedbackResponse>>(
+            HttpMethod.Get,
+            "/api/v1/evidence/student-feedback",
+            studentId,
+            TestJwt.StudentRole);
+
+        Assert.Single(feedback);
+        Assert.Equal(evidence.Id, feedback[0].Id);
+        Assert.Equal("Strong reasoning.", feedback[0].MicroSkillMarks[0].Feedback);
+    }
+
+    [Fact]
+    public async Task Student_CannotViewStudentFeedbackEndpointAsTeacher()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/evidence/student-feedback",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
     {
         using var request = TestJwt.Authorized(method, url, userId, role);

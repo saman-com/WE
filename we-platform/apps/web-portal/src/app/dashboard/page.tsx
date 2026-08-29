@@ -116,9 +116,14 @@ export default function DashboardPage() {
         ) : null}
 
         {profile.roles.includes("Student") ? (
-          <Link href="/student/assessments" className="text-sm underline">
-            My assessments
-          </Link>
+          <>
+            <Link href="/student" className="text-sm underline">
+              Student workspace
+            </Link>
+            <Link href="/student/assessments" className="text-sm underline">
+              My assessments
+            </Link>
+          </>
         ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">

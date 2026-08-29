@@ -11,6 +11,15 @@ public sealed record StudentProfileSummaryData(
     int EvidenceCount,
     DateTimeOffset? LatestActivityAt);
 
+public sealed record StudentProfileTimelineEntryData(
+    Guid Id,
+    string Title,
+    DateTimeOffset RecordedAt);
+
+public sealed record StudentProfileData(
+    string StudentUserId,
+    IReadOnlyList<StudentProfileTimelineEntryData> EvidenceTimeline);
+
 public interface IStudentLearningProfileClient
 {
     Task SyncEnrollmentAsync(
@@ -20,6 +29,11 @@ public interface IStudentLearningProfileClient
         CancellationToken cancellationToken = default);
 
     Task<StudentProfileSummaryData?> GetProfileSummaryAsync(
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
+
+    Task<StudentProfileData?> GetProfileAsync(
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default);

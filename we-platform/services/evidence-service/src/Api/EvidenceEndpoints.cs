@@ -16,6 +16,7 @@ public static class EvidenceEndpoints
         api.MapPost("/", ApproveEvidence);
         api.MapGet("/", ListEvidence);
         api.MapGet("/class-summary", ListClassEvidenceSummary);
+        api.MapGet("/student-feedback", ListStudentFeedback);
         api.MapGet("/{evidenceId:guid}", GetEvidence);
         api.MapPut("/{evidenceId:guid}", RejectMutation);
         api.MapDelete("/{evidenceId:guid}", RejectMutation);
@@ -178,6 +179,36 @@ public static class EvidenceEndpoints
             .ToListAsync();
 
         return Results.Ok(summaries);
+    }
+
+    private static async Task<IResult> ListStudentFeedback(
+        ClaimsPrincipal principal,
+        EvidenceDbContext db)
+    {
+        if (!principal.IsStudent())
+        {
+            return Results.Forbid();
+        }
+
+        var studentUserId = principal.UserId();
+        var items = await db.Evidence
+            .Include(e => e.MicroSkillMarks)
+            .Where(e => e.StudentUserId == studentUserId && e.Status == EvidenceStatuses.Approved)
+            .OrderByDescending(e => e.ApprovedAt)
+            .ToListAsync();
+
+        var feedback = items
+            .Select(e => new StudentFeedbackResponse(
+                e.Id,
+                e.AssessmentId,
+                e.Title,
+                e.ApprovedAt,
+                e.MicroSkillMarks
+                    .Select(m => new MicroSkillMarkResponse(m.MicroSkillId, m.Mark, m.Feedback))
+                    .ToList()))
+            .ToList();
+
+        return Results.Ok(feedback);
     }
 
     private static async Task<IResult> GetEvidence(

@@ -264,6 +264,100 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Student_CanViewAssessmentSummaryWithPendingAndCompleted()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        var learningObjectiveId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var pending = await PublishAssessmentAsync(
+            teacherId,
+            (await CreateAssessmentAsync(
+                teacherId,
+                organisationId,
+                classId,
+                "Pending quiz",
+                null,
+                DateTimeOffset.UtcNow.AddDays(3),
+                [learningObjectiveId],
+                [])).Id);
+        var completed = await PublishAssessmentAsync(
+            teacherId,
+            (await CreateAssessmentAsync(
+                teacherId,
+                organisationId,
+                classId,
+                "Completed quiz",
+                null,
+                DateTimeOffset.UtcNow.AddDays(1),
+                [],
+                [])).Id);
+
+        using var submitRequest = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{completed.Id}/submissions",
+            studentId,
+            TestJwt.StudentRole);
+        submitRequest.Content = JsonContent.Create(new SubmitAssessmentRequest("Done."));
+        Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(submitRequest)).StatusCode);
+
+        var summaries = await SendAsAsync<List<StudentAssessmentSummaryResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
+            studentId,
+            TestJwt.StudentRole);
+
+        Assert.Equal(2, summaries.Count);
+        var pendingSummary = Assert.Single(summaries, item => item.Id == pending.Id);
+        Assert.False(pendingSummary.HasSubmitted);
+        Assert.Null(pendingSummary.SubmittedAt);
+        Assert.Contains(learningObjectiveId, pendingSummary.LearningObjectiveIds);
+
+        var completedSummary = Assert.Single(summaries, item => item.Id == completed.Id);
+        Assert.True(completedSummary.HasSubmitted);
+        Assert.NotNull(completedSummary.SubmittedAt);
+    }
+
+    [Fact]
+    public async Task Student_CannotViewAssessmentSummaryForUnenrolledClass()
+    {
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
+            studentId,
+            TestJwt.StudentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewStudentAssessmentSummary()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private async Task<AssessmentResponse> PublishAssessmentAsync(string teacherId, Guid assessmentId) =>
         await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,

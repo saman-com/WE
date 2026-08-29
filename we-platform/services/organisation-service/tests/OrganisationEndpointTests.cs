@@ -371,6 +371,107 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task Student_CanViewOwnWorkspace()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var assessmentId = Guid.CreateVersion7();
+        var evidenceId = Guid.CreateVersion7();
+        var learningObjectiveId = Guid.CreateVersion7();
+        var microSkillId = Guid.CreateVersion7();
+        var timelineId = Guid.CreateVersion7();
+        var recordedAt = DateTimeOffset.UtcNow;
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Oak School", UniqueCode("OAK"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 6", 6);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "6A", UniqueCode("6A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        _assessmentClient.StudentSummaries =
+        [
+            new StudentAssessmentSummaryData(
+                assessmentId,
+                "Fractions quiz",
+                DateTimeOffset.UtcNow.AddDays(2),
+                [learningObjectiveId],
+                false,
+                null)
+        ];
+        _evidenceClient.StudentFeedback =
+        [
+            new StudentEvidenceFeedbackData(
+                evidenceId,
+                assessmentId,
+                "Fractions quiz",
+                recordedAt,
+                [new StudentEvidenceFeedbackMarkData(microSkillId, 4, "Great work.")])
+        ];
+        _profileClient.Profiles[studentId] = new StudentProfileData(
+            studentId,
+            [new StudentProfileTimelineEntryData(timelineId, "Fractions quiz", recordedAt)]);
+
+        var workspace = await SendAsAsync<StudentWorkspaceResponse>(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/workspace",
+            studentId,
+            TestJwt.StudentRole);
+
+        Assert.Equal(studentId, workspace.StudentUserId);
+        Assert.Single(workspace.Assessments);
+        Assert.Equal("Fractions quiz", workspace.Assessments[0].Title);
+        Assert.Equal(schoolClass.Id, workspace.Assessments[0].ClassId);
+        Assert.Contains(learningObjectiveId, workspace.Assessments[0].LearningObjectiveIds);
+        Assert.False(workspace.Assessments[0].HasSubmitted);
+        Assert.Single(workspace.Feedback);
+        Assert.Equal("Great work.", workspace.Feedback[0].MicroSkillMarks[0].Feedback);
+        Assert.Single(workspace.Timeline);
+        Assert.Equal(timelineId, workspace.Timeline[0].Id);
+        Assert.Contains((org.Id, schoolClass.Id), _assessmentClient.RequestedStudentClasses);
+    }
+
+    [Fact]
+    public async Task Student_CannotViewOtherStudentWorkspace()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var otherStudentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Maple School", UniqueCode("MAP"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 4", 4);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "4A", UniqueCode("4A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, otherStudentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/students/{otherStudentId}/workspace",
+            studentId,
+            TestJwt.StudentRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotViewStudentWorkspace()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Cedar School", UniqueCode("CED"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 3", 3);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "3A", UniqueCode("3A"));
+        await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/workspace",
+            teacherId,
+            TestJwt.TeacherRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
+    }
+
+    [Fact]
     public async Task Student_IsDeniedCrossClassAccess()
     {
         var adminId = Guid.NewGuid().ToString();

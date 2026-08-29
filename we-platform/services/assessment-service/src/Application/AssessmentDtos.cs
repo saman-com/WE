@@ -51,3 +51,11 @@ public record ClassAssessmentSummaryResponse(
     DateTimeOffset? DueAt,
     int SubmissionCount,
     int ReviewedCount);
+
+public record StudentAssessmentSummaryResponse(
+    Guid Id,
+    string Title,
+    DateTimeOffset? DueAt,
+    IReadOnlyList<Guid> LearningObjectiveIds,
+    bool HasSubmitted,
+    DateTimeOffset? SubmittedAt);

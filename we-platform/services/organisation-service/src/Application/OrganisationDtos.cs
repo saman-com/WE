@@ -48,3 +48,37 @@ public sealed record ClassDashboardResponse(
     ClassResponse Class,
     IReadOnlyList<ClassDashboardStudentSummary> Roster,
     IReadOnlyList<ClassDashboardAssessmentSummary> RecentAssessments);
+
+public sealed record StudentWorkspaceAssessmentSummary(
+    Guid Id,
+    Guid OrganisationId,
+    Guid ClassId,
+    string ClassName,
+    string Title,
+    DateTimeOffset? DueAt,
+    IReadOnlyList<Guid> LearningObjectiveIds,
+    bool HasSubmitted,
+    DateTimeOffset? SubmittedAt);
+
+public sealed record StudentWorkspaceFeedbackMark(
+    Guid MicroSkillId,
+    decimal Mark,
+    string Feedback);
+
+public sealed record StudentWorkspaceFeedbackSummary(
+    Guid EvidenceId,
+    Guid AssessmentId,
+    string Title,
+    DateTimeOffset ApprovedAt,
+    IReadOnlyList<StudentWorkspaceFeedbackMark> MicroSkillMarks);
+
+public sealed record StudentWorkspaceTimelineEntry(
+    Guid Id,
+    string Title,
+    DateTimeOffset RecordedAt);
+
+public sealed record StudentWorkspaceResponse(
+    string StudentUserId,
+    IReadOnlyList<StudentWorkspaceAssessmentSummary> Assessments,
+    IReadOnlyList<StudentWorkspaceFeedbackSummary> Feedback,
+    IReadOnlyList<StudentWorkspaceTimelineEntry> Timeline);

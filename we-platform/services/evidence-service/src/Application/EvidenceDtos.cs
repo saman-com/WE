@@ -27,3 +27,10 @@ public record EvidenceResponse(
 public record ClassEvidenceSummaryResponse(
     Guid AssessmentId,
     int ReviewedCount);
+
+public record StudentFeedbackResponse(
+    Guid Id,
+    Guid AssessmentId,
+    string Title,
+    DateTimeOffset ApprovedAt,
+    IReadOnlyList<MicroSkillMarkResponse> MicroSkillMarks);
