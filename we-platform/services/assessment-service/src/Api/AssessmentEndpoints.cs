@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using AssessmentService.Application;
 using AssessmentService.Domain;
+using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
 
 namespace AssessmentService.Api;
@@ -25,6 +26,8 @@ public static class AssessmentEndpoints
         api.MapGet("/{assessmentId:guid}/submissions", ListSubmissions);
         api.MapGet("/{assessmentId:guid}/submissions/me", GetMySubmission);
         api.MapGet("/{assessmentId:guid}/submissions/{submissionId:guid}", GetSubmission);
+        api.MapPost("/{assessmentId:guid}/submissions/{submissionId:guid}/ai-feedback-draft", RequestAiFeedbackDraft);
+        api.MapPost("/ai-feedback-audit/{auditLogId:guid}/finalize", FinalizeAiFeedbackAudit);
     }
 
     private static async Task<IResult> CreateAssessment(
@@ -604,6 +607,82 @@ public static class AssessmentEndpoints
         }
 
         return Results.Forbid();
+    }
+
+    private static async Task<IResult> RequestAiFeedbackDraft(
+        Guid assessmentId,
+        Guid submissionId,
+        RequestAiFeedbackDraftRequest request,
+        ClaimsPrincipal principal,
+        AssessmentDbContext db,
+        AiFeedbackDraftService draftService,
+        IClassAccessChecker accessChecker,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (request.MicroSkillId == Guid.Empty)
+        {
+            return Results.BadRequest();
+        }
+
+        var assessment = await LoadAssessmentAsync(db, assessmentId);
+        if (assessment is null)
+        {
+            return Results.NotFound();
+        }
+
+        var teacherAccess = await EvaluateTeacherClassAccessAsync(
+            principal,
+            assessment.OrganisationId,
+            assessment.ClassId,
+            accessChecker,
+            httpContext.Request.Headers.Authorization.ToString());
+        if (teacherAccess is not null)
+        {
+            return teacherAccess;
+        }
+
+        var draft = await draftService.RequestDraftAsync(
+            assessmentId,
+            submissionId,
+            request.MicroSkillId,
+            principal.UserId(),
+            cancellationToken);
+
+        return draft is null ? Results.NotFound() : Results.Ok(draft);
+    }
+
+    private static async Task<IResult> FinalizeAiFeedbackAudit(
+        Guid auditLogId,
+        FinalizeAiFeedbackAuditRequest request,
+        ClaimsPrincipal principal,
+        AiFeedbackDraftService draftService,
+        CancellationToken cancellationToken)
+    {
+        if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (request.EvidenceId == Guid.Empty
+            || string.IsNullOrWhiteSpace(request.TeacherEditedFeedback))
+        {
+            return Results.BadRequest();
+        }
+
+        var finalized = await draftService.FinalizeAuditAsync(
+            auditLogId,
+            principal.UserId(),
+            request.TeacherEditedFeedback,
+            request.EvidenceId,
+            cancellationToken);
+
+        return finalized is null ? Results.NotFound() : Results.Ok(finalized);
     }
 
     private static void ApplyCurriculumLinks(

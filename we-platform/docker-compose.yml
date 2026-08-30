@@ -141,6 +141,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__AssessmentDb: Host=postgres;Port=5432;Database=we_assessment;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
+      AiGateway__BaseUrl: http://ai-gateway-service:8080
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -148,6 +149,8 @@ services:
       postgres:
         condition: service_healthy
       organisation-service:
+        condition: service_started
+      ai-gateway-service:
         condition: service_started
 
   evidence-service:

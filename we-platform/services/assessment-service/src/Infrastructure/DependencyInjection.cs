@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AssessmentService.Application;
+using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
 using AssessmentService.Infrastructure.Organisation;
 
@@ -27,6 +28,9 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
+        services.AddSingleton<ServiceJwtIssuer>();
+        services.AddHttpClient<IAiGatewayClient, HttpAiGatewayClient>();
+        services.AddScoped<AiFeedbackDraftService>();
 
         return services;
     }

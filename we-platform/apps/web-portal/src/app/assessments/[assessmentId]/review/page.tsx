@@ -7,6 +7,8 @@ import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   getAssessment,
   listSubmissions,
+  requestAiFeedbackDraft,
+  finalizeAiFeedbackAudit,
   type Assessment,
   type AssessmentSubmission,
 } from "@/lib/assessment";
@@ -23,6 +25,7 @@ function canReview(profile: UserProfile): boolean {
 type MarkDraft = {
   mark: string;
   feedback: string;
+  auditLogId?: string;
 };
 
 export default function AssessmentReviewPage() {
@@ -106,6 +109,43 @@ export default function AssessmentReviewPage() {
     }));
   }
 
+  async function handleDraftWithAi(
+    submission: AssessmentSubmission,
+    microSkillId: string
+  ) {
+    if (!token) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const draft = await requestAiFeedbackDraft(
+        token,
+        assessmentId,
+        submission.id,
+        microSkillId
+      );
+      updateDraft(submission.id, microSkillId, "feedback", draft.draftFeedback);
+      setDrafts((current) => ({
+        ...current,
+        [submission.id]: {
+          ...current[submission.id],
+          [microSkillId]: {
+            ...current[submission.id]?.[microSkillId],
+            feedback: draft.draftFeedback,
+            auditLogId: draft.auditLogId,
+          },
+        },
+      }));
+      setMessage("AI draft ready for your review. Edit before approving.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI draft request failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleApprove(submission: AssessmentSubmission) {
     if (!token || !assessment) {
       return;
@@ -124,7 +164,7 @@ export default function AssessmentReviewPage() {
     setError(null);
     setMessage(null);
     try {
-      await approveEvidence(token, {
+      const evidence = await approveEvidence(token, {
         organisationId: assessment.organisationId,
         classId: assessment.classId,
         assessmentId: assessment.id,
@@ -133,6 +173,20 @@ export default function AssessmentReviewPage() {
         title: assessment.title,
         microSkillMarks: marks,
       });
+
+      for (const microSkillId of assessment.microSkillIds) {
+        const auditLogId = drafts[submission.id]?.[microSkillId]?.auditLogId;
+        const feedback = drafts[submission.id]?.[microSkillId]?.feedback ?? "";
+        if (auditLogId) {
+          await finalizeAiFeedbackAudit(
+            token,
+            auditLogId,
+            feedback,
+            evidence.id
+          );
+        }
+      }
+
       setMessage("Submission approved. Evidence recorded on the student learning profile.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Approval failed.");
@@ -262,6 +316,14 @@ export default function AssessmentReviewPage() {
                               }
                             />
                           </label>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleDraftWithAi(submission, microSkillId)}
+                            className="rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50"
+                          >
+                            Draft with AI
+                          </button>
                         </div>
                       ))}
                       <button

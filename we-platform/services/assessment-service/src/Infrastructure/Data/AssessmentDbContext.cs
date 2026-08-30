@@ -9,6 +9,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
     public DbSet<AssessmentLearningObjective> AssessmentLearningObjectives => Set<AssessmentLearningObjective>();
     public DbSet<AssessmentMicroSkill> AssessmentMicroSkills => Set<AssessmentMicroSkill>();
     public DbSet<AssessmentSubmission> Submissions => Set<AssessmentSubmission>();
+    public DbSet<AiFeedbackAuditLog> AiFeedbackAuditLogs => Set<AiFeedbackAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +71,27 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.HasIndex(e => e.AssessmentId);
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.AssessmentId, e.StudentUserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<AiFeedbackAuditLog>(entity =>
+        {
+            entity.ToTable("ai_feedback_audit_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
+            entity.Property(e => e.SubmissionId).HasColumnName("submission_id");
+            entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
+            entity.Property(e => e.TeacherUserId).HasColumnName("teacher_user_id").IsRequired();
+            entity.Property(e => e.PromptId).HasColumnName("prompt_id").IsRequired();
+            entity.Property(e => e.PromptVersion).HasColumnName("prompt_version").IsRequired();
+            entity.Property(e => e.PromptVariablesJson).HasColumnName("prompt_variables_json").IsRequired();
+            entity.Property(e => e.AiResponse).HasColumnName("ai_response").IsRequired();
+            entity.Property(e => e.TeacherEditedFeedback).HasColumnName("teacher_edited_feedback");
+            entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
+            entity.Property(e => e.FinalApprovedAt).HasColumnName("final_approved_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(e => e.SubmissionId);
+            entity.HasIndex(e => e.TeacherUserId);
         });
     }
 }

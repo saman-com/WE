@@ -188,3 +188,42 @@ export function listSubmissions(
     `/api/v1/assessments/${assessmentId}/submissions`
   );
 }
+
+export type AiFeedbackDraft = {
+  auditLogId: string;
+  draftFeedback: string;
+  promptId: string;
+  promptVersion: string;
+};
+
+export function requestAiFeedbackDraft(
+  token: string,
+  assessmentId: string,
+  submissionId: string,
+  microSkillId: string
+): Promise<AiFeedbackDraft> {
+  return assessmentRequest<AiFeedbackDraft>(
+    token,
+    `/api/v1/assessments/${assessmentId}/submissions/${submissionId}/ai-feedback-draft`,
+    {
+      method: "POST",
+      body: JSON.stringify({ microSkillId }),
+    }
+  );
+}
+
+export function finalizeAiFeedbackAudit(
+  token: string,
+  auditLogId: string,
+  teacherEditedFeedback: string,
+  evidenceId: string
+): Promise<{ auditLogId: string; finalApprovedAt: string }> {
+  return assessmentRequest<{ auditLogId: string; finalApprovedAt: string }>(
+    token,
+    `/api/v1/assessments/ai-feedback-audit/${auditLogId}/finalize`,
+    {
+      method: "POST",
+      body: JSON.stringify({ teacherEditedFeedback, evidenceId }),
+    }
+  );
+}

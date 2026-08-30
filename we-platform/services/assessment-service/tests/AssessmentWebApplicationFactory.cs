@@ -9,6 +9,7 @@ namespace AssessmentService.Tests;
 public sealed class AssessmentWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeClassAccessChecker AccessChecker { get; } = new();
+    public FakeAiGatewayClient AiGateway { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -17,6 +18,8 @@ public sealed class AssessmentWebApplicationFactory : WebApplicationFactory<Prog
         {
             services.RemoveAll<IClassAccessChecker>();
             services.AddSingleton<IClassAccessChecker>(AccessChecker);
+            services.RemoveAll<IAiGatewayClient>();
+            services.AddSingleton<IAiGatewayClient>(AiGateway);
         });
     }
 }
