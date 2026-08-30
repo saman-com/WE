@@ -9,6 +9,7 @@ namespace CommunicationService.Tests;
 public sealed class CommunicationWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeOrganisationAccessChecker AccessChecker { get; } = new();
+    public FakeDomainEventPublisher EventPublisher { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -17,6 +18,8 @@ public sealed class CommunicationWebApplicationFactory : WebApplicationFactory<P
         {
             services.RemoveAll<IOrganisationAccessChecker>();
             services.AddSingleton<IOrganisationAccessChecker>(AccessChecker);
+            services.RemoveAll<IDomainEventPublisher>();
+            services.AddSingleton<IDomainEventPublisher>(EventPublisher);
         });
     }
 }

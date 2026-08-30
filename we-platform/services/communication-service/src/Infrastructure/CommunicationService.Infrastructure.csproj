@@ -12,12 +12,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
+    <PackageReference Include="MassTransit" Version="8.3.4" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.4" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Application\CommunicationService.Application.csproj" />
     <ProjectReference Include="..\Domain\CommunicationService.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\events\WePlatform.Events.csproj" />
   </ItemGroup>
 
 </Project>

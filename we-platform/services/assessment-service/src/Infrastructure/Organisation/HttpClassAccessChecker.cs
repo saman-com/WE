@@ -39,6 +39,16 @@ public sealed class HttpClassAccessChecker(
             (schoolClass, userId) => schoolClass.StudentUserIds?.Contains(userId) == true,
             cancellationToken);
 
+    public async Task<IReadOnlyList<string>> GetClassStudentUserIdsAsync(
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        var schoolClass = await GetClassAsync(organisationId, classId, bearerToken, cancellationToken);
+        return schoolClass?.StudentUserIds ?? [];
+    }
+
     private async Task<bool> CheckClassMembershipAsync(
         string userId,
         Guid organisationId,
@@ -67,6 +77,33 @@ public sealed class HttpClassAccessChecker(
 
         var schoolClass = await response.Content.ReadFromJsonAsync<ClassResponse>(cancellationToken);
         return schoolClass is not null && isMember(schoolClass, userId);
+    }
+
+    private async Task<ClassResponse?> GetClassAsync(
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken)
+    {
+        var baseUrl = configuration["Organisation:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            logger.LogWarning("Organisation base URL is not configured.");
+            return null;
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}/api/v1/organisations/{organisationId}/classes/{classId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<ClassResponse>(cancellationToken);
     }
 
     private sealed record ClassResponse(

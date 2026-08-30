@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using AssessmentService.Application;
 using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
+using AssessmentService.Infrastructure.Messaging;
 using AssessmentService.Infrastructure.Organisation;
 
 namespace AssessmentService.Infrastructure;
@@ -12,7 +14,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAssessmentInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("AssessmentDb");
 
@@ -32,6 +35,7 @@ public static class DependencyInjection
         services.AddSingleton<ServiceJwtIssuer>();
         services.AddHttpClient<IAiGatewayClient, HttpAiGatewayClient>();
         services.AddScoped<AiFeedbackDraftService>();
+        services.AddAssessmentMessaging(configuration, environment);
 
         return services;
     }

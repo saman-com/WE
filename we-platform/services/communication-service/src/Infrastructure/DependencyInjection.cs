@@ -1,9 +1,11 @@
 using CommunicationService.Application;
 using CommunicationService.Infrastructure.Data;
+using CommunicationService.Infrastructure.Messaging;
 using CommunicationService.Infrastructure.Organisation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace CommunicationService.Infrastructure;
 
@@ -11,7 +13,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCommunicationInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("CommunicationDb");
 
@@ -27,6 +30,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
+        services.AddCommunicationMessaging(configuration, environment);
         return services;
     }
 }

@@ -11,6 +11,7 @@ public sealed class AssessmentWebApplicationFactory : WebApplicationFactory<Prog
     public FakeClassAccessChecker AccessChecker { get; } = new();
     public FakeParentAccessChecker ParentAccessChecker { get; } = new();
     public FakeAiGatewayClient AiGateway { get; } = new();
+    public FakeDomainEventPublisher EventPublisher { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -23,6 +24,8 @@ public sealed class AssessmentWebApplicationFactory : WebApplicationFactory<Prog
             services.AddSingleton<IParentAccessChecker>(ParentAccessChecker);
             services.RemoveAll<IAiGatewayClient>();
             services.AddSingleton<IAiGatewayClient>(AiGateway);
+            services.RemoveAll<IDomainEventPublisher>();
+            services.AddSingleton<IDomainEventPublisher>(EventPublisher);
         });
     }
 }

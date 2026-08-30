@@ -4,6 +4,7 @@ using CommunicationService.Application;
 using CommunicationService.Domain;
 using CommunicationService.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
+using WePlatform.Events;
 
 namespace CommunicationService.Tests;
 
@@ -12,12 +13,14 @@ public class CommunicationEndpointTests : IClassFixture<CommunicationWebApplicat
     private readonly HttpClient _client;
     private readonly FakeOrganisationAccessChecker _accessChecker;
     private readonly CommunicationWebApplicationFactory _factory;
+    private readonly FakeDomainEventPublisher _eventPublisher;
 
     public CommunicationEndpointTests(CommunicationWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         _accessChecker = factory.AccessChecker;
         _factory = factory;
+        _eventPublisher = factory.EventPublisher;
     }
 
     [Fact]
@@ -42,6 +45,10 @@ public class CommunicationEndpointTests : IClassFixture<CommunicationWebApplicat
         Assert.Equal(parentId, created.SenderUserId);
         Assert.Equal(MessageSenderRoles.Parent, created.SenderRole);
         Assert.Equal("How is my child progressing in maths?", created.Body);
+
+        var publishedEvent = _eventPublisher.MessageSentEvents.Single(e => e.MessageId == created.Id);
+        Assert.Equal(teacherId, publishedEvent.RecipientUserId);
+        Assert.Equal(parentId, publishedEvent.SenderUserId);
     }
 
     [Fact]

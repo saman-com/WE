@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\CommunicationService.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\events\WePlatform.Events.csproj" />
   </ItemGroup>
 
 </Project>

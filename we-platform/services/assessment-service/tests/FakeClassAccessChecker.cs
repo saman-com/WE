@@ -28,4 +28,17 @@ public sealed class FakeClassAccessChecker : IClassAccessChecker
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(_studentClasses.Contains((studentUserId, organisationId, classId)));
+
+    public Task<IReadOnlyList<string>> GetClassStudentUserIdsAsync(
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        var students = _studentClasses
+            .Where(entry => entry.OrganisationId == organisationId && entry.ClassId == classId)
+            .Select(entry => entry.StudentUserId)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<string>>(students);
+    }
 }

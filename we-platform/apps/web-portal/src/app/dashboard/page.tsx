@@ -94,6 +94,10 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        <Link href="/notifications" className="text-sm underline block">
+          Notifications
+        </Link>
+
         {profile.roles.includes("SystemAdministrator") ? (
           <>
             <Link href="/organisation" className="text-sm underline">

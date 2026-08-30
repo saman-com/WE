@@ -5,6 +5,7 @@ using AssessmentService.Application;
 using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
+using WePlatform.Events;
 
 namespace AssessmentService.Api;
 
@@ -352,6 +353,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        IDomainEventPublisher eventPublisher,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
@@ -370,6 +372,12 @@ public static class AssessmentEndpoints
             return Results.Conflict();
         }
 
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
         var access = await EvaluateTeacherClassAccessAsync(
             principal,
             assessment.OrganisationId,
@@ -386,6 +394,26 @@ public static class AssessmentEndpoints
         assessment.PublishedAt = now;
         assessment.UpdatedAt = now;
         await db.SaveChangesAsync();
+
+        var recipientUserIds = await accessChecker.GetClassStudentUserIdsAsync(
+            assessment.OrganisationId,
+            assessment.ClassId,
+            bearerToken);
+        if (recipientUserIds.Count > 0)
+        {
+            var eventId = Guid.CreateVersion7();
+            await eventPublisher.PublishAssessmentPublishedAsync(new AssessmentPublished(
+                eventId,
+                eventId,
+                now,
+                assessment.OrganisationId,
+                AssessmentPublished.CurrentVersion,
+                assessment.Id,
+                assessment.ClassId,
+                assessment.Title,
+                principal.UserId(),
+                recipientUserIds));
+        }
 
         var saved = await LoadAssessmentAsync(db, assessmentId);
         return Results.Ok(ToResponse(saved!));

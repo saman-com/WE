@@ -15,4 +15,10 @@ public interface IClassAccessChecker
         Guid classId,
         string bearerToken,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> GetClassStudentUserIdsAsync(
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
 }

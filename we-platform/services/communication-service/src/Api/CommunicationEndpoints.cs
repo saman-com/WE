@@ -4,6 +4,7 @@ using CommunicationService.Application;
 using CommunicationService.Domain;
 using CommunicationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Events;
 
 namespace CommunicationService.Api;
 
@@ -23,6 +24,7 @@ public static class CommunicationEndpoints
         ClaimsPrincipal principal,
         CommunicationDbContext db,
         IOrganisationAccessChecker accessChecker,
+        IDomainEventPublisher eventPublisher,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(request.StudentUserId)
@@ -98,6 +100,19 @@ public static class CommunicationEndpoints
 
         db.Messages.Add(message);
         await db.SaveChangesAsync();
+
+        var eventId = Guid.CreateVersion7();
+        var preview = body.Length <= 120 ? body : $"{body[..117]}...";
+        await eventPublisher.PublishMessageSentAsync(new MessageSent(
+            eventId,
+            eventId,
+            message.CreatedAt,
+            MessageSent.CurrentVersion,
+            message.Id,
+            studentUserId,
+            senderUserId,
+            recipientUserId,
+            preview));
 
         return Results.Created($"/api/v1/messages/{message.Id}", ToResponse(message));
     }

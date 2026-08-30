@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using AssessmentService.Application;
 using AssessmentService.Domain;
+using WePlatform.Events;
 
 namespace AssessmentService.Tests;
 
@@ -9,11 +10,13 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
 {
     private readonly HttpClient _client;
     private readonly FakeClassAccessChecker _accessChecker;
+    private readonly FakeDomainEventPublisher _eventPublisher;
 
     public AssessmentEndpointTests(AssessmentWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         _accessChecker = factory.AccessChecker;
+        _eventPublisher = factory.EventPublisher;
     }
 
     [Fact]
@@ -79,6 +82,38 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
 
         Assert.Equal(AssessmentStatuses.Published, published.Status);
         Assert.NotNull(published.PublishedAt);
+    }
+
+    [Fact]
+    public async Task PublishAssessment_PublishesAssessmentPublishedEventForClassStudents()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Weekly quiz",
+            null,
+            null,
+            [],
+            []);
+
+        await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{draft.Id}/publish",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        var publishedEvent = _eventPublisher.AssessmentPublishedEvents.Single(e => e.AssessmentId == draft.Id);
+        Assert.Equal("Weekly quiz", publishedEvent.Title);
+        Assert.Equal(studentId, Assert.Single(publishedEvent.RecipientUserIds));
+        Assert.Equal(AssessmentPublished.CurrentVersion, publishedEvent.Version);
     }
 
     [Fact]
