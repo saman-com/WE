@@ -263,5 +263,30 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  ei-service:
+    build:
+      context: .
+      dockerfile: services/ei-service/Dockerfile
+    ports:
+      - "8091:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Organisation__BaseUrl: http://organisation-service:8080
+      Mastery__BaseUrl: http://mastery-service:8080
+      Gaps__BaseUrl: http://learning-gap-service:8080
+      Diagnostics__BaseUrl: http://diagnostic-service:8080
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      organisation-service:
+        condition: service_started
+      mastery-service:
+        condition: service_started
+      learning-gap-service:
+        condition: service_started
+      diagnostic-service:
+        condition: service_started
+
 volumes:
   postgres_data:

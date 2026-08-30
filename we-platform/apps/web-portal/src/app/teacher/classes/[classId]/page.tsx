@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
+  fetchClassEiInsights,
+  type ClassEiInsights,
+} from "@/lib/ei-insights";
+import {
   fetchClassDashboard,
   type ClassDashboard,
 } from "@/lib/teacher-workspace";
@@ -29,6 +33,7 @@ export default function TeacherClassDetailPage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [dashboard, setDashboard] = useState<ClassDashboard | null>(null);
+  const [insights, setInsights] = useState<ClassEiInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,6 +61,24 @@ export default function TeacherClassDetailPage() {
           classId
         );
         setDashboard(loadedDashboard);
+
+        try {
+          const loadedInsights = await fetchClassEiInsights(
+            token,
+            organisationId,
+            classId
+          );
+          setInsights(loadedInsights);
+        } catch {
+          setInsights({
+            organisationId,
+            classId,
+            masteryDistribution: [],
+            activeLearningGaps: [],
+            recentDiagnosticTrends: [],
+            studentsNeedingAttention: [],
+          });
+        }
       })
       .catch(() => {
         setError("Unable to load class dashboard.");
@@ -129,6 +152,123 @@ export default function TeacherClassDetailPage() {
             </table>
           )}
         </div>
+
+        {insights ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-4">
+            <div>
+              <h2 className="font-medium">Educational Intelligence</h2>
+              <p className="text-sm text-black/60 mt-1">
+                Class-level mastery, gaps, and diagnostic trends with linked evidence.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Mastery distribution</h3>
+              {insights.masteryDistribution.length === 0 ? (
+                <p className="text-sm text-black/60">
+                  No mastery data yet. Insights appear after approved evidence is analysed.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {insights.masteryDistribution.map((item) => (
+                    <li key={item.microSkillId} className="rounded border border-black/5 p-3 space-y-1">
+                      <p className="text-sm font-medium">Micro-skill: {item.microSkillId}</p>
+                      <p className="text-xs text-black/60">
+                        Mastered {item.levelCounts.Mastered ?? 0} · Proficient{" "}
+                        {item.levelCounts.Proficient ?? 0} · Developing{" "}
+                        {item.levelCounts.Developing ?? 0} · Not started{" "}
+                        {item.levelCounts.NotStarted ?? 0} · {item.totalStudents} students
+                      </p>
+                      <p className="text-sm">{item.explanation}</p>
+                      {item.linkedEvidenceIds.length > 0 ? (
+                        <p className="text-xs text-black/60">
+                          Linked evidence: {item.linkedEvidenceIds.join(", ")}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Active learning gaps</h3>
+              {insights.activeLearningGaps.length === 0 ? (
+                <p className="text-sm text-black/60">No active learning gaps identified.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {insights.activeLearningGaps.map((gap) => (
+                    <li key={gap.gapId} className="rounded border border-black/5 p-3 space-y-1">
+                      <p className="text-sm font-medium">
+                        {gap.severity} severity · {gap.urgency} urgency ·{" "}
+                        <Link href={`/students/${gap.studentUserId}/profile`} className="underline">
+                          {gap.studentUserId}
+                        </Link>
+                      </p>
+                      <p className="text-xs text-black/60">Micro-skill: {gap.microSkillId}</p>
+                      <p className="text-sm">{gap.explanation}</p>
+                      <p className="text-xs text-black/60">Evidence: {gap.evidenceId}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Recent diagnostic trends</h3>
+              {insights.recentDiagnosticTrends.length === 0 ? (
+                <p className="text-sm text-black/60">No recent diagnostic trends.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {insights.recentDiagnosticTrends.map((trend) => (
+                    <li
+                      key={`${trend.microSkillId}-${trend.status}`}
+                      className="rounded border border-black/5 p-3 space-y-1"
+                    >
+                      <p className="text-sm font-medium">
+                        {trend.status} · {trend.occurrenceCount} occurrence
+                        {trend.occurrenceCount === 1 ? "" : "s"}
+                      </p>
+                      <p className="text-xs text-black/60">
+                        Micro-skill: {trend.microSkillId} · Latest:{" "}
+                        {new Date(trend.latestAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm">{trend.explanation}</p>
+                      <p className="text-xs text-black/60">Evidence: {trend.evidenceId}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Students needing attention</h3>
+              {insights.studentsNeedingAttention.length === 0 ? (
+                <p className="text-sm text-black/60">No students flagged for attention.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {insights.studentsNeedingAttention.map((student) => (
+                    <li
+                      key={student.studentUserId}
+                      className="rounded border border-black/5 p-3 space-y-1"
+                    >
+                      <p className="text-sm font-medium">
+                        <Link href={`/students/${student.studentUserId}/profile`} className="underline">
+                          {student.studentUserId}
+                        </Link>{" "}
+                        — {student.reason}
+                      </p>
+                      <p className="text-sm">{student.explanation}</p>
+                      {student.evidenceId ? (
+                        <p className="text-xs text-black/60">Evidence: {student.evidenceId}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
           <h2 className="font-medium">Recent assessments</h2>
