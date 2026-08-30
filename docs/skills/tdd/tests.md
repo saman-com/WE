@@ -1,151 +1,261 @@
-# Testing Guidelines for Dana (Python/pytest)
+# Testing Guidelines for WE Platform (.NET / xUnit)
 
-Per **DOC-01 Engineering Specification v1.3**, deterministic testing, strict typing, and validation of authority boundaries are mandatory for all implementation tasks. Dana is a governed operational reasoning platform; therefore, tests must prove determinism, state authority, and governance compliance.
+Per **SP-001**, **TD-001**, and **EP-001**, deterministic testing, strong typing, and validation of service boundaries are mandatory for backend implementation tasks. Tests must prove correct behaviour, authorization, and persistence—not just happy-path HTTP status codes.
 
 ## 1. Core Testing Stack
 
-We use the standard Python testing ecosystem, strictly configured:
+| Concern | Choice |
+|---------|--------|
+| Runtime | .NET 9 |
+| Language | C# 13 (`<Nullable>enable</Nullable>`) |
+| Test framework | xUnit 2.x |
+| API integration tests | `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory<TProgram>`) |
+| Persistence (tests) | EF Core InMemory (`UseInMemoryDatabase`) in `Testing` environment |
+| Messaging (tests) | MassTransit `InMemoryTestHarness` |
+| Coverage | `coverlet.collector` (via `dotnet test --collect:"XPlat Code Coverage"`) |
 
-* **Test Runner**: `pytest`
-* **Async Testing**: `pytest-asyncio` (Critical for Temporal workflows and PostgreSQL interactions).
-* **Mocking**: `pytest-mock` (wrapper around `unittest.mock`).
-* **Coverage**: `pytest-cov` (Target: 95% minimum per Universal DONE WHEN Criteria).
-* **Static Typing**: `mypy --strict` (Tests must be fully typed, just like application code).
+Standard test project packages (see `examples/sample-service/tests/SampleService.Tests.csproj`):
+
+- `Microsoft.NET.Test.Sdk`
+- `xunit` / `xunit.runner.visualstudio`
+- `coverlet.collector`
+- `Microsoft.AspNetCore.Mvc.Testing` (for API services)
 
 ## 2. Structural Conventions
 
-Unlike inline testing in some TS frameworks, Python strictly segregates application code from test code to preserve production image purity.
+Each microservice under `we-platform/services/{service-name}/` follows a layered layout. Tests live in a sibling `tests/` project that references the service `Api` project.
 
-* **Directory Structure**: Tests must live in a `tests/` directory at the root of the repository, mirroring the structure of the `src/` directory.
 ```text
-src/
-  anim/
-    workflows/
-      incident.py
-tests/
-  anim/
-    workflows/
-      test_incident.py
-
+we-platform/services/intervention-service/
+  src/
+    Api/
+    Application/
+    Domain/
+    Infrastructure/
+  tests/
+    InterventionService.Tests.csproj
+    InterventionEndpointTests.cs
+    InterventionWebApplicationFactory.cs
+    TestJwt.cs
+    FakeOrganisationAccessChecker.cs
 ```
 
+**Naming**
 
-* **Naming**: Test files must be prefixed with `test_`. Test functions must be prefixed with `test_`.
-* **Fixtures**: Shared setup (e.g., Database sessions, Temporal test environments, Redis ephemeral caches) must be defined in `conftest.py` using `@pytest.fixture`.
+- Test project: `{ServiceName}.Tests.csproj`
+- Integration tests: `{Feature}EndpointTests.cs`
+- Domain/application unit tests: `{Component}Tests.cs` or `{Engine}Tests.cs`
+- Test factory: `{Service}WebApplicationFactory.cs`
+- Test methods: descriptive `PascalCase` names (e.g. `Teacher_CreatesInterventionLinkedToStudentAndGap`)
 
-## 3. Dana-Specific Testing Invariants
+**Test types**
 
-When practicing TDD for Tasks 01–24, the AI must enforce the following architectural constraints during test authoring:
+1. **Endpoint / integration tests** — HTTP calls through `HttpClient`, JWT auth, fake external dependencies wired via `WebApplicationFactory`.
+2. **Application / domain unit tests** — pure logic classes with no HTTP or database (e.g. calculation engines, status transition rules).
+3. **Event consumer tests** — MassTransit in-memory harness verifying message handling.
 
-### A. State Authority Validation
+## 3. WE Platform Testing Invariants
 
-PostgreSQL is the sole incident truth authority. Temporal is strictly the workflow execution authority.
+When practicing TDD for platform issues, enforce these constraints during test authoring:
 
-* **Rule**: Tests verifying workflow outcomes *must* assert against the mocked or test PostgreSQL database state, not just the Temporal workflow return value.
+### A. Persistence as Source of Truth
 
-### B. Determinism & Replayability (DOC-08)
+PostgreSQL is the production database; tests use EF Core InMemory in the `Testing` environment.
 
-Workflows must be perfectly replayable.
+- **Rule**: Tests verifying create/update/delete operations should assert persisted entity state (via repository, `DbContext`, or follow-up GET), not only the response body.
+- **Rule**: Register InMemory databases in `Infrastructure/DependencyInjection.cs` when `IHostEnvironment.IsEnvironment("Testing")`.
 
-* **Rule**: Tests must mock any source of non-determinism. `datetime.now(timezone.utc)`, `uuid.uuid4()`, and external API responses MUST be patched.
-* *Reference*: Use `freezegun` or `pytest-mock` to pin timestamps for consistent replay verification.
+### B. Determinism
 
-### C. Capability Gateway Constraints (SEC-01)
+Business logic and aggregation must be replayable and stable.
 
-External source access is restricted.
+- **Rule**: Pin non-deterministic inputs in tests (`DateTimeOffset.UtcNow`, `Guid.CreateVersion7()` used as fixed values in arrange steps).
+- **Rule**: Pure calculation engines must produce identical output for identical input (see `GapCalculationEngineTests.CalculateFromDiagnostics_ProducesDeterministicGaps`).
 
-* **Rule**: Tests interacting with external systems must route through mocked Capability Gateway adapters.
-* **Rule**: Any test covering a write operation to an external system must assert that it gracefully handles the `WRITE_DISABLED_V1` response.
+### C. Authorization Boundaries
+
+Access control is enforced per role and organisation scope.
+
+- **Rule**: Integration tests must cover allowed and denied actors (teacher, school leader, student, unassigned teacher).
+- **Rule**: Replace `IOrganisationAccessChecker` (and similar ports) with fake implementations in `WebApplicationFactory.ConfigureWebHost`.
+- **Rule**: Issue JWTs via a `TestJwt` helper; never disable auth middleware in tests.
+
+### D. Domain Events
+
+Cross-service communication uses versioned contracts in `we-platform/shared/events/`.
+
+- **Rule**: Consumer tests publish contract types through `InMemoryTestHarness` and assert on consumed message content.
+- **Rule**: Do not require a running RabbitMQ broker for unit or service tests.
 
 ## 4. The TDD Workflow (Red, Green, Refactor, Verify)
 
-1. **Write the Test (RED)**: Write a `pytest` function describing the expected behavior, enforcing `mypy` type hints for test variables and mocks. Run `pytest` to see it fail.
-2. **Write the Code (GREEN)**: Implement the minimal Python code in `src/` to satisfy the test.
-3. **Refactor**: Clean up the code. Ensure modular, grid-based logic.
+1. **Write the Test (RED)**: Add an xUnit `[Fact]` or `[Theory]` describing expected behaviour. Run `dotnet test` and confirm failure.
+2. **Write the Code (GREEN)**: Implement the minimal C# code in the appropriate layer to satisfy the test.
+3. **Refactor**: Extract shared arrange helpers; keep tests readable with Arrange / Act / Assert structure.
 4. **Verify (DONE WHEN)**:
-* Run `mypy --strict src/ tests/` and ensure zero errors.
-* Run `pytest --cov=src --cov-fail-under=100` to verify coverage compliance.
-
-
+   - `dotnet test services/{service}/tests/{Service}.Tests.csproj` passes.
+   - `dotnet build WePlatform.sln` succeeds.
+   - Issue acceptance criteria (e.g. "Tests cover CRUD and status transitions") are met.
 
 ## 5. Syntax and Examples
 
-### Basic Async Test with Mocking
+### API Integration Test with JWT and WebApplicationFactory
 
-Use `@pytest.mark.asyncio` for testing Temporal activities/workflows or async DB calls. Use the `mocker` fixture provided by `pytest-mock`.
+```csharp
+using System.Net;
+using System.Net.Http.Json;
+using InterventionService.Application;
 
-```python
-import pytest
-from typing import AsyncGenerator
-from unittest.mock import AsyncMock
-from anim.activities.gateway import CapabilityGateway
-from anim.models.ticket import TicketStatus
+namespace InterventionService.Tests;
 
-@pytest.mark.asyncio
-async def test_capability_gateway_enforces_write_disabled(mocker: "MockerFixture") -> None:
-    """
-    Per SEC-01 and DOC-01: All external write operations via the Capability Gateway 
-    must return WRITE_DISABLED_V1 and must not mutate operational state.
-    """
-    # Arrange
-    mock_adapter = mocker.patch("anim.adapters.vendor.VendorAdapter.execute_write", new_callable=AsyncMock)
-    gateway = CapabilityGateway()
-    
-    # Act
-    response = await gateway.request_action(action="REBOOT_DEVICE", target="core-rtr-01")
-    
-    # Assert
-    assert response.status == "WRITE_DISABLED_V1"
-    assert response.error_context == "Autonomous remediation is disabled in v1."
-    mock_adapter.assert_not_called()
+public class InterventionEndpointTests : IClassFixture<InterventionWebApplicationFactory>
+{
+    private readonly HttpClient _client;
+    private readonly FakeOrganisationAccessChecker _accessChecker;
 
+    public InterventionEndpointTests(InterventionWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient();
+        _accessChecker = factory.AccessChecker;
+    }
+
+    [Fact]
+    public async Task Teacher_CreatesInterventionLinkedToStudentAndGap()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateInterventionRequest(
+            Guid.CreateVersion7(),
+            studentId,
+            Guid.CreateVersion7(),
+            "Guided practice.",
+            null,
+            null,
+            null,
+            null));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<InterventionResponse>();
+        Assert.Equal(studentId, created!.StudentUserId);
+    }
+}
 ```
 
-### Parametrized Testing for Edge Cases
+### Custom WebApplicationFactory
 
-Use `@pytest.mark.parametrize` to rigorously test matrix conditions (e.g., NFF governance rules, confidence scoring schemas).
+```csharp
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-```python
-import pytest
-from anim.governance.policy import evaluate_nff_policy
-from anim.models.incident import IncidentState, EvidenceBundle
+namespace InterventionService.Tests;
 
-@pytest.mark.parametrize(
-    "confidence_score, complete_loss, expected_approval_required",
-    [
-        (0.95, False, False),  # High confidence, no complete loss -> Auto NFF allowed
-        (0.85, True, True),    # Complete loss (DOC-04 rule) -> Human approval required
-        (0.40, False, True),   # Low confidence -> Human approval required
-    ]
-)
-def test_nff_governance_gates(
-    confidence_score: float, 
-    complete_loss: bool, 
-    expected_approval_required: bool
-) -> None:
-    """
-    Per PRD v1.1 Section 4: NFF governance and safety rules.
-    """
-    # Arrange
-    evidence = EvidenceBundle(
-        confidence=confidence_score, 
-        complete_traffic_loss=complete_loss
-    )
-    
-    # Act
-    requires_human = evaluate_nff_policy(evidence)
-    
-    # Assert
-    assert requires_human == expected_approval_required
+public sealed class InterventionWebApplicationFactory : WebApplicationFactory<Program>
+{
+    public FakeOrganisationAccessChecker AccessChecker { get; } = new();
 
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IOrganisationAccessChecker>();
+            services.AddSingleton<IOrganisationAccessChecker>(AccessChecker);
+        });
+    }
+}
+```
+
+### Parametrized Domain Logic Test
+
+Use `[Theory]` and `[InlineData]` for matrix conditions (status transitions, severity rules, scoring thresholds).
+
+```csharp
+namespace InterventionService.Tests;
+
+public class InterventionStatusTransitionTests
+{
+    [Theory]
+    [InlineData(InterventionStatuses.Planned, InterventionStatuses.Active, true)]
+    [InlineData(InterventionStatuses.Planned, InterventionStatuses.Closed, false)]
+    public void CanTransition_RespectsLifecycle(string current, string next, bool expected) =>
+        Assert.Equal(expected, InterventionStatusTransitions.CanTransition(current, next));
+}
+```
+
+### Domain Event Consumer Test
+
+```csharp
+using EventSubscriberService.Api.Consumers;
+using MassTransit;
+using MassTransit.Testing;
+using WePlatform.Events;
+
+namespace EventSubscriberService.Tests;
+
+public class DomainEventConsumerTests
+{
+    [Fact]
+    public async Task EvidenceCreatedConsumer_ReceivesPublishedEvent()
+    {
+        var harness = new InMemoryTestHarness();
+        var consumerHarness = harness.Consumer(() =>
+            new EvidenceCreatedConsumer(
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<EvidenceCreatedConsumer>.Instance));
+
+        await harness.Start();
+        try
+        {
+            var domainEvent = CreateEvidenceCreated();
+            await harness.Bus.Publish(domainEvent);
+
+            Assert.True(await consumerHarness.Consumed.Any<EvidenceCreated>());
+            var context = consumerHarness.Consumed.Select<EvidenceCreated>().First().Context;
+            Assert.Equal(domainEvent.EventId, context.Message.EventId);
+        }
+        finally
+        {
+            await harness.Stop();
+        }
+    }
+}
+```
+
+## 6. Running Tests
+
+From `we-platform/`:
+
+```bash
+# Single service
+dotnet test services/intervention-service/tests/InterventionService.Tests.csproj
+
+# Filter to one test
+dotnet test services/intervention-service/tests/InterventionService.Tests.csproj \
+  --filter "FullyQualifiedName~Teacher_CreatesInterventionLinkedToStudentAndGap"
+
+# Full backend suite
+dotnet test WePlatform.sln
+
+# With coverage collection
+dotnet test WePlatform.sln --collect:"XPlat Code Coverage"
 ```
 
 ## Summary for the AI Coding Partner
 
 When instructed to use TDD:
 
-1. Generate the implementation issues citing relevant DOC-01 / ADR authority.
-2. Scaffold the `tests/test_*.py` files *first*.
-3. Write strict `pytest` functions that mock Temporal, mock the Gateway, and assert against PostgreSQL truth (or mocked equivalents).
-4. Implement the application logic.
-5. Do not proceed to the next task until `pytest`, `mypy --strict`, and coverage mandates pass.
+1. Read the issue file under `issues/` for acceptance criteria only—do not invent requirements.
+2. Scaffold or extend `tests/*.cs` in the target service **first**.
+3. Write xUnit tests that cover authorization, persistence, and domain rules as applicable.
+4. Implement the minimal C# code across `Domain` / `Application` / `Infrastructure` / `Api`.
+5. Do not mark the task complete until `dotnet test` passes for the affected projects and the issue acceptance criteria are satisfied.
