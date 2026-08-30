@@ -1,0 +1,10 @@
+{
+  "id": "progress-report-narrative",
+  "version": "1.0.0",
+  "category": "Educational Summaries",
+  "description": "Draft a student progress report narrative from SLP and evidence context.",
+  "variables": [
+    "studentUserId",
+    "slpEvidenceContext"
+  ]
+}

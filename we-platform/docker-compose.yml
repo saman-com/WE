@@ -19,6 +19,7 @@ services:
       - ./databases/gaps/init.sql:/docker-entrypoint-initdb.d/08-create-we-gaps.sql:ro
       - ./databases/mastery/init.sql:/docker-entrypoint-initdb.d/09-create-we-mastery.sql:ro
       - ./databases/interventions/init.sql:/docker-entrypoint-initdb.d/10-create-we-interventions.sql:ro
+      - ./databases/ei/init.sql:/docker-entrypoint-initdb.d/11-create-we-ei.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -275,14 +276,18 @@ services:
       - "8091:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__EiDb: Host=postgres;Port=5432;Database=we_ei;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
       Mastery__BaseUrl: http://mastery-service:8080
       Gaps__BaseUrl: http://learning-gap-service:8080
       Diagnostics__BaseUrl: http://diagnostic-service:8080
+      AiGateway__BaseUrl: http://ai-gateway-service:8080
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
     depends_on:
+      postgres:
+        condition: service_healthy
       organisation-service:
         condition: service_started
       mastery-service:
@@ -290,6 +295,8 @@ services:
       learning-gap-service:
         condition: service_started
       diagnostic-service:
+        condition: service_started
+      ai-gateway-service:
         condition: service_started
 
   ai-gateway-service:

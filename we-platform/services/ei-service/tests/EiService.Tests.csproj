@@ -19,6 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\src\Api\EiService.Api.csproj" />
     <ProjectReference Include="..\src\Application\EiService.Application.csproj" />
+    <ProjectReference Include="..\src\Domain\EiService.Domain.csproj" />
+    <ProjectReference Include="..\src\Infrastructure\EiService.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

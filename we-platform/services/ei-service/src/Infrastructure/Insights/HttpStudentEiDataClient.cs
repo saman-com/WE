@@ -6,14 +6,6 @@ using Microsoft.Extensions.Logging;
 
 namespace EiService.Infrastructure.Insights;
 
-public interface IStudentEiDataClient
-{
-    Task<StudentEiSnapshot?> GetStudentSnapshotAsync(
-        string studentUserId,
-        string bearerToken,
-        CancellationToken cancellationToken = default);
-}
-
 public sealed class HttpStudentEiDataClient(
     HttpClient httpClient,
     IConfiguration configuration,

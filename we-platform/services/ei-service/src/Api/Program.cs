@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEiInfrastructure(builder.Configuration);
+builder.Services.AddEiInfrastructure(builder.Configuration, builder.Environment);
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["Key"]

@@ -14,6 +14,10 @@ import {
   fetchClassDashboard,
   type ClassDashboard,
 } from "@/lib/teacher-workspace";
+import {
+  finalizeAiSummaryAudit,
+  requestLessonSummaryDraft,
+} from "@/lib/ei-summaries";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -53,20 +57,29 @@ export default function TeacherClassDetailPage() {
   const [dashboard, setDashboard] = useState<ClassDashboard | null>(null);
   const [insights, setInsights] = useState<ClassEiInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [lessonUnitId, setLessonUnitId] = useState("");
+  const [lessonDraft, setLessonDraft] = useState("");
+  const [lessonAuditLogId, setLessonAuditLogId] = useState<string | null>(null);
+  const [lessonApproved, setLessonApproved] = useState(false);
+  const [summaryMessage, setSummaryMessage] = useState<string | null>(null);
+  const [summaryBusy, setSummaryBusy] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("we_access_token");
-    if (!token) {
+    const stored = localStorage.getItem("we_access_token");
+    if (!stored) {
       router.replace("/login");
       return;
     }
+
+    setToken(stored);
 
     if (!organisationId) {
       setError("Missing organisation context for this class.");
       return;
     }
 
-    fetchProfile(token)
+    fetchProfile(stored)
       .then(async (loaded) => {
         if (!isTeacher(loaded)) {
           router.replace("/dashboard");
@@ -74,7 +87,7 @@ export default function TeacherClassDetailPage() {
         }
         setProfile(loaded);
         const loadedDashboard = await fetchClassDashboard(
-          token,
+          stored,
           organisationId,
           classId
         );
@@ -82,7 +95,7 @@ export default function TeacherClassDetailPage() {
 
         try {
           const loadedInsights = await fetchClassEiInsights(
-            token,
+            stored,
             organisationId,
             classId
           );
@@ -102,6 +115,51 @@ export default function TeacherClassDetailPage() {
         setError("Unable to load class dashboard.");
       });
   }, [router, organisationId, classId]);
+
+  async function handleRequestLessonSummary() {
+    if (!token || !organisationId || !lessonUnitId.trim()) {
+      return;
+    }
+
+    setSummaryBusy(true);
+    setSummaryMessage(null);
+    setLessonApproved(false);
+    try {
+      const draft = await requestLessonSummaryDraft(
+        token,
+        organisationId,
+        classId,
+        lessonUnitId.trim()
+      );
+      setLessonDraft(draft.draftContent);
+      setLessonAuditLogId(draft.auditLogId);
+      setSummaryMessage(
+        "AI-assisted draft ready. Edit below and approve before sharing."
+      );
+    } catch {
+      setSummaryMessage("Unable to generate lesson summary draft.");
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
+
+  async function handleApproveLessonSummary() {
+    if (!token || !lessonAuditLogId || !lessonDraft.trim()) {
+      return;
+    }
+
+    setSummaryBusy(true);
+    setSummaryMessage(null);
+    try {
+      await finalizeAiSummaryAudit(token, lessonAuditLogId, lessonDraft.trim());
+      setLessonApproved(true);
+      setSummaryMessage("Lesson summary approved. Ready for export or sharing.");
+    } catch {
+      setSummaryMessage("Unable to approve lesson summary.");
+    } finally {
+      setSummaryBusy(false);
+    }
+  }
 
   if (error) {
     return (
@@ -295,6 +353,65 @@ export default function TeacherClassDetailPage() {
             </div>
           </div>
         ) : null}
+
+        <div className="rounded-lg border border-black/10 p-6 space-y-4">
+          <div>
+            <h2 className="font-medium">AI lesson summary</h2>
+            <p className="text-sm text-black/60 mt-1">
+              Request a draft summary for a class unit. Summaries use Educational
+              Intelligence and evidence context only — edit and approve before sharing.
+            </p>
+          </div>
+          <label className="block text-sm space-y-1">
+            <span>Unit id</span>
+            <input
+              type="text"
+              value={lessonUnitId}
+              onChange={(event) => setLessonUnitId(event.target.value)}
+              placeholder="Curriculum unit identifier"
+              className="w-full border border-black/20 rounded px-3 py-2 text-sm"
+            />
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleRequestLessonSummary}
+              disabled={summaryBusy || !lessonUnitId.trim()}
+              className="text-sm underline disabled:opacity-50"
+            >
+              Request AI draft
+            </button>
+          </div>
+          {lessonDraft ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-amber-700">
+                {lessonApproved
+                  ? "Approved summary"
+                  : "AI-assisted draft — requires your approval"}
+              </p>
+              <textarea
+                value={lessonDraft}
+                onChange={(event) => setLessonDraft(event.target.value)}
+                rows={8}
+                disabled={lessonApproved}
+                className="w-full border border-black/20 rounded px-3 py-2 text-sm"
+              />
+              {!lessonApproved ? (
+                <button
+                  type="button"
+                  onClick={handleApproveLessonSummary}
+                  disabled={summaryBusy || !lessonDraft.trim()}
+                  className="text-sm underline disabled:opacity-50"
+                >
+                  Approve for export/share
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {summaryMessage ? (
+            <p className="text-sm text-black/70">{summaryMessage}</p>
+          ) : null}
+        </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
           <h2 className="font-medium">Recent assessments</h2>

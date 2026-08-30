@@ -9,6 +9,10 @@ import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
 import { fetchStudentInterventions, type StudentInterventions } from "@/lib/interventions";
 import { fetchStudentMastery, type StudentMastery } from "@/lib/mastery";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
+import {
+  finalizeAiSummaryAudit,
+  requestProgressReportDraft,
+} from "@/lib/ei-summaries";
 
 export default function StudentProfilePage() {
   const router = useRouter();
@@ -22,15 +26,23 @@ export default function StudentProfilePage() {
   const [interventions, setInterventions] = useState<StudentInterventions | null>(null);
   const [mastery, setMastery] = useState<StudentMastery | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [reportDraft, setReportDraft] = useState("");
+  const [reportAuditLogId, setReportAuditLogId] = useState<string | null>(null);
+  const [reportApproved, setReportApproved] = useState(false);
+  const [reportMessage, setReportMessage] = useState<string | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("we_access_token");
-    if (!token) {
+    const stored = localStorage.getItem("we_access_token");
+    if (!stored) {
       router.replace("/login");
       return;
     }
 
-    fetchProfile(token)
+    setToken(stored);
+
+    fetchProfile(stored)
       .then(async (loaded) => {
         const canView =
           loaded.roles.includes("SystemAdministrator") ||
@@ -43,28 +55,28 @@ export default function StudentProfilePage() {
         }
 
         setViewer(loaded);
-        const studentProfile = await fetchStudentProfile(token, studentUserId);
+        const studentProfile = await fetchStudentProfile(stored, studentUserId);
         setProfile(studentProfile);
 
         const isTeacherOrAdmin =
           loaded.roles.includes("SystemAdministrator") || loaded.roles.includes("Teacher");
         if (isTeacherOrAdmin) {
           try {
-            const studentDiagnostics = await fetchStudentDiagnostics(token, studentUserId);
+            const studentDiagnostics = await fetchStudentDiagnostics(stored, studentUserId);
             setDiagnostics(studentDiagnostics);
           } catch {
             setDiagnostics({ studentUserId, diagnostics: [] });
           }
 
           try {
-            const studentGaps = await fetchStudentGaps(token, studentUserId);
+            const studentGaps = await fetchStudentGaps(stored, studentUserId);
             setGaps(studentGaps);
           } catch {
             setGaps({ studentUserId, gaps: [] });
           }
 
           try {
-            const studentMastery = await fetchStudentMastery(token, studentUserId);
+            const studentMastery = await fetchStudentMastery(stored, studentUserId);
             setMastery(studentMastery);
           } catch {
             setMastery({ studentUserId, records: [] });
@@ -72,7 +84,7 @@ export default function StudentProfilePage() {
         }
 
         try {
-          const studentInterventions = await fetchStudentInterventions(token, studentUserId);
+          const studentInterventions = await fetchStudentInterventions(stored, studentUserId);
           setInterventions(studentInterventions);
         } catch {
           setInterventions({ studentUserId, interventions: [] });
@@ -82,6 +94,56 @@ export default function StudentProfilePage() {
         setError("Unable to load student learning profile.");
       });
   }, [router, studentUserId]);
+
+  async function handleRequestProgressReport() {
+    if (!token || !profile || profile.enrollments.length === 0) {
+      setReportMessage("Student must be enrolled in a class to generate a progress report.");
+      return;
+    }
+
+    const enrollment = profile.enrollments[0];
+    setReportBusy(true);
+    setReportMessage(null);
+    setReportApproved(false);
+    try {
+      const draft = await requestProgressReportDraft(
+        token,
+        studentUserId,
+        enrollment.organisationId,
+        enrollment.classId
+      );
+      setReportDraft(draft.draftContent);
+      setReportAuditLogId(draft.auditLogId);
+      setReportMessage(
+        "AI-assisted draft ready. Edit below and approve before sharing."
+      );
+    } catch {
+      setReportMessage("Unable to generate progress report draft.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function handleApproveProgressReport() {
+    if (!token || !reportAuditLogId || !reportDraft.trim()) {
+      return;
+    }
+
+    setReportBusy(true);
+    setReportMessage(null);
+    try {
+      await finalizeAiSummaryAudit(token, reportAuditLogId, reportDraft.trim());
+      setReportApproved(true);
+      setReportMessage("Progress report approved. Ready for export or sharing.");
+    } catch {
+      setReportMessage("Unable to approve progress report.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  const isTeacherViewer =
+    viewer?.roles.includes("SystemAdministrator") || viewer?.roles.includes("Teacher");
 
   if (error) {
     return (
@@ -162,6 +224,55 @@ export default function StudentProfilePage() {
             </ul>
           )}
         </div>
+
+        {isTeacherViewer ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-4">
+            <div>
+              <h2 className="font-medium">AI progress report</h2>
+              <p className="text-sm text-black/60 mt-1">
+                Request a draft narrative from SLP and evidence context. Edit and
+                approve before sharing with parents or exporting.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRequestProgressReport}
+              disabled={reportBusy}
+              className="text-sm underline disabled:opacity-50"
+            >
+              Request AI draft
+            </button>
+            {reportDraft ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-amber-700">
+                  {reportApproved
+                    ? "Approved report"
+                    : "AI-assisted draft — requires your approval"}
+                </p>
+                <textarea
+                  value={reportDraft}
+                  onChange={(event) => setReportDraft(event.target.value)}
+                  rows={10}
+                  disabled={reportApproved}
+                  className="w-full border border-black/20 rounded px-3 py-2 text-sm"
+                />
+                {!reportApproved ? (
+                  <button
+                    type="button"
+                    onClick={handleApproveProgressReport}
+                    disabled={reportBusy || !reportDraft.trim()}
+                    className="text-sm underline disabled:opacity-50"
+                  >
+                    Approve for export/share
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+            {reportMessage ? (
+              <p className="text-sm text-black/70">{reportMessage}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {mastery ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">

@@ -1,0 +1,10 @@
+{
+  "id": "lesson-summary",
+  "version": "1.0.0",
+  "category": "Educational Summaries",
+  "description": "Draft a lesson summary for a class unit based on Educational Intelligence.",
+  "variables": [
+    "unitId",
+    "classInsightsSummary"
+  ]
+}

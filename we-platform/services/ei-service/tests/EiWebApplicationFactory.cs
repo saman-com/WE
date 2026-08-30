@@ -10,6 +10,8 @@ public sealed class EiWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeClassAccessChecker AccessChecker { get; } = new();
     public FakeClassInsightsProvider InsightsProvider { get; } = new();
+    public FakeAiGatewayClient AiGateway { get; } = new();
+    public FakeStudentEiDataClient StudentEiData { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -21,6 +23,12 @@ public sealed class EiWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IClassInsightsProvider>();
             services.AddSingleton<IClassInsightsProvider>(InsightsProvider);
+
+            services.RemoveAll<IAiGatewayClient>();
+            services.AddSingleton<IAiGatewayClient>(AiGateway);
+
+            services.RemoveAll<IStudentEiDataClient>();
+            services.AddSingleton<IStudentEiDataClient>(StudentEiData);
         });
     }
 }
