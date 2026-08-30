@@ -21,6 +21,7 @@ services:
       - ./databases/interventions/init.sql:/docker-entrypoint-initdb.d/10-create-we-interventions.sql:ro
       - ./databases/ei/init.sql:/docker-entrypoint-initdb.d/11-create-we-ei.sql:ro
       - ./databases/ai-gateway/init.sql:/docker-entrypoint-initdb.d/12-create-we-ai-gateway.sql:ro
+      - ./databases/communication/init.sql:/docker-entrypoint-initdb.d/13-create-we-communication.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -327,6 +328,25 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__InterventionDb: Host=postgres;Port=5432;Database=we_interventions;Username=we;Password=we_dev
+      Organisation__BaseUrl: http://organisation-service:8080
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      organisation-service:
+        condition: service_started
+
+  communication-service:
+    build:
+      context: .
+      dockerfile: services/communication-service/Dockerfile
+    ports:
+      - "8094:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__CommunicationDb: Host=postgres;Port=5432;Database=we_communication;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform

@@ -107,6 +107,9 @@ export default function TeacherWorkspacePage() {
           <Link href="/teacher/interventions" className="underline">
             Interventions
           </Link>
+          <Link href="/teacher/messages" className="underline">
+            Parent messages
+          </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">

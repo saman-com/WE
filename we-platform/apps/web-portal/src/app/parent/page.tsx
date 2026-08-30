@@ -102,6 +102,9 @@ export default function ParentWorkspacePage() {
           <Link href="/dashboard" className="text-sm underline">
             Dashboard
           </Link>
+          <Link href="/parent/messages" className="text-sm underline">
+            School messages
+          </Link>
         </div>
 
         {children.length === 0 ? (
