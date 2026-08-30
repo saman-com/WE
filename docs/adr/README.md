@@ -12,8 +12,9 @@ This directory contains Architecture Decision Records (ADRs) for the WE Platform
 | [0004](0004-authentication.md) | Authentication and Authorisation | Accepted |
 | [0005](0005-messaging-and-events.md) | Messaging and Domain Events | Accepted |
 | [0006](0006-api-design.md) | API Design (REST) | Accepted |
+| [0007](0007-ai-provider.md) | AI Provider and Gateway | Proposed |
 
-**Approved by:** Saman, 2026-08-28
+**Approved by:** Saman, 2026-08-28 (0001–0006); ADR-0007 pending human approval
 
 ## ADR format
 

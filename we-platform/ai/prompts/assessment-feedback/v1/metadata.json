@@ -1,0 +1,11 @@
+{
+  "id": "assessment-feedback",
+  "version": "1.0.0",
+  "category": "Assessment Feedback",
+  "description": "Draft formative feedback for student submissions per micro-skill.",
+  "variables": [
+    "studentName",
+    "microSkillName",
+    "evidenceSummary"
+  ]
+}
