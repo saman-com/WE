@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
+import { fetchStudentInterventions, type StudentInterventions } from "@/lib/interventions";
 import { fetchStudentMastery, type StudentMastery } from "@/lib/mastery";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
 
@@ -18,6 +19,7 @@ export default function StudentProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [diagnostics, setDiagnostics] = useState<StudentDiagnostics | null>(null);
   const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
+  const [interventions, setInterventions] = useState<StudentInterventions | null>(null);
   const [mastery, setMastery] = useState<StudentMastery | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +69,13 @@ export default function StudentProfilePage() {
           } catch {
             setMastery({ studentUserId, records: [] });
           }
+        }
+
+        try {
+          const studentInterventions = await fetchStudentInterventions(token, studentUserId);
+          setInterventions(studentInterventions);
+        } catch {
+          setInterventions({ studentUserId, interventions: [] });
         }
       })
       .catch(() => {
@@ -202,6 +211,44 @@ export default function StudentProfilePage() {
                       Expected: {item.expectedMastery} · Demonstrated: {item.actualMastery} (mark {item.mark}/5)
                     </p>
                     <p className="text-sm">{item.explanation}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {interventions ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium">Interventions</h2>
+              {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
+                <Link href="/teacher/interventions" className="text-sm underline">
+                  Manage interventions
+                </Link>
+              ) : null}
+            </div>
+            {interventions.interventions.length === 0 ? (
+              <p className="text-sm text-black/60">
+                No interventions recorded yet. Teachers create interventions when a learning gap requires planned support.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {interventions.interventions.map((item) => (
+                  <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
+                    <p className="text-sm font-medium">
+                      {item.status} — {item.plannedActions}
+                    </p>
+                    <p className="text-xs text-black/60">
+                      Gap: {item.learningGapId}
+                      {item.outcome ? ` · Outcome: ${item.outcome}` : null}
+                    </p>
+                    {item.notes ? <p className="text-sm">{item.notes}</p> : null}
+                    {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
+                      <Link href={`/teacher/interventions/${item.id}`} className="text-xs underline">
+                        View detail
+                      </Link>
+                    ) : null}
                   </li>
                 ))}
               </ul>

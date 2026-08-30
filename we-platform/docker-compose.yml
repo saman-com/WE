@@ -18,6 +18,7 @@ services:
       - ./databases/diagnostic/init.sql:/docker-entrypoint-initdb.d/07-create-we-diagnostic.sql:ro
       - ./databases/gaps/init.sql:/docker-entrypoint-initdb.d/08-create-we-gaps.sql:ro
       - ./databases/mastery/init.sql:/docker-entrypoint-initdb.d/09-create-we-mastery.sql:ro
+      - ./databases/interventions/init.sql:/docker-entrypoint-initdb.d/10-create-we-interventions.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -286,6 +287,25 @@ services:
       learning-gap-service:
         condition: service_started
       diagnostic-service:
+        condition: service_started
+
+  intervention-service:
+    build:
+      context: .
+      dockerfile: services/intervention-service/Dockerfile
+    ports:
+      - "8092:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__InterventionDb: Host=postgres;Port=5432;Database=we_interventions;Username=we;Password=we_dev
+      Organisation__BaseUrl: http://organisation-service:8080
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      organisation-service:
         condition: service_started
 
 volumes:
