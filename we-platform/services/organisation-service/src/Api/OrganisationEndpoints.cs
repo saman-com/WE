@@ -58,6 +58,10 @@ public static class OrganisationEndpoints
             {
                 query = query.Where(org => org.Classes.Any(c => c.Enrollments.Any(e => e.StudentUserId == userId)));
             }
+            else if (principal.IsSchoolLeader())
+            {
+                query = query.Where(org => org.Leaders.Any(l => l.LeaderUserId == userId));
+            }
             else
             {
                 return Results.Forbid();
@@ -336,6 +340,10 @@ public static class OrganisationEndpoints
             else if (principal.IsStudent())
             {
                 query = query.Where(c => c.Enrollments.Any(e => e.StudentUserId == userId));
+            }
+            else if (principal.IsSchoolLeader())
+            {
+                query = query.Where(c => c.Organisation.Leaders.Any(l => l.LeaderUserId == userId));
             }
             else
             {
@@ -774,6 +782,13 @@ public static class OrganisationEndpoints
             return enrolled ? null : Results.Forbid();
         }
 
+        if (principal.IsSchoolLeader())
+        {
+            var assigned = await db.OrganisationLeaders.AnyAsync(
+                leader => leader.OrganisationId == schoolClass.OrganisationId && leader.LeaderUserId == userId);
+            return assigned ? null : Results.Forbid();
+        }
+
         return Results.Forbid();
     }
 
@@ -798,6 +813,12 @@ public static class OrganisationEndpoints
         {
             return await db.ClassEnrollments.AnyAsync(e =>
                 e.Class.OrganisationId == organisationId && e.StudentUserId == userId);
+        }
+
+        if (principal.IsSchoolLeader())
+        {
+            return await db.OrganisationLeaders.AnyAsync(
+                leader => leader.OrganisationId == organisationId && leader.LeaderUserId == userId);
         }
 
         return false;
@@ -827,7 +848,7 @@ public static class OrganisationEndpoints
 
     private static ClassResponse ToClass(SchoolClass schoolClass, ClaimsPrincipal principal)
     {
-        var includeStudents = principal.IsAdmin() || principal.IsTeacher();
+        var includeStudents = principal.IsAdmin() || principal.IsTeacher() || principal.IsSchoolLeader();
         return new ClassResponse(
             schoolClass.Id,
             schoolClass.OrganisationId,
@@ -851,6 +872,9 @@ public static class OrganisationEndpoints
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

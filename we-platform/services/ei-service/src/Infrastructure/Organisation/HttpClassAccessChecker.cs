@@ -40,6 +40,29 @@ public sealed class HttpClassAccessChecker(
         return schoolClass?.TeacherUserIds?.Contains(teacherUserId) == true;
     }
 
+    public async Task<bool> SchoolLeaderCanViewClassAsync(
+        string schoolLeaderUserId,
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["Organisation:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            logger.LogWarning("Organisation base URL is not configured.");
+            return false;
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}/api/v1/organisations/{organisationId}/classes/{classId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        return response.IsSuccessStatusCode;
+    }
+
     private sealed record ClassResponse(
         Guid Id,
         Guid OrganisationId,

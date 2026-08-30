@@ -28,7 +28,7 @@ public static class EiEndpoints
         IClassInsightsProvider insightsProvider,
         HttpContext httpContext)
     {
-        if (!principal.IsTeacher() && !principal.IsAdmin())
+        if (!principal.IsTeacher() && !principal.IsAdmin() && !principal.IsSchoolLeader())
         {
             return Results.Forbid();
         }
@@ -42,6 +42,19 @@ public static class EiEndpoints
         if (principal.IsTeacher())
         {
             var allowed = await accessChecker.TeacherCanManageClassAsync(
+                principal.UserId(),
+                organisationId,
+                classId,
+                bearerToken);
+            if (!allowed)
+            {
+                return Results.Forbid();
+            }
+        }
+
+        if (principal.IsSchoolLeader())
+        {
+            var allowed = await accessChecker.SchoolLeaderCanViewClassAsync(
                 principal.UserId(),
                 organisationId,
                 classId,
@@ -202,4 +215,7 @@ public static class EiEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
 }

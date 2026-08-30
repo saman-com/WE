@@ -9,4 +9,5 @@ public sealed class Organisation
 
     public ICollection<YearLevel> YearLevels { get; set; } = new List<YearLevel>();
     public ICollection<SchoolClass> Classes { get; set; } = new List<SchoolClass>();
+    public ICollection<OrganisationLeader> Leaders { get; set; } = new List<OrganisationLeader>();
 }

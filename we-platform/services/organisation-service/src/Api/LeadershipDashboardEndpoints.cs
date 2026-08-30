@@ -1,0 +1,357 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using OrganisationService.Application;
+using OrganisationService.Domain;
+using OrganisationService.Infrastructure.Data;
+
+namespace OrganisationService.Api;
+
+public static class LeadershipDashboardEndpoints
+{
+    public static void MapLeadershipDashboardEndpoints(this WebApplication app)
+    {
+        var api = app.MapGroup("/api/v1/organisations").RequireAuthorization();
+
+        api.MapPost("/{organisationId:guid}/leaders", AssignSchoolLeader);
+        api.MapDelete("/{organisationId:guid}/leaders/{userId}", UnassignSchoolLeader);
+        api.MapGet("/{organisationId:guid}/leadership/dashboard", GetSchoolLeadershipDashboard);
+        api.MapGet("/{organisationId:guid}/year-levels/{yearLevelId:guid}/leadership/dashboard", GetYearLevelLeadershipDashboard);
+        api.MapGet("/{organisationId:guid}/classes/{classId:guid}/leadership/summary", GetClassLeadershipSummary);
+    }
+
+    private static async Task<IResult> AssignSchoolLeader(
+        Guid organisationId,
+        AssignSchoolLeaderRequest request,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db)
+    {
+        if (!principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (await db.Organisations.FindAsync(organisationId) is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.UserId))
+        {
+            return Results.BadRequest();
+        }
+
+        if (await db.OrganisationLeaders.AnyAsync(
+                leader => leader.OrganisationId == organisationId && leader.LeaderUserId == request.UserId))
+        {
+            return Results.Conflict();
+        }
+
+        db.OrganisationLeaders.Add(new OrganisationLeader
+        {
+            OrganisationId = organisationId,
+            LeaderUserId = request.UserId,
+            AssignedAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        return Results.Created(
+            $"/api/v1/organisations/{organisationId}/leaders/{request.UserId}",
+            new SchoolLeaderResponse(request.UserId));
+    }
+
+    private static async Task<IResult> UnassignSchoolLeader(
+        Guid organisationId,
+        string userId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db)
+    {
+        if (!principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        var assignment = await db.OrganisationLeaders.FirstOrDefaultAsync(
+            leader => leader.OrganisationId == organisationId && leader.LeaderUserId == userId);
+        if (assignment is null)
+        {
+            return Results.NotFound();
+        }
+
+        db.OrganisationLeaders.Remove(assignment);
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> GetSchoolLeadershipDashboard(
+        Guid organisationId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        IAssessmentDashboardClient assessmentClient,
+        IInterventionDashboardClient interventionClient,
+        IEiInsightsClient eiClient,
+        HttpContext httpContext)
+    {
+        var access = await EvaluateLeadershipAccessAsync(principal, organisationId, db);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var organisation = await db.Organisations.FindAsync(organisationId);
+        if (organisation is null)
+        {
+            return Results.NotFound();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var classes = await LoadClassesWithYearLevelsAsync(db, organisationId);
+        var aggregations = await AggregateClassesAsync(
+            classes,
+            assessmentClient,
+            interventionClient,
+            eiClient,
+            bearerToken);
+
+        return Results.Ok(new LeadershipDashboardResponse(
+            organisationId,
+            organisation.Name,
+            LeadershipDashboardAggregator.RollUpKpis(aggregations),
+            LeadershipDashboardAggregator.RollUpYearLevels(aggregations),
+            LeadershipDashboardAggregator.ToClassComparisons(aggregations)));
+    }
+
+    private static async Task<IResult> GetYearLevelLeadershipDashboard(
+        Guid organisationId,
+        Guid yearLevelId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        IAssessmentDashboardClient assessmentClient,
+        IInterventionDashboardClient interventionClient,
+        IEiInsightsClient eiClient,
+        HttpContext httpContext)
+    {
+        var access = await EvaluateLeadershipAccessAsync(principal, organisationId, db);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var yearLevel = await db.YearLevels.FirstOrDefaultAsync(
+            level => level.Id == yearLevelId && level.OrganisationId == organisationId);
+        if (yearLevel is null)
+        {
+            return Results.NotFound();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var classes = await LoadClassesWithYearLevelsAsync(db, organisationId, yearLevelId);
+        var aggregations = await AggregateClassesAsync(
+            classes,
+            assessmentClient,
+            interventionClient,
+            eiClient,
+            bearerToken);
+
+        return Results.Ok(new YearLevelLeadershipDashboardResponse(
+            organisationId,
+            yearLevelId,
+            yearLevel.Name,
+            LeadershipDashboardAggregator.RollUpKpis(aggregations),
+            LeadershipDashboardAggregator.ToClassComparisons(aggregations)));
+    }
+
+    private static async Task<IResult> GetClassLeadershipSummary(
+        Guid organisationId,
+        Guid classId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        IAssessmentDashboardClient assessmentClient,
+        IInterventionDashboardClient interventionClient,
+        IEiInsightsClient eiClient,
+        HttpContext httpContext)
+    {
+        var access = await EvaluateLeadershipAccessAsync(principal, organisationId, db);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        var schoolClass = await db.Classes
+            .Include(c => c.Teachers)
+            .Include(c => c.Enrollments)
+            .Include(c => c.YearLevel)
+            .FirstOrDefaultAsync(c => c.Id == classId && c.OrganisationId == organisationId);
+        if (schoolClass is null)
+        {
+            return Results.NotFound();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var assessments = await assessmentClient.ListClassAssessmentSummariesAsync(
+            organisationId,
+            classId,
+            bearerToken);
+        var eiInsights = await eiClient.GetClassInsightsAsync(organisationId, classId, bearerToken);
+        var activeInterventions = await CountActiveInterventionsAsync(
+            schoolClass.Enrollments.Select(e => e.StudentUserId).ToList(),
+            interventionClient,
+            bearerToken);
+
+        var reviewedByAssessment = new Dictionary<Guid, int>();
+        var recentAssessments = assessments
+            .Select(item => new ClassDashboardAssessmentSummary(
+                item.Id,
+                item.Title,
+                item.Status,
+                item.DueAt,
+                item.SubmissionCount,
+                reviewedByAssessment.GetValueOrDefault(item.Id)))
+            .ToList();
+
+        return Results.Ok(new ClassLeadershipSummaryResponse(
+            ToClass(schoolClass, principal),
+            schoolClass.Enrollments.Select(e => new ClassMemberResponse(e.StudentUserId)).ToList(),
+            recentAssessments,
+            activeInterventions,
+            eiInsights));
+    }
+
+    private static async Task<IResult?> EvaluateLeadershipAccessAsync(
+        ClaimsPrincipal principal,
+        Guid organisationId,
+        OrganisationDbContext db)
+    {
+        if (principal.IsAdmin())
+        {
+            return null;
+        }
+
+        if (!principal.IsSchoolLeader())
+        {
+            return Results.Forbid();
+        }
+
+        var userId = principal.UserId();
+        var assigned = await db.OrganisationLeaders.AnyAsync(
+            leader => leader.OrganisationId == organisationId && leader.LeaderUserId == userId);
+        return assigned ? null : Results.Forbid();
+    }
+
+    private static async Task<List<SchoolClass>> LoadClassesWithYearLevelsAsync(
+        OrganisationDbContext db,
+        Guid organisationId,
+        Guid? yearLevelId = null)
+    {
+        var query = db.Classes
+            .Include(c => c.Enrollments)
+            .Include(c => c.YearLevel)
+            .Where(c => c.OrganisationId == organisationId);
+
+        if (yearLevelId.HasValue)
+        {
+            query = query.Where(c => c.YearLevelId == yearLevelId.Value);
+        }
+
+        return await query.OrderBy(c => c.Name).ToListAsync();
+    }
+
+    private static async Task<IReadOnlyList<ClassAggregationResult>> AggregateClassesAsync(
+        IReadOnlyList<SchoolClass> classes,
+        IAssessmentDashboardClient assessmentClient,
+        IInterventionDashboardClient interventionClient,
+        IEiInsightsClient eiClient,
+        string bearerToken)
+    {
+        var tasks = classes.Select(async schoolClass =>
+        {
+            var studentIds = schoolClass.Enrollments.Select(e => e.StudentUserId).ToList();
+            var assessments = await assessmentClient.ListClassAssessmentSummariesAsync(
+                schoolClass.OrganisationId,
+                schoolClass.Id,
+                bearerToken);
+            var eiInsights = await eiClient.GetClassInsightsAsync(
+                schoolClass.OrganisationId,
+                schoolClass.Id,
+                bearerToken);
+            var activeInterventions = await CountActiveInterventionsAsync(
+                studentIds,
+                interventionClient,
+                bearerToken);
+
+            return LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
+                schoolClass.Id,
+                schoolClass.Name,
+                schoolClass.YearLevelId,
+                schoolClass.YearLevel.Name,
+                studentIds,
+                assessments,
+                activeInterventions,
+                eiInsights));
+        });
+
+        return await Task.WhenAll(tasks);
+    }
+
+    private static async Task<int> CountActiveInterventionsAsync(
+        IReadOnlyList<string> studentUserIds,
+        IInterventionDashboardClient interventionClient,
+        string bearerToken)
+    {
+        var counts = await Task.WhenAll(studentUserIds.Select(async studentUserId =>
+        {
+            var interventions = await interventionClient.ListActiveInterventionsAsync(studentUserId, bearerToken);
+            return interventions.Count;
+        }));
+
+        return counts.Sum();
+    }
+
+    private static ClassResponse ToClass(SchoolClass schoolClass, ClaimsPrincipal principal) =>
+        new(
+            schoolClass.Id,
+            schoolClass.OrganisationId,
+            schoolClass.YearLevelId,
+            schoolClass.Name,
+            schoolClass.Code,
+            schoolClass.Teachers.Select(t => t.TeacherUserId).ToList(),
+            schoolClass.Enrollments.Select(e => e.StudentUserId).ToList());
+
+    private static string UserId(this ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? string.Empty;
+
+    private static bool IsAdmin(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SystemAdministrator);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
+
+    private static string? ExtractBearerToken(string authorizationHeader)
+    {
+        const string prefix = "Bearer ";
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = authorizationHeader[prefix.Length..].Trim();
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+}

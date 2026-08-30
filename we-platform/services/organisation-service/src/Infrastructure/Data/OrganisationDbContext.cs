@@ -11,6 +11,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
     public DbSet<ClassTeacher> ClassTeachers => Set<ClassTeacher>();
     public DbSet<ClassEnrollment> ClassEnrollments => Set<ClassEnrollment>();
     public DbSet<ParentStudentLink> ParentStudentLinks => Set<ParentStudentLink>();
+    public DbSet<OrganisationLeader> OrganisationLeaders => Set<OrganisationLeader>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +27,8 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.HasMany(e => e.YearLevels).WithOne(e => e.Organisation).HasForeignKey(e => e.OrganisationId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(e => e.Classes).WithOne(e => e.Organisation).HasForeignKey(e => e.OrganisationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Leaders).WithOne(e => e.Organisation).HasForeignKey(e => e.OrganisationId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -81,6 +84,15 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.Property(e => e.ParentUserId).HasColumnName("parent_user_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id");
             entity.Property(e => e.LinkedAt).HasColumnName("linked_at");
+        });
+
+        modelBuilder.Entity<OrganisationLeader>(entity =>
+        {
+            entity.ToTable("organisation_leaders");
+            entity.HasKey(e => new { e.OrganisationId, e.LeaderUserId });
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.LeaderUserId).HasColumnName("leader_user_id");
+            entity.Property(e => e.AssignedAt).HasColumnName("assigned_at");
         });
     }
 }

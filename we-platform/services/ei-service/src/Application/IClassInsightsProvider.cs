@@ -8,6 +8,13 @@ public interface IClassAccessChecker
         Guid classId,
         string bearerToken,
         CancellationToken cancellationToken = default);
+
+    Task<bool> SchoolLeaderCanViewClassAsync(
+        string schoolLeaderUserId,
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IClassInsightsProvider

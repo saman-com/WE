@@ -16,4 +16,17 @@ public sealed class FakeClassAccessChecker : IClassAccessChecker
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(_teacherClasses.Contains((teacherUserId, organisationId, classId)));
+
+    private readonly HashSet<(string SchoolLeaderUserId, Guid OrganisationId, Guid ClassId)> _schoolLeaderClasses = [];
+
+    public void AllowSchoolLeader(string schoolLeaderUserId, Guid organisationId, Guid classId) =>
+        _schoolLeaderClasses.Add((schoolLeaderUserId, organisationId, classId));
+
+    public Task<bool> SchoolLeaderCanViewClassAsync(
+        string schoolLeaderUserId,
+        Guid organisationId,
+        Guid classId,
+        string bearerToken,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(_schoolLeaderClasses.Contains((schoolLeaderUserId, organisationId, classId)));
 }
