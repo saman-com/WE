@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
+import { fetchStudentMastery, type StudentMastery } from "@/lib/mastery";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
 
 export default function StudentProfilePage() {
@@ -17,6 +18,7 @@ export default function StudentProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [diagnostics, setDiagnostics] = useState<StudentDiagnostics | null>(null);
   const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
+  const [mastery, setMastery] = useState<StudentMastery | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,6 +59,13 @@ export default function StudentProfilePage() {
             setGaps(studentGaps);
           } catch {
             setGaps({ studentUserId, gaps: [] });
+          }
+
+          try {
+            const studentMastery = await fetchStudentMastery(token, studentUserId);
+            setMastery(studentMastery);
+          } catch {
+            setMastery({ studentUserId, records: [] });
           }
         }
       })
@@ -144,6 +153,32 @@ export default function StudentProfilePage() {
             </ul>
           )}
         </div>
+
+        {mastery ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-2">
+            <h2 className="font-medium">Micro-skill mastery</h2>
+            {mastery.records.length === 0 ? (
+              <p className="text-sm text-black/60">
+                No mastery records yet. Mastery is calculated from all approved evidence across assessments.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {mastery.records.map((item) => (
+                  <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
+                    <p className="text-sm font-medium">
+                      {item.masteryLevel} — average {item.weightedAverage}/5
+                    </p>
+                    <p className="text-xs text-black/60">
+                      Micro-skill: {item.microSkillId} · {item.evidenceCount} evidence source
+                      {item.evidenceCount === 1 ? "" : "s"} · confidence {item.confidenceScore}
+                    </p>
+                    <p className="text-sm">{item.explanation}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
 
         {gaps ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">

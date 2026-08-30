@@ -17,6 +17,7 @@ services:
       - ./databases/evidence/init.sql:/docker-entrypoint-initdb.d/06-create-we-evidence.sql:ro
       - ./databases/diagnostic/init.sql:/docker-entrypoint-initdb.d/07-create-we-diagnostic.sql:ro
       - ./databases/gaps/init.sql:/docker-entrypoint-initdb.d/08-create-we-gaps.sql:ro
+      - ./databases/mastery/init.sql:/docker-entrypoint-initdb.d/09-create-we-mastery.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -223,6 +224,30 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__GapDb: Host=postgres;Port=5432;Database=we_gaps;Username=we;Password=we_dev
+      Organisation__BaseUrl: http://organisation-service:8080
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      organisation-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  mastery-service:
+    build:
+      context: .
+      dockerfile: services/mastery-service/Dockerfile
+    ports:
+      - "8090:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__MasteryDb: Host=postgres;Port=5432;Database=we_mastery;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
