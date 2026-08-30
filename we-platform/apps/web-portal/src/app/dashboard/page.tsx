@@ -131,6 +131,12 @@ export default function DashboardPage() {
           </>
         ) : null}
 
+        {profile.roles.includes("Parent") ? (
+          <Link href="/parent" className="text-sm underline">
+            Parent workspace
+          </Link>
+        ) : null}
+
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <h2 className="font-medium">Classes</h2>
           {classes.length === 0 ? (

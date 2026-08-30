@@ -38,3 +38,14 @@ public sealed record InterventionResponse(
 public sealed record StudentInterventionsResponse(
     string StudentUserId,
     IReadOnlyList<InterventionResponse> Interventions);
+
+public sealed record ParentInterventionSummaryResponse(
+    Guid Id,
+    string Summary,
+    string Status,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt);
+
+public sealed record ParentInterventionsResponse(
+    string StudentUserId,
+    IReadOnlyList<ParentInterventionSummaryResponse> Interventions);

@@ -10,6 +10,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
     public DbSet<SchoolClass> Classes => Set<SchoolClass>();
     public DbSet<ClassTeacher> ClassTeachers => Set<ClassTeacher>();
     public DbSet<ClassEnrollment> ClassEnrollments => Set<ClassEnrollment>();
+    public DbSet<ParentStudentLink> ParentStudentLinks => Set<ParentStudentLink>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,6 +72,15 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.HasKey(e => new { e.ClassId, e.StudentUserId });
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id");
+        });
+
+        modelBuilder.Entity<ParentStudentLink>(entity =>
+        {
+            entity.ToTable("parent_student_links");
+            entity.HasKey(e => new { e.ParentUserId, e.StudentUserId });
+            entity.Property(e => e.ParentUserId).HasColumnName("parent_user_id");
+            entity.Property(e => e.StudentUserId).HasColumnName("student_user_id");
+            entity.Property(e => e.LinkedAt).HasColumnName("linked_at");
         });
     }
 }

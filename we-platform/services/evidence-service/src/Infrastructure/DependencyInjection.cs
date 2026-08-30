@@ -31,6 +31,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
+        services.AddHttpClient<IParentAccessChecker, HttpParentAccessChecker>();
         services.AddHttpClient<IStudentLearningProfileClient, HttpStudentLearningProfileClient>();
         services.AddEvidenceMessaging(configuration, environment);
         return services;

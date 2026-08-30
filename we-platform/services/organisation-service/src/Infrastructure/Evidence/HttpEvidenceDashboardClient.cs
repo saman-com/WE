@@ -86,6 +86,49 @@ public sealed class HttpEvidenceDashboardClient(
             ?? [];
     }
 
+    public async Task<IReadOnlyList<StudentEvidenceFeedbackData>> ListStudentFeedbackForStudentAsync(
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["Evidence:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            logger.LogWarning("Evidence base URL is not configured.");
+            throw new InvalidOperationException("Evidence service is not configured.");
+        }
+
+        var query = $"studentUserId={Uri.EscapeDataString(studentUserId)}";
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}/api/v1/evidence/student-feedback?{query}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning(
+                "Evidence parent student feedback request failed with status {StatusCode}.",
+                response.StatusCode);
+            response.EnsureSuccessStatusCode();
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<List<StudentFeedbackPayload>>(
+            cancellationToken: cancellationToken);
+        return payload?.Select(item => new StudentEvidenceFeedbackData(
+            item.Id,
+            item.AssessmentId,
+            item.Title,
+            item.ApprovedAt,
+            item.MicroSkillMarks
+                .Select(mark => new StudentEvidenceFeedbackMarkData(
+                    mark.MicroSkillId,
+                    mark.Mark,
+                    mark.Feedback))
+                .ToList())).ToList()
+            ?? [];
+    }
+
     private sealed record ClassEvidenceSummaryPayload(Guid AssessmentId, int ReviewedCount);
 
     private sealed record StudentFeedbackPayload(

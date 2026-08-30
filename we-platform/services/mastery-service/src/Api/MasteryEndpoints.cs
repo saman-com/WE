@@ -14,6 +14,7 @@ public static class MasteryEndpoints
         var api = app.MapGroup("/api/v1/mastery").RequireAuthorization();
 
         api.MapGet("/students/{studentUserId}", GetStudentMastery);
+        api.MapGet("/students/{studentUserId}/parent-summary", GetParentMasterySummary);
     }
 
     private static async Task<IResult> GetStudentMastery(
@@ -46,6 +47,50 @@ public static class MasteryEndpoints
         return Results.Ok(new StudentMasteryResponse(
             studentUserId,
             records.Select(ToResponse).ToList()));
+    }
+
+    private static async Task<IResult> GetParentMasterySummary(
+        string studentUserId,
+        ClaimsPrincipal principal,
+        MasteryDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        if (!principal.IsParent())
+        {
+            return Results.Forbid();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var allowed = await accessChecker.ParentCanViewStudentAsync(
+            principal.UserId(),
+            studentUserId,
+            bearerToken);
+        if (!allowed)
+        {
+            return Results.Forbid();
+        }
+
+        var records = await db.Records
+            .Where(r => r.StudentUserId == studentUserId)
+            .OrderBy(r => r.MicroSkillId)
+            .ToListAsync();
+
+        return Results.Ok(new ParentMasterySummaryResponse(
+            studentUserId,
+            records.Select(record => new ParentMasteryRecordResponse(
+                record.MicroSkillId,
+                record.MasteryLevel)).ToList()));
     }
 
     private static async Task<IResult?> EvaluateAccessAsync(
@@ -108,4 +153,7 @@ public static class MasteryEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsParent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Parent);
 }

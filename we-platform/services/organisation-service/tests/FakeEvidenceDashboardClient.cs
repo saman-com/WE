@@ -19,4 +19,19 @@ public sealed class FakeEvidenceDashboardClient : IEvidenceDashboardClient
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(StudentFeedback);
+
+    public Dictionary<string, IReadOnlyList<StudentEvidenceFeedbackData>> StudentFeedbackByStudent { get; } = [];
+
+    public Task<IReadOnlyList<StudentEvidenceFeedbackData>> ListStudentFeedbackForStudentAsync(
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        if (StudentFeedbackByStudent.TryGetValue(studentUserId, out var feedback))
+        {
+            return Task.FromResult(feedback);
+        }
+
+        return Task.FromResult(StudentFeedback);
+    }
 }

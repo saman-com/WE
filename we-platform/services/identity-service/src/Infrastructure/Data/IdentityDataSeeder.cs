@@ -14,6 +14,9 @@ public static class IdentityDataSeeder
     public const string StudentEmail = "student@school.local";
     public const string StudentPassword = "Password123!";
     public const string StudentUserId = "22222222-2222-2222-2222-222222222222";
+    public const string ParentEmail = "parent@school.local";
+    public const string ParentPassword = "Password123!";
+    public const string ParentUserId = "33333333-3333-3333-3333-333333333333";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -39,6 +42,13 @@ public static class IdentityDataSeeder
             "Demo Student",
             PlatformRoles.Student,
             StudentUserId);
+        await EnsureUserAsync(
+            userManager,
+            ParentEmail,
+            ParentPassword,
+            "Demo Parent",
+            PlatformRoles.Parent,
+            ParentUserId);
 
         logger.LogInformation("Identity seed data applied.");
     }

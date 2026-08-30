@@ -22,3 +22,9 @@ public sealed record MasteryRecordResponse(
 public sealed record StudentMasteryResponse(
     string StudentUserId,
     IReadOnlyList<MasteryRecordResponse> Records);
+
+public sealed record ParentMasteryRecordResponse(Guid MicroSkillId, string MasteryLevel);
+
+public sealed record ParentMasterySummaryResponse(
+    string StudentUserId,
+    IReadOnlyList<ParentMasteryRecordResponse> Records);

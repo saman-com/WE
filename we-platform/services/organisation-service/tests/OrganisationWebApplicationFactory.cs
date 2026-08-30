@@ -11,6 +11,8 @@ public sealed class OrganisationWebApplicationFactory : WebApplicationFactory<Pr
     public FakeStudentLearningProfileClient ProfileClient { get; } = new();
     public FakeAssessmentDashboardClient AssessmentClient { get; } = new();
     public FakeEvidenceDashboardClient EvidenceClient { get; } = new();
+    public FakeMasteryDashboardClient MasteryClient { get; } = new();
+    public FakeInterventionDashboardClient InterventionClient { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -23,6 +25,10 @@ public sealed class OrganisationWebApplicationFactory : WebApplicationFactory<Pr
             services.AddSingleton<IAssessmentDashboardClient>(AssessmentClient);
             services.RemoveAll<IEvidenceDashboardClient>();
             services.AddSingleton<IEvidenceDashboardClient>(EvidenceClient);
+            services.RemoveAll<IMasteryDashboardClient>();
+            services.AddSingleton<IMasteryDashboardClient>(MasteryClient);
+            services.RemoveAll<IInterventionDashboardClient>();
+            services.AddSingleton<IInterventionDashboardClient>(InterventionClient);
         });
     }
 }

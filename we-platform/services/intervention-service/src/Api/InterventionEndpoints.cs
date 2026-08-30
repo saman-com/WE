@@ -15,6 +15,7 @@ public static class InterventionEndpoints
 
         api.MapPost("/", CreateIntervention);
         api.MapGet("/", ListInterventions);
+        api.MapGet("/parent-summary", ListParentInterventionSummaries);
         api.MapGet("/{interventionId:guid}", GetIntervention);
         api.MapPatch("/{interventionId:guid}", PatchIntervention);
     }
@@ -109,6 +110,48 @@ public static class InterventionEndpoints
         return Results.Ok(new StudentInterventionsResponse(
             studentUserId,
             interventions.Select(ToResponse).ToList()));
+    }
+
+    private static async Task<IResult> ListParentInterventionSummaries(
+        string? studentUserId,
+        ClaimsPrincipal principal,
+        InterventionDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        if (!principal.IsParent())
+        {
+            return Results.Forbid();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var allowed = await accessChecker.ParentCanViewStudentAsync(
+            principal.UserId(),
+            studentUserId,
+            bearerToken);
+        if (!allowed)
+        {
+            return Results.Forbid();
+        }
+
+        var interventions = await db.Interventions
+            .Where(i => i.StudentUserId == studentUserId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        return Results.Ok(new ParentInterventionsResponse(
+            studentUserId,
+            interventions.Select(ToParentSummary).ToList()));
     }
 
     private static async Task<IResult> GetIntervention(
@@ -312,6 +355,14 @@ public static class InterventionEndpoints
             intervention.CreatedAt,
             intervention.UpdatedAt);
 
+    private static ParentInterventionSummaryResponse ToParentSummary(Intervention intervention) =>
+        new(
+            intervention.Id,
+            intervention.PlannedActions,
+            intervention.Status,
+            intervention.PlannedStartAt,
+            intervention.PlannedEndAt);
+
     private static string? ExtractBearerToken(string authorizationHeader)
     {
         const string prefix = "Bearer ";
@@ -340,4 +391,7 @@ public static class InterventionEndpoints
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);
+
+    private static bool IsParent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Parent);
 }

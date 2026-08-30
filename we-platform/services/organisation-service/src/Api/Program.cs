@@ -59,6 +59,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapOrganisationEndpoints();
 app.MapStudentWorkspaceEndpoints();
+app.MapParentWorkspaceEndpoints();
 
 app.Run();
 

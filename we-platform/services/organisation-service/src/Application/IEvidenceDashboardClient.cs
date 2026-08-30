@@ -25,4 +25,9 @@ public interface IEvidenceDashboardClient
     Task<IReadOnlyList<StudentEvidenceFeedbackData>> ListStudentFeedbackAsync(
         string bearerToken,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StudentEvidenceFeedbackData>> ListStudentFeedbackForStudentAsync(
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
 }

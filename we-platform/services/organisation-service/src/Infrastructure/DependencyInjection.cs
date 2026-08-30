@@ -5,6 +5,8 @@ using OrganisationService.Application;
 using OrganisationService.Infrastructure.Assessment;
 using OrganisationService.Infrastructure.Data;
 using OrganisationService.Infrastructure.Evidence;
+using OrganisationService.Infrastructure.Intervention;
+using OrganisationService.Infrastructure.Mastery;
 using OrganisationService.Infrastructure.StudentLearning;
 
 namespace OrganisationService.Infrastructure;
@@ -31,6 +33,8 @@ public static class DependencyInjection
         services.AddHttpClient<IStudentLearningProfileClient, HttpStudentLearningProfileClient>();
         services.AddHttpClient<IAssessmentDashboardClient, HttpAssessmentDashboardClient>();
         services.AddHttpClient<IEvidenceDashboardClient, HttpEvidenceDashboardClient>();
+        services.AddHttpClient<IMasteryDashboardClient, HttpMasteryDashboardClient>();
+        services.AddHttpClient<IInterventionDashboardClient, HttpInterventionDashboardClient>();
 
         return services;
     }

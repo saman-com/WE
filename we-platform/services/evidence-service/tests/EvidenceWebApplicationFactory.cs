@@ -9,6 +9,7 @@ namespace EvidenceService.Tests;
 public sealed class EvidenceWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeClassAccessChecker AccessChecker { get; } = new();
+    public FakeParentAccessChecker ParentAccessChecker { get; } = new();
     public FakeStudentLearningProfileClient ProfileClient { get; } = new();
     public FakeDomainEventPublisher EventPublisher { get; } = new();
 
@@ -19,6 +20,8 @@ public sealed class EvidenceWebApplicationFactory : WebApplicationFactory<Progra
         {
             services.RemoveAll<IClassAccessChecker>();
             services.AddSingleton<IClassAccessChecker>(AccessChecker);
+            services.RemoveAll<IParentAccessChecker>();
+            services.AddSingleton<IParentAccessChecker>(ParentAccessChecker);
             services.RemoveAll<IStudentLearningProfileClient>();
             services.AddSingleton<IStudentLearningProfileClient>(ProfileClient);
             services.RemoveAll<IDomainEventPublisher>();

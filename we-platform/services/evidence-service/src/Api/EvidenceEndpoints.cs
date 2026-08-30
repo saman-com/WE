@@ -187,18 +187,49 @@ public static class EvidenceEndpoints
     }
 
     private static async Task<IResult> ListStudentFeedback(
+        string? studentUserId,
         ClaimsPrincipal principal,
-        EvidenceDbContext db)
+        EvidenceDbContext db,
+        IParentAccessChecker parentAccessChecker,
+        HttpContext httpContext)
     {
-        if (!principal.IsStudent())
+        string targetStudentUserId;
+        if (principal.IsParent())
+        {
+            if (string.IsNullOrWhiteSpace(studentUserId))
+            {
+                return Results.BadRequest();
+            }
+
+            var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+            if (bearerToken is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await parentAccessChecker.ParentCanViewStudentAsync(
+                principal.UserId(),
+                studentUserId,
+                bearerToken);
+            if (!allowed)
+            {
+                return Results.Forbid();
+            }
+
+            targetStudentUserId = studentUserId;
+        }
+        else if (principal.IsStudent())
+        {
+            targetStudentUserId = principal.UserId();
+        }
+        else
         {
             return Results.Forbid();
         }
 
-        var studentUserId = principal.UserId();
         var items = await db.Evidence
             .Include(e => e.MicroSkillMarks)
-            .Where(e => e.StudentUserId == studentUserId && e.Status == EvidenceStatuses.Approved)
+            .Where(e => e.StudentUserId == targetStudentUserId && e.Status == EvidenceStatuses.Approved)
             .OrderByDescending(e => e.ApprovedAt)
             .ToListAsync();
 
@@ -341,4 +372,7 @@ public static class EvidenceEndpoints
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);
+
+    private static bool IsParent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Parent);
 }

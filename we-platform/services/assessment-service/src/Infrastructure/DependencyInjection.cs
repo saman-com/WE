@@ -28,6 +28,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
+        services.AddHttpClient<IParentAccessChecker, HttpParentAccessChecker>();
         services.AddSingleton<ServiceJwtIssuer>();
         services.AddHttpClient<IAiGatewayClient, HttpAiGatewayClient>();
         services.AddScoped<AiFeedbackDraftService>();

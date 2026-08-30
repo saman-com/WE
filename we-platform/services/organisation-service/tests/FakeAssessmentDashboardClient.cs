@@ -29,4 +29,15 @@ public sealed class FakeAssessmentDashboardClient : IAssessmentDashboardClient
         RequestedStudentClasses.Add((organisationId, classId));
         return Task.FromResult(StudentSummaries);
     }
+
+    public Task<IReadOnlyList<StudentAssessmentSummaryData>> ListStudentAssessmentSummariesForStudentAsync(
+        Guid organisationId,
+        Guid classId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        RequestedStudentClasses.Add((organisationId, classId));
+        return Task.FromResult(StudentSummaries);
+    }
 }

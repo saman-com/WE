@@ -28,4 +28,11 @@ public interface IAssessmentDashboardClient
         Guid classId,
         string bearerToken,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StudentAssessmentSummaryData>> ListStudentAssessmentSummariesForStudentAsync(
+        Guid organisationId,
+        Guid classId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
 }

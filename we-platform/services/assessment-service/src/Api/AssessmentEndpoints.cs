@@ -182,29 +182,59 @@ public static class AssessmentEndpoints
     private static async Task<IResult> ListStudentAssessmentSummary(
         Guid organisationId,
         Guid classId,
+        string? studentUserId,
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        IParentAccessChecker parentAccessChecker,
         HttpContext httpContext)
     {
-        if (!principal.IsStudent())
+        string targetStudentUserId;
+        if (principal.IsParent())
+        {
+            if (string.IsNullOrWhiteSpace(studentUserId))
+            {
+                return Results.BadRequest();
+            }
+
+            var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+            if (bearerToken is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await parentAccessChecker.ParentCanViewStudentAsync(
+                principal.UserId(),
+                studentUserId,
+                bearerToken);
+            if (!allowed)
+            {
+                return Results.Forbid();
+            }
+
+            targetStudentUserId = studentUserId;
+        }
+        else if (principal.IsStudent())
+        {
+            var access = await EvaluateViewAccessAsync(
+                principal,
+                organisationId,
+                classId,
+                AssessmentStatuses.Published,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (access is not null)
+            {
+                return access;
+            }
+
+            targetStudentUserId = principal.UserId();
+        }
+        else
         {
             return Results.Forbid();
         }
 
-        var access = await EvaluateViewAccessAsync(
-            principal,
-            organisationId,
-            classId,
-            AssessmentStatuses.Published,
-            accessChecker,
-            httpContext.Request.Headers.Authorization.ToString());
-        if (access is not null)
-        {
-            return access;
-        }
-
-        var studentUserId = principal.UserId();
         var assessments = await db.Assessments
             .Include(a => a.LearningObjectives)
             .Include(a => a.Submissions)
@@ -218,7 +248,7 @@ public static class AssessmentEndpoints
         var summaries = assessments
             .Select(a =>
             {
-                var submission = a.Submissions.FirstOrDefault(s => s.StudentUserId == studentUserId);
+                var submission = a.Submissions.FirstOrDefault(s => s.StudentUserId == targetStudentUserId);
                 return new StudentAssessmentSummaryResponse(
                     a.Id,
                     a.Title,
@@ -855,4 +885,7 @@ public static class AssessmentEndpoints
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);
+
+    private static bool IsParent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Parent);
 }

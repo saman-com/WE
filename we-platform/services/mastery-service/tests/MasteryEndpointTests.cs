@@ -131,6 +131,30 @@ public class MasteryEndpointTests : IClassFixture<MasteryWebApplicationFactory>
         Assert.Equal(3.5m, proficient.Records[0].WeightedAverage);
     }
 
+    [Fact]
+    public async Task Parent_CanViewLinkedChildMasterySummary()
+    {
+        var parentId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var microSkillId = Guid.CreateVersion7();
+        _accessChecker.Allow(teacherId, studentId);
+        _accessChecker.AllowParent(parentId, studentId);
+
+        await _processor.ProcessEvidenceCreatedAsync(CreateEvidence(studentId, microSkillId, 4m));
+
+        var response = await SendAsAsync<ParentMasterySummaryResponse>(
+            HttpMethod.Get,
+            $"/api/v1/mastery/students/{studentId}/parent-summary",
+            parentId,
+            TestJwt.ParentRole);
+
+        Assert.Equal(studentId, response.StudentUserId);
+        var record = Assert.Single(response.Records);
+        Assert.Equal(microSkillId, record.MicroSkillId);
+        Assert.Equal(MasteryLevel.Proficient, record.MasteryLevel);
+    }
+
     private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
     {
         using var request = TestJwt.Authorized(method, url, userId, role);

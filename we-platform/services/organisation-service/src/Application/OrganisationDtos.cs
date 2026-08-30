@@ -82,3 +82,31 @@ public sealed record StudentWorkspaceResponse(
     IReadOnlyList<StudentWorkspaceAssessmentSummary> Assessments,
     IReadOnlyList<StudentWorkspaceFeedbackSummary> Feedback,
     IReadOnlyList<StudentWorkspaceTimelineEntry> Timeline);
+
+public sealed record LinkParentStudentRequest(string StudentUserId);
+
+public sealed record ParentChildLinkResponse(string ParentUserId, string StudentUserId);
+
+public sealed record ParentMasterySummary(Guid MicroSkillId, string MasteryLevel);
+
+public sealed record ParentAssessmentSummary(
+    Guid Id,
+    string ClassName,
+    string Title,
+    DateTimeOffset? DueAt,
+    bool HasSubmitted,
+    DateTimeOffset? SubmittedAt);
+
+public sealed record ParentInterventionSummary(
+    Guid Id,
+    string Summary,
+    string Status,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt);
+
+public sealed record ParentChildProgressResponse(
+    string StudentUserId,
+    IReadOnlyList<ParentMasterySummary> Mastery,
+    IReadOnlyList<StudentWorkspaceFeedbackSummary> Feedback,
+    IReadOnlyList<ParentAssessmentSummary> Assessments,
+    IReadOnlyList<ParentInterventionSummary> ActiveInterventions);

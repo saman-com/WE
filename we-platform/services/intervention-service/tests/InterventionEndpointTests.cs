@@ -328,6 +328,93 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Parent_CanViewApprovedInterventionSummaryForLinkedChild()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var parentId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+        _accessChecker.AllowParent(parentId, studentId);
+
+        var created = await SendAsAsync<InterventionResponse>(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole,
+            new CreateInterventionRequest(
+                Guid.CreateVersion7(),
+                studentId,
+                Guid.CreateVersion7(),
+                "Guided practice sessions.",
+                "Confidential teacher notes.",
+                DateTimeOffset.UtcNow.AddDays(1),
+                DateTimeOffset.UtcNow.AddDays(14),
+                null));
+
+        var summaries = await SendAsAsync<ParentInterventionsResponse>(
+            HttpMethod.Get,
+            $"/api/v1/interventions/parent-summary?studentUserId={studentId}",
+            parentId,
+            TestJwt.ParentRole);
+
+        var summary = Assert.Single(summaries.Interventions);
+        Assert.Equal(created.Id, summary.Id);
+        Assert.Equal("Guided practice sessions.", summary.Summary);
+        Assert.Equal(InterventionStatuses.Planned, summary.Status);
+    }
+
+    [Fact]
+    public async Task Parent_CannotViewInterventionNotes()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var parentId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+        _accessChecker.AllowParent(parentId, studentId);
+
+        await SendAsAsync<InterventionResponse>(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole,
+            new CreateInterventionRequest(
+                Guid.CreateVersion7(),
+                studentId,
+                Guid.CreateVersion7(),
+                "Guided practice sessions.",
+                "Confidential teacher notes.",
+                null,
+                null,
+                null));
+
+        var summaries = await SendAsAsync<ParentInterventionsResponse>(
+            HttpMethod.Get,
+            $"/api/v1/interventions/parent-summary?studentUserId={studentId}",
+            parentId,
+            TestJwt.ParentRole);
+
+        var summary = Assert.Single(summaries.Interventions);
+        Assert.DoesNotContain("Confidential", summary.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("notes", summary.Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Parent_CannotViewInterventionSummaryForUnlinkedChild()
+    {
+        var parentId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/interventions/parent-summary?studentUserId={studentId}",
+            parentId,
+            TestJwt.ParentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private async Task<InterventionResponse> CreateSampleInterventionAsync(string teacherId, string studentId)
     {
         return await SendAsAsync<InterventionResponse>(
