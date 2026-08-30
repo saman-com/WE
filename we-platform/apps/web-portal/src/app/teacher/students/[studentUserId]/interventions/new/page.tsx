@@ -4,8 +4,51 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
-import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
-import { createIntervention } from "@/lib/interventions";
+import { fetchStudentGaps, type LearningGap } from "@/lib/gaps";
+import {
+  buildSuggestedInterventionActions,
+  createIntervention,
+  type GapInterventionContext,
+} from "@/lib/interventions";
+
+function resolveGapContext(
+  gaps: LearningGap[],
+  preselectedGapId: string | null,
+  searchParams: URLSearchParams,
+  studentUserId: string
+): GapInterventionContext | null {
+  if (preselectedGapId) {
+    const matchedGap = gaps.find((item) => item.id === preselectedGapId);
+    if (matchedGap) {
+      return {
+        learningGapId: matchedGap.id,
+        microSkillId: matchedGap.microSkillId,
+        severity: matchedGap.severity,
+        urgency: matchedGap.urgency,
+        explanation: matchedGap.explanation,
+        studentUserId,
+      };
+    }
+  }
+
+  const learningGapId = searchParams.get("learningGapId");
+  const microSkillId = searchParams.get("microSkillId");
+  const severity = searchParams.get("severity");
+  const urgency = searchParams.get("urgency");
+  const explanation = searchParams.get("explanation");
+  if (!learningGapId || !microSkillId || !severity || !urgency || !explanation) {
+    return null;
+  }
+
+  return {
+    learningGapId,
+    microSkillId,
+    severity,
+    urgency,
+    explanation,
+    studentUserId,
+  };
+}
 
 export default function CreateInterventionPage() {
   const router = useRouter();
@@ -14,9 +57,10 @@ export default function CreateInterventionPage() {
   const studentUserId = params.studentUserId;
   const preselectedGapId = searchParams.get("learningGapId");
   const organisationId = searchParams.get("organisationId");
+  const returnTo = searchParams.get("returnTo");
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
-  const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
+  const [gapContext, setGapContext] = useState<GapInterventionContext | null>(null);
   const [learningGapId, setLearningGapId] = useState(preselectedGapId ?? "");
   const [plannedActions, setPlannedActions] = useState("");
   const [notes, setNotes] = useState("");
@@ -41,21 +85,22 @@ export default function CreateInterventionPage() {
 
         setViewer(loaded);
         const studentGaps = await fetchStudentGaps(token, studentUserId);
-        setGaps(studentGaps);
-
-        if (preselectedGapId) {
-          const gap = studentGaps.gaps.find((item) => item.id === preselectedGapId);
-          if (gap) {
-            setPlannedActions(
-              `Address ${gap.severity.toLowerCase()} severity gap in micro-skill ${gap.microSkillId}.`
-            );
-          }
+        const resolvedContext = resolveGapContext(
+          studentGaps.gaps,
+          preselectedGapId,
+          searchParams,
+          studentUserId
+        );
+        setGapContext(resolvedContext);
+        if (resolvedContext) {
+          setLearningGapId(resolvedContext.learningGapId);
+          setPlannedActions(buildSuggestedInterventionActions(resolvedContext));
         }
       })
       .catch(() => {
         setError("Unable to load intervention form.");
       });
-  }, [router, studentUserId, preselectedGapId]);
+  }, [router, studentUserId, preselectedGapId, searchParams]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -87,15 +132,15 @@ export default function CreateInterventionPage() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
-          <Link href={`/students/${studentUserId}/profile`} className="underline">
-            Back to student profile
+          <Link href={returnTo ?? `/students/${studentUserId}/profile`} className="underline">
+            Back
           </Link>
         </div>
       </div>
     );
   }
 
-  if (!viewer || !gaps) {
+  if (!viewer) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <p>Loading intervention form...</p>
@@ -108,31 +153,38 @@ export default function CreateInterventionPage() {
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Create intervention</h1>
-          <Link href={`/students/${studentUserId}/profile`} className="text-sm underline">
-            Student profile
+          <Link href={returnTo ?? "/teacher/interventions"} className="text-sm underline">
+            {returnTo ? "Back to class dashboard" : "Interventions"}
           </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 p-6 space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="learningGapId" className="text-sm font-medium">
-              Learning gap
-            </label>
-            <select
-              id="learningGapId"
-              className="w-full border border-black/20 rounded p-2 text-sm"
-              value={learningGapId}
-              onChange={(event) => setLearningGapId(event.target.value)}
-              required
-            >
-              <option value="">Select a gap...</option>
-              {gaps.gaps.map((gap) => (
-                <option key={gap.id} value={gap.id}>
-                  {gap.severity} / {gap.urgency} — {gap.microSkillId}
-                </option>
-              ))}
-            </select>
+        {gapContext ? (
+          <div className="rounded-lg border border-black/10 p-4 space-y-2 bg-black/[0.02]">
+            <h2 className="text-sm font-medium">Learning gap context</h2>
+            <p className="text-sm">
+              Student:{" "}
+              <Link href={`/students/${studentUserId}/profile`} className="underline">
+                {studentUserId}
+              </Link>
+            </p>
+            <p className="text-xs text-black/60">
+              Micro-skill: {gapContext.microSkillId} · {gapContext.severity} severity ·{" "}
+              {gapContext.urgency} urgency
+            </p>
+            <p className="text-sm">{gapContext.explanation}</p>
+            <p className="text-xs text-black/60">
+              Review the suggested actions below and edit before confirming. You remain the
+              decision-maker.
+            </p>
           </div>
+        ) : (
+          <p className="text-sm text-black/60">
+            Select a learning gap and confirm planned actions before creating the intervention.
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 p-6 space-y-4">
+          <input type="hidden" name="learningGapId" value={learningGapId} />
 
           <div className="space-y-1">
             <label htmlFor="plannedActions" className="text-sm font-medium">
@@ -140,7 +192,7 @@ export default function CreateInterventionPage() {
             </label>
             <textarea
               id="plannedActions"
-              className="w-full min-h-24 border border-black/20 rounded p-3 text-sm"
+              className="w-full min-h-32 border border-black/20 rounded p-3 text-sm"
               value={plannedActions}
               onChange={(event) => setPlannedActions(event.target.value)}
               required
@@ -164,7 +216,7 @@ export default function CreateInterventionPage() {
           <button
             type="submit"
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
-            disabled={submitting}
+            disabled={submitting || !learningGapId}
           >
             Create intervention
           </button>

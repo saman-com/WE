@@ -6,8 +6,10 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchClassEiInsights,
+  type ClassActiveLearningGap,
   type ClassEiInsights,
 } from "@/lib/ei-insights";
+import { buildCreateInterventionFromGapUrl } from "@/lib/interventions";
 import {
   fetchClassDashboard,
   type ClassDashboard,
@@ -22,6 +24,22 @@ function formatDate(value: string | null): string {
     return "—";
   }
   return new Date(value).toLocaleDateString();
+}
+
+function createInterventionHref(
+  gap: ClassActiveLearningGap,
+  organisationId: string,
+  classId: string
+): string {
+  return buildCreateInterventionFromGapUrl(gap.studentUserId, {
+    organisationId,
+    learningGapId: gap.gapId,
+    microSkillId: gap.microSkillId,
+    severity: gap.severity,
+    urgency: gap.urgency,
+    explanation: gap.explanation,
+    returnTo: `/teacher/classes/${classId}?organisationId=${organisationId}`,
+  });
 }
 
 export default function TeacherClassDetailPage() {
@@ -198,7 +216,7 @@ export default function TeacherClassDetailPage() {
               ) : (
                 <ul className="space-y-3">
                   {insights.activeLearningGaps.map((gap) => (
-                    <li key={gap.gapId} className="rounded border border-black/5 p-3 space-y-1">
+                    <li key={gap.gapId} className="rounded border border-black/5 p-3 space-y-2">
                       <p className="text-sm font-medium">
                         {gap.severity} severity · {gap.urgency} urgency ·{" "}
                         <Link href={`/students/${gap.studentUserId}/profile`} className="underline">
@@ -208,6 +226,14 @@ export default function TeacherClassDetailPage() {
                       <p className="text-xs text-black/60">Micro-skill: {gap.microSkillId}</p>
                       <p className="text-sm">{gap.explanation}</p>
                       <p className="text-xs text-black/60">Evidence: {gap.evidenceId}</p>
+                      {organisationId ? (
+                        <Link
+                          href={createInterventionHref(gap, organisationId, classId)}
+                          className="inline-block text-sm underline"
+                        >
+                          Create intervention
+                        </Link>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

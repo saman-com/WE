@@ -36,6 +36,58 @@ export type CreateInterventionInput = {
   reviewAt?: string;
 };
 
+export type GapInterventionContext = {
+  learningGapId: string;
+  microSkillId: string;
+  severity: string;
+  urgency: string;
+  explanation: string;
+  studentUserId: string;
+};
+
+export type CreateInterventionFromGapParams = {
+  organisationId: string;
+  learningGapId: string;
+  microSkillId: string;
+  severity: string;
+  urgency: string;
+  explanation: string;
+  returnTo?: string;
+};
+
+export function buildSuggestedInterventionActions(context: GapInterventionContext): string {
+  const severity = context.severity.toLowerCase();
+  const urgency = context.urgency.toLowerCase();
+  const actions =
+    urgency === "high" || severity === "high"
+      ? "Schedule targeted guided practice, re-teach key concepts, and run a formative check within one week."
+      : "Provide scaffolded practice and monitor progress through the next assessment cycle.";
+
+  return [
+    `Address ${severity} severity / ${urgency} urgency gap in micro-skill ${context.microSkillId}.`,
+    context.explanation,
+    `Suggested actions: ${actions}`,
+  ].join("\n\n");
+}
+
+export function buildCreateInterventionFromGapUrl(
+  studentUserId: string,
+  params: CreateInterventionFromGapParams
+): string {
+  const search = new URLSearchParams({
+    organisationId: params.organisationId,
+    learningGapId: params.learningGapId,
+    microSkillId: params.microSkillId,
+    severity: params.severity,
+    urgency: params.urgency,
+    explanation: params.explanation,
+  });
+  if (params.returnTo) {
+    search.set("returnTo", params.returnTo);
+  }
+  return `/teacher/students/${encodeURIComponent(studentUserId)}/interventions/new?${search.toString()}`;
+}
+
 export type PatchInterventionInput = {
   status?: InterventionStatus;
   notes?: string;

@@ -263,6 +263,56 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     }
 
     [Fact]
+    public async Task Teacher_CreatesInterventionFromLearningGap_AppearsInStudentList()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+        var learningGapId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+
+        var plannedActions =
+            "Address high severity gap in micro-skill abc123: guided practice and formative check.";
+        var created = await SendAsAsync<InterventionResponse>(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole,
+            new CreateInterventionRequest(
+                organisationId,
+                studentId,
+                learningGapId,
+                plannedActions,
+                "Created from EI dashboard gap review.",
+                null,
+                null,
+                null));
+
+        Assert.Equal(learningGapId, created.LearningGapId);
+        Assert.Equal(InterventionStatuses.Planned, created.Status);
+        Assert.Equal(plannedActions, created.PlannedActions);
+
+        var listResponse = await SendAsAsync<StudentInterventionsResponse>(
+            HttpMethod.Get,
+            $"/api/v1/interventions?studentUserId={studentId}",
+            teacherId,
+            TestJwt.TeacherRole);
+
+        Assert.Single(listResponse.Interventions);
+        Assert.Equal(created.Id, listResponse.Interventions[0].Id);
+        Assert.Equal(learningGapId, listResponse.Interventions[0].LearningGapId);
+
+        var fetched = await SendAsAsync<InterventionResponse>(
+            HttpMethod.Get,
+            $"/api/v1/interventions/{created.Id}",
+            studentId,
+            TestJwt.StudentRole);
+
+        Assert.Equal(learningGapId, fetched.LearningGapId);
+        Assert.Equal(plannedActions, fetched.PlannedActions);
+    }
+
+    [Fact]
     public async Task Teacher_CannotViewInterventionsForUnassignedStudent()
     {
         var teacherId = Guid.NewGuid().ToString();
