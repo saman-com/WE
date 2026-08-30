@@ -20,6 +20,7 @@ services:
       - ./databases/mastery/init.sql:/docker-entrypoint-initdb.d/09-create-we-mastery.sql:ro
       - ./databases/interventions/init.sql:/docker-entrypoint-initdb.d/10-create-we-interventions.sql:ro
       - ./databases/ei/init.sql:/docker-entrypoint-initdb.d/11-create-we-ei.sql:ro
+      - ./databases/ai-gateway/init.sql:/docker-entrypoint-initdb.d/12-create-we-ai-gateway.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -307,11 +308,15 @@ services:
       - "8093:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__AiGatewayDb: Host=postgres;Port=5432;Database=we_ai_gateway;Username=we;Password=we_dev
       Prompts__RootPath: /app/prompts
       AiProvider__Provider: Mock
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   intervention-service:
     build:

@@ -95,9 +95,14 @@ export default function DashboardPage() {
         </div>
 
         {profile.roles.includes("SystemAdministrator") ? (
-          <Link href="/organisation" className="text-sm underline">
-            Organisation setup
-          </Link>
+          <>
+            <Link href="/organisation" className="text-sm underline">
+              Organisation setup
+            </Link>
+            <Link href="/admin/ai-audit" className="text-sm underline block">
+              AI audit logs
+            </Link>
+          </>
         ) : null}
 
         {profile.roles.includes("SystemAdministrator") ||
