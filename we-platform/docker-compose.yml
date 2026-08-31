@@ -23,6 +23,7 @@ services:
       - ./databases/ai-gateway/init.sql:/docker-entrypoint-initdb.d/12-create-we-ai-gateway.sql:ro
       - ./databases/communication/init.sql:/docker-entrypoint-initdb.d/13-create-we-communication.sql:ro
       - ./databases/reporting/init.sql:/docker-entrypoint-initdb.d/14-create-we-reporting.sql:ro
+      - ./databases/edw/init.sql:/docker-entrypoint-initdb.d/15-create-we-edw.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -404,6 +405,24 @@ services:
       organisation-service:
         condition: service_started
       ei-service:
+        condition: service_started
+
+  edw-ingest-service:
+    build:
+      context: .
+      dockerfile: services/edw-ingest-service/Dockerfile
+    ports:
+      - "8097:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_started
 
 volumes:

@@ -1,0 +1,169 @@
+using EdwIngestService.Application;
+using EdwIngestService.Domain;
+using EdwIngestService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Events;
+
+namespace EdwIngestService.Infrastructure;
+
+public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
+{
+    public async Task ProcessEvidenceCreatedAsync(
+        EvidenceCreated evidence,
+        CancellationToken cancellationToken = default)
+    {
+        if (await db.EvidenceFacts.AnyAsync(f => f.EventId == evidence.EventId, cancellationToken))
+        {
+            return;
+        }
+
+        var ingestedAt = DateTimeOffset.UtcNow;
+        var timeKey = await EnsureTimeDimensionAsync(evidence.ApprovedAt, cancellationToken);
+
+        db.EvidenceFacts.Add(new EvidenceFact
+        {
+            EventId = evidence.EventId,
+            EvidenceId = evidence.EvidenceId,
+            OrganisationId = evidence.OrganisationId,
+            AssessmentId = evidence.AssessmentId,
+            SubmissionId = evidence.SubmissionId,
+            StudentUserId = evidence.StudentUserId,
+            ClassId = evidence.ClassId,
+            ApprovedByTeacherUserId = evidence.ApprovedByTeacherUserId,
+            ApprovedAt = evidence.ApprovedAt,
+            TimeKey = timeKey,
+            MicroSkillCount = evidence.MicroSkillMarks.Count,
+            IngestedAt = ingestedAt
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ProcessAssessmentApprovedAsync(
+        AssessmentApproved assessment,
+        CancellationToken cancellationToken = default)
+    {
+        if (await db.AssessmentFacts.AnyAsync(f => f.EventId == assessment.EventId, cancellationToken))
+        {
+            return;
+        }
+
+        var ingestedAt = DateTimeOffset.UtcNow;
+        var timeKey = await EnsureTimeDimensionAsync(assessment.ApprovedAt, cancellationToken);
+
+        db.AssessmentFacts.Add(new AssessmentFact
+        {
+            EventId = assessment.EventId,
+            AssessmentId = assessment.AssessmentId,
+            OrganisationId = assessment.OrganisationId,
+            SubmissionId = assessment.SubmissionId,
+            EvidenceId = assessment.EvidenceId,
+            StudentUserId = assessment.StudentUserId,
+            ApprovedByTeacherUserId = assessment.ApprovedByTeacherUserId,
+            ApprovedAt = assessment.ApprovedAt,
+            TimeKey = timeKey,
+            MicroSkillCount = assessment.MicroSkillResults.Count,
+            IngestedAt = ingestedAt
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ProcessInterventionCreatedAsync(
+        InterventionCreated intervention,
+        CancellationToken cancellationToken = default)
+    {
+        if (await db.InterventionFacts.AnyAsync(f => f.EventId == intervention.EventId, cancellationToken))
+        {
+            return;
+        }
+
+        var ingestedAt = DateTimeOffset.UtcNow;
+        var timeKey = await EnsureTimeDimensionAsync(intervention.CreatedAt, cancellationToken);
+
+        db.InterventionFacts.Add(new InterventionFact
+        {
+            EventId = intervention.EventId,
+            InterventionId = intervention.InterventionId,
+            OrganisationId = intervention.OrganisationId,
+            StudentUserId = intervention.StudentUserId,
+            LearningGapId = intervention.LearningGapId,
+            AssignedTeacherUserId = intervention.AssignedTeacherUserId,
+            Status = intervention.Status,
+            CreatedAt = intervention.CreatedAt,
+            TimeKey = timeKey,
+            IngestedAt = ingestedAt
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ProcessEvidenceBatchAsync(
+        IReadOnlyList<EvidenceCreated> events,
+        CancellationToken cancellationToken = default)
+    {
+        if (events.Count == 0)
+        {
+            return;
+        }
+
+        var ingestedAt = DateTimeOffset.UtcNow;
+        var existingEventIds = await db.EvidenceFacts
+            .Where(f => events.Select(e => e.EventId).Contains(f.EventId))
+            .Select(f => f.EventId)
+            .ToListAsync(cancellationToken);
+        var existingSet = existingEventIds.ToHashSet();
+
+        foreach (var evidence in events)
+        {
+            if (existingSet.Contains(evidence.EventId))
+            {
+                continue;
+            }
+
+            var timeKey = await EnsureTimeDimensionAsync(evidence.ApprovedAt, cancellationToken);
+            db.EvidenceFacts.Add(new EvidenceFact
+            {
+                EventId = evidence.EventId,
+                EvidenceId = evidence.EvidenceId,
+                OrganisationId = evidence.OrganisationId,
+                AssessmentId = evidence.AssessmentId,
+                SubmissionId = evidence.SubmissionId,
+                StudentUserId = evidence.StudentUserId,
+                ClassId = evidence.ClassId,
+                ApprovedByTeacherUserId = evidence.ApprovedByTeacherUserId,
+                ApprovedAt = evidence.ApprovedAt,
+                TimeKey = timeKey,
+                MicroSkillCount = evidence.MicroSkillMarks.Count,
+                IngestedAt = ingestedAt
+            });
+            existingSet.Add(evidence.EventId);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<int> EnsureTimeDimensionAsync(
+        DateTimeOffset timestamp,
+        CancellationToken cancellationToken)
+    {
+        var date = DateOnly.FromDateTime(timestamp.UtcDateTime);
+        var dateKey = date.Year * 10_000 + date.Month * 100 + date.Day;
+
+        var exists = await db.DimTimes.AnyAsync(d => d.DateKey == dateKey, cancellationToken);
+        if (!exists)
+        {
+            db.DimTimes.Add(new DimTime
+            {
+                DateKey = dateKey,
+                CalendarDate = date,
+                Year = date.Year,
+                Month = date.Month,
+                Day = date.Day
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return dateKey;
+    }
+}
