@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using StudentLearningService.Domain;
+using WePlatform.Tenancy;
 
 namespace StudentLearningService.Infrastructure.Data;
 
-public sealed class StudentLearningDbContext(DbContextOptions<StudentLearningDbContext> options) : DbContext(options)
+public sealed class StudentLearningDbContext(
+    DbContextOptions<StudentLearningDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<StudentLearningProfile> Profiles => Set<StudentLearningProfile>();
     public DbSet<ProfileClassEnrollment> ProfileEnrollments => Set<ProfileClassEnrollment>();
@@ -17,6 +20,7 @@ public sealed class StudentLearningDbContext(DbContextOptions<StudentLearningDbC
             entity.ToTable("student_learning_profiles");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -32,6 +36,7 @@ public sealed class StudentLearningDbContext(DbContextOptions<StudentLearningDbC
             entity.ToTable("profile_class_enrollments");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.ProfileId).HasColumnName("profile_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
@@ -62,5 +67,7 @@ public sealed class StudentLearningDbContext(DbContextOptions<StudentLearningDbC
             entity.Property(e => e.EvidenceEntryId).HasColumnName("evidence_entry_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

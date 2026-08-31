@@ -1,8 +1,11 @@
 namespace AssessmentService.Domain;
 
-public sealed class AiFeedbackAuditLog
+using WePlatform.Tenancy;
+
+public sealed class AiFeedbackAuditLog : ITenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid AssessmentId { get; set; }
     public Guid SubmissionId { get; set; }
     public Guid MicroSkillId { get; set; }

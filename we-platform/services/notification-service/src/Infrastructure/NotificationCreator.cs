@@ -17,6 +17,7 @@ public sealed class NotificationCreator(
         Guid sourceEventId,
         string sourceEventType,
         Guid? relatedEntityId,
+        Guid tenantId,
         CancellationToken cancellationToken = default)
     {
         if (!NotificationTypes.IsValid(type))
@@ -35,6 +36,7 @@ public sealed class NotificationCreator(
         var notification = new Notification
         {
             Id = Guid.CreateVersion7(),
+            TenantId = tenantId,
             RecipientUserId = recipientUserId,
             Type = type,
             Title = title,

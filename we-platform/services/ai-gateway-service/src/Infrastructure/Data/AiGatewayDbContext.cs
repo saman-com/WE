@@ -1,9 +1,12 @@
 using AiGatewayService.Domain;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace AiGatewayService.Infrastructure.Data;
 
-public sealed class AiGatewayDbContext(DbContextOptions<AiGatewayDbContext> options) : DbContext(options)
+public sealed class AiGatewayDbContext(
+    DbContextOptions<AiGatewayDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<AiAuditLog> AiAuditLogs => Set<AiAuditLog>();
 
@@ -13,6 +16,7 @@ public sealed class AiGatewayDbContext(DbContextOptions<AiGatewayDbContext> opti
         {
             entity.ToTable("ai_audit_logs");
             entity.HasKey(entry => entry.Id);
+            entity.ConfigureTenantId();
             entity.Property(entry => entry.CallerUserId).IsRequired();
             entity.Property(entry => entry.PromptId).IsRequired();
             entity.Property(entry => entry.PromptVersion).IsRequired();
@@ -23,12 +27,14 @@ public sealed class AiGatewayDbContext(DbContextOptions<AiGatewayDbContext> opti
             entity.Property(entry => entry.ProviderName).IsRequired();
             entity.Property(entry => entry.CreatedAt).IsRequired();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 
-    public override int SaveChanges()
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         EnforceAppendOnlyAuditLogs();
-        return base.SaveChanges();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -1,8 +1,11 @@
 namespace AiGatewayService.Domain;
 
-public sealed class AiAuditLog
+using WePlatform.Tenancy;
+
+public sealed class AiAuditLog : ITenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string CallerUserId { get; set; } = string.Empty;
     public string PromptId { get; set; } = string.Empty;
     public string PromptVersion { get; set; } = string.Empty;

@@ -4,6 +4,7 @@ using InterventionService.Application;
 using InterventionService.Domain;
 using InterventionService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace InterventionService.Api;
 
@@ -28,9 +29,20 @@ public static class InterventionEndpoints
         ClaimsPrincipal principal,
         InterventionDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
+        if (request.OrganisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -63,6 +75,7 @@ public static class InterventionEndpoints
         var intervention = new Intervention
         {
             Id = Guid.CreateVersion7(),
+            TenantId = tenantContext.TenantId!.Value,
             OrganisationId = request.OrganisationId,
             StudentUserId = request.StudentUserId.Trim(),
             LearningGapId = request.LearningGapId,
@@ -220,12 +233,21 @@ public static class InterventionEndpoints
         ClaimsPrincipal principal,
         InterventionDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
-        var intervention = await db.Interventions.FindAsync(interventionId);
+        var intervention = await db.Interventions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(i => i.Id == interventionId);
         if (intervention is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, intervention);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var access = await EvaluateViewAccessAsync(
@@ -245,12 +267,21 @@ public static class InterventionEndpoints
         Guid interventionId,
         PatchInterventionRequest request,
         ClaimsPrincipal principal,
-        InterventionDbContext db)
+        InterventionDbContext db,
+        ITenantContext tenantContext)
     {
-        var intervention = await db.Interventions.FindAsync(interventionId);
+        var intervention = await db.Interventions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(i => i.Id == interventionId);
         if (intervention is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, intervention);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var modifyAccess = await EvaluateModifyAccessAsync(principal, intervention);

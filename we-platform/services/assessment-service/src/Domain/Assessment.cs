@@ -1,8 +1,11 @@
 namespace AssessmentService.Domain;
 
-public sealed class Assessment
+using WePlatform.Tenancy;
+
+public sealed class Assessment : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid OrganisationId { get; set; }
     public Guid ClassId { get; set; }
     public string CreatedByTeacherUserId { get; set; } = string.Empty;

@@ -1,9 +1,12 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OrganisationService.Api;
+using OrganisationService.Domain;
 using OrganisationService.Infrastructure;
 using OrganisationService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +53,26 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OrganisationDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<Organisation>(e => TenantBackfill.ResolveSelfTenant(e.Id));
+    await db.BackfillTenantIdsAsync<YearLevel>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<SchoolClass>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<OrganisationLeader>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<ClassTeacher>(ct =>
+    {
+        var schoolClass = db.Classes.IgnoreQueryFilters().FirstOrDefault(c => c.Id == ct.ClassId);
+        return schoolClass?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<ClassEnrollment>(ce =>
+    {
+        var schoolClass = db.Classes.IgnoreQueryFilters().FirstOrDefault(c => c.Id == ce.ClassId);
+        return schoolClass?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<ParentStudentLink>(_ => DefaultTenant.Id);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

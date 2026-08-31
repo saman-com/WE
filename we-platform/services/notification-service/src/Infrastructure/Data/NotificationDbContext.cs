@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Domain;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Infrastructure.Data;
 
-public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext> options) : DbContext(options)
+public sealed class NotificationDbContext(
+    DbContextOptions<NotificationDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -14,6 +17,7 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
             entity.ToTable("notifications");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.RecipientUserId).HasColumnName("recipient_user_id").IsRequired();
             entity.Property(e => e.Type).HasColumnName("type").IsRequired();
             entity.Property(e => e.Title).HasColumnName("title").IsRequired();
@@ -26,5 +30,7 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
             entity.HasIndex(e => e.RecipientUserId);
             entity.HasIndex(e => new { e.SourceEventId, e.RecipientUserId }).IsUnique();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StudentLearningService.Application;
 using StudentLearningService.Domain;
 using StudentLearningService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 namespace StudentLearningService.Api;
 
@@ -24,11 +25,17 @@ public static class StudentLearningEndpoints
         ClaimsPrincipal principal,
         StudentLearningDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateProfileAccessAsync(
@@ -42,6 +49,7 @@ public static class StudentLearningEndpoints
         }
 
         var profile = await db.Profiles
+            .IgnoreQueryFilters()
             .Include(p => p.Enrollments)
             .Include(p => p.EvidenceEntries)
             .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
@@ -49,6 +57,12 @@ public static class StudentLearningEndpoints
         if (profile is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, profile);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         return Results.Ok(ToResponse(profile));
@@ -59,11 +73,17 @@ public static class StudentLearningEndpoints
         ClaimsPrincipal principal,
         StudentLearningDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateProfileAccessAsync(
@@ -77,12 +97,19 @@ public static class StudentLearningEndpoints
         }
 
         var profile = await db.Profiles
+            .IgnoreQueryFilters()
             .Include(p => p.EvidenceEntries)
             .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
 
         if (profile is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, profile);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         return Results.Ok(ToSummaryResponse(profile));
@@ -92,9 +119,20 @@ public static class StudentLearningEndpoints
         string studentUserId,
         SyncProfileEnrollmentRequest request,
         ClaimsPrincipal principal,
-        StudentLearningDbContext db)
+        StudentLearningDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
+        if (request.OrganisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -116,6 +154,7 @@ public static class StudentLearningEndpoints
             profile = new StudentLearningProfile
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = tenantContext.TenantId!.Value,
                 StudentUserId = studentUserId,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -130,6 +169,7 @@ public static class StudentLearningEndpoints
             db.ProfileEnrollments.Add(new ProfileClassEnrollment
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = tenantContext.TenantId!.Value,
                 ProfileId = profile.Id,
                 OrganisationId = request.OrganisationId,
                 ClassId = request.ClassId,
@@ -156,11 +196,17 @@ public static class StudentLearningEndpoints
         ClaimsPrincipal principal,
         StudentLearningDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId) || string.IsNullOrWhiteSpace(request.Title))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateProfileAccessAsync(
@@ -179,6 +225,7 @@ public static class StudentLearningEndpoints
         }
 
         var profile = await db.Profiles
+            .IgnoreQueryFilters()
             .Include(p => p.Enrollments)
             .Include(p => p.EvidenceEntries)
                 .ThenInclude(e => e.MicroSkills)
@@ -186,6 +233,12 @@ public static class StudentLearningEndpoints
         if (profile is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, profile);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (profile.EvidenceEntries.Any(e => e.Id == request.EvidenceId))

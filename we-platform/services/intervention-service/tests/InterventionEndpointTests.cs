@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InterventionService.Application;
 using InterventionService.Domain;
+using WePlatform.Tenancy;
 
 namespace InterventionService.Tests;
 
@@ -21,7 +22,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     {
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.CreateVersion7();
+        var organisationId = DefaultTenant.Id;
         var learningGapId = Guid.CreateVersion7();
         _accessChecker.AllowTeacher(teacherId, studentId);
 
@@ -52,7 +53,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     {
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.CreateVersion7();
+        var organisationId = DefaultTenant.Id;
         var learningGapId = Guid.CreateVersion7();
         _accessChecker.AllowTeacher(teacherId, studentId);
 
@@ -145,13 +146,13 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         var intervention = await CreateSampleInterventionAsync(teacherId, studentId);
         Assert.Equal(InterventionStatuses.Planned, intervention.Status);
 
-        intervention = await PatchStatusAsync(intervention.Id, teacherId, InterventionStatuses.Active);
+        intervention = await PatchStatusAsync(intervention.Id, teacherId, DefaultTenant.Id, InterventionStatuses.Active);
         Assert.Equal(InterventionStatuses.Active, intervention.Status);
 
-        intervention = await PatchStatusAsync(intervention.Id, teacherId, InterventionStatuses.Completed);
+        intervention = await PatchStatusAsync(intervention.Id, teacherId, DefaultTenant.Id, InterventionStatuses.Completed);
         Assert.Equal(InterventionStatuses.Completed, intervention.Status);
 
-        intervention = await PatchStatusAsync(intervention.Id, teacherId, InterventionStatuses.Closed);
+        intervention = await PatchStatusAsync(intervention.Id, teacherId, DefaultTenant.Id, InterventionStatuses.Closed);
         Assert.Equal(InterventionStatuses.Closed, intervention.Status);
     }
 
@@ -207,15 +208,16 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         var teacherId = Guid.NewGuid().ToString();
         var leaderId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.CreateVersion7();
+        var organisationId = Guid.NewGuid();
         var learningGapId = Guid.CreateVersion7();
         _accessChecker.AllowTeacher(teacherId, studentId);
         _accessChecker.AllowSchoolLeaderForOrganisation(leaderId, organisationId);
 
-        await SendAsAsync<InterventionResponse>(
+        var created = await SendAsAsync<InterventionResponse>(
             HttpMethod.Post,
             "/api/v1/interventions",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole,
             new CreateInterventionRequest(
                 organisationId,
@@ -231,10 +233,12 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{organisationId}/interventions",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(organisationId, response.OrganisationId);
         var intervention = Assert.Single(response.Interventions);
+        Assert.Equal(created.Id, intervention.Id);
         Assert.Equal(studentId, intervention.StudentUserId);
         Assert.Equal(learningGapId, intervention.LearningGapId);
         Assert.Equal(teacherId, intervention.AssignedTeacherUserId);
@@ -247,7 +251,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         var teacherId = Guid.NewGuid().ToString();
         var leaderId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.CreateVersion7();
+        var organisationId = Guid.NewGuid();
         _accessChecker.AllowTeacher(teacherId, studentId);
         _accessChecker.AllowSchoolLeaderForOrganisation(leaderId, organisationId);
 
@@ -255,6 +259,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Post,
             "/api/v1/interventions",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole,
             new CreateInterventionRequest(
                 organisationId,
@@ -266,15 +271,17 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
                 null,
                 null));
 
-        await PatchStatusAsync(planned.Id, teacherId, InterventionStatuses.Active);
+        await PatchStatusAsync(planned.Id, teacherId, organisationId, InterventionStatuses.Active);
 
         var activeOnly = await SendAsAsync<OrganisationInterventionsResponse>(
             HttpMethod.Get,
-            $"/api/v1/organisations/{organisationId}/interventions?status=Active",
+            $"/api/v1/organisations/{organisationId}/interventions?status={InterventionStatuses.Active}",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
 
         var active = Assert.Single(activeOnly.Interventions);
+        Assert.Equal(planned.Id, active.Id);
         Assert.Equal(InterventionStatuses.Active, active.Status);
     }
 
@@ -288,6 +295,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{organisationId}/interventions",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
         var response = await _client.SendAsync(request);
 
@@ -304,6 +312,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{organisationId}/interventions",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -379,7 +388,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     {
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.CreateVersion7();
+        var organisationId = DefaultTenant.Id;
         var learningGapId = Guid.CreateVersion7();
         _accessChecker.AllowTeacher(teacherId, studentId);
 
@@ -446,6 +455,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         var teacherId = Guid.NewGuid().ToString();
         var parentId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
+        var organisationId = DefaultTenant.Id;
         _accessChecker.AllowTeacher(teacherId, studentId);
         _accessChecker.AllowParent(parentId, studentId);
 
@@ -453,9 +463,10 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Post,
             "/api/v1/interventions",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole,
             new CreateInterventionRequest(
-                Guid.CreateVersion7(),
+                organisationId,
                 studentId,
                 Guid.CreateVersion7(),
                 "Guided practice sessions.",
@@ -468,6 +479,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Get,
             $"/api/v1/interventions/parent-summary?studentUserId={studentId}",
             parentId,
+            organisationId,
             TestJwt.ParentRole);
 
         var summary = Assert.Single(summaries.Interventions);
@@ -482,6 +494,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         var teacherId = Guid.NewGuid().ToString();
         var parentId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
+        var organisationId = DefaultTenant.Id;
         _accessChecker.AllowTeacher(teacherId, studentId);
         _accessChecker.AllowParent(parentId, studentId);
 
@@ -489,9 +502,10 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Post,
             "/api/v1/interventions",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole,
             new CreateInterventionRequest(
-                Guid.CreateVersion7(),
+                organisationId,
                 studentId,
                 Guid.CreateVersion7(),
                 "Guided practice sessions.",
@@ -504,6 +518,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Get,
             $"/api/v1/interventions/parent-summary?studentUserId={studentId}",
             parentId,
+            organisationId,
             TestJwt.ParentRole);
 
         var summary = Assert.Single(summaries.Interventions);
@@ -533,9 +548,10 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
             HttpMethod.Post,
             "/api/v1/interventions",
             teacherId,
+            DefaultTenant.Id,
             TestJwt.TeacherRole,
             new CreateInterventionRequest(
-                Guid.CreateVersion7(),
+                DefaultTenant.Id,
                 studentId,
                 Guid.CreateVersion7(),
                 "Guided practice for target gap.",
@@ -545,11 +561,16 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
                 null));
     }
 
-    private async Task<InterventionResponse> PatchStatusAsync(Guid interventionId, string teacherId, string status) =>
+    private async Task<InterventionResponse> PatchStatusAsync(
+        Guid interventionId,
+        string teacherId,
+        Guid organisationId,
+        string status) =>
         await SendAsAsync<InterventionResponse>(
             HttpMethod.Patch,
             $"/api/v1/interventions/{interventionId}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole,
             new PatchInterventionRequest(status, null, null, null, null, null, null));
 
@@ -558,9 +579,18 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         string url,
         string userId,
         string role,
+        object? body = null) =>
+        await SendAsAsync<TResponse>(method, url, userId, DefaultTenant.Id, role, body);
+
+    private async Task<TResponse> SendAsAsync<TResponse>(
+        HttpMethod method,
+        string url,
+        string userId,
+        Guid tenantId,
+        string role,
         object? body = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = TestJwt.Authorized(method, url, userId, tenantId, role);
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);

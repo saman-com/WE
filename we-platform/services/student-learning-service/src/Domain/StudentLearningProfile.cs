@@ -1,8 +1,11 @@
 namespace StudentLearningService.Domain;
 
-public sealed class StudentLearningProfile
+using WePlatform.Tenancy;
+
+public sealed class StudentLearningProfile : ITenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string StudentUserId { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

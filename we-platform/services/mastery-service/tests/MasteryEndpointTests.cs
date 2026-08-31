@@ -6,6 +6,7 @@ using MasteryService.Infrastructure.Messaging.Consumers;
 using MassTransit;
 using MassTransit.Testing;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace MasteryService.Tests;
 
@@ -171,7 +172,7 @@ public class MasteryEndpointTests : IClassFixture<MasteryWebApplicationFactory>
             eventId,
             eventId,
             DateTimeOffset.UtcNow,
-            Guid.CreateVersion7(),
+            DefaultTenant.Id,
             EvidenceCreated.CurrentVersion,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
@@ -220,7 +221,7 @@ public class EvidenceCreatedConsumerTests
             eventId,
             eventId,
             DateTimeOffset.UtcNow,
-            Guid.CreateVersion7(),
+            DefaultTenant.Id,
             EvidenceCreated.CurrentVersion,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),

@@ -1,9 +1,11 @@
 using System.Text;
 using CommunicationService.Api;
+using CommunicationService.Domain;
 using CommunicationService.Infrastructure;
 using CommunicationService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +52,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CommunicationDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<ParentTeacherMessage>(_ => DefaultTenant.Id);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

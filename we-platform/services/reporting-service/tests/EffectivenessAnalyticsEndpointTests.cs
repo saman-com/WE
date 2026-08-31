@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using ReportingService.Application;
 using ReportingService.Infrastructure.Data.Edw;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Tests;
 
@@ -43,6 +44,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
             HttpMethod.Get,
             $"/api/v1/analytics/organisations/{organisationId}/effectiveness",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(organisationId, response.OrganisationId);
@@ -88,6 +90,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
             HttpMethod.Get,
             $"/api/v1/analytics/organisations/{organisationId}/effectiveness",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
         var response = await _client.SendAsync(request);
 
@@ -104,6 +107,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
             HttpMethod.Get,
             $"/api/v1/analytics/organisations/{organisationId}/effectiveness",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -153,6 +157,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
             var day = dateKey % 100;
             db.DimTimes.Add(new EdwDimTime
             {
+                TenantId = DefaultTenant.Id,
                 DateKey = dateKey,
                 CalendarDate = new DateOnly(year, month, day),
                 Year = year,
@@ -172,6 +177,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
         int totalCount) =>
         new()
         {
+            TenantId = organisationId,
             EventId = Guid.CreateVersion7(),
             EvidenceId = Guid.CreateVersion7(),
             OrganisationId = organisationId,
@@ -198,6 +204,7 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
         string status) =>
         new()
         {
+            TenantId = organisationId,
             EventId = Guid.CreateVersion7(),
             InterventionId = Guid.CreateVersion7(),
             OrganisationId = organisationId,
@@ -211,9 +218,14 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
             IngestedAt = DateTimeOffset.UtcNow
         };
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, params string[] roles)
+    private async Task<T> SendAsAsync<T>(
+        HttpMethod method,
+        string url,
+        string userId,
+        Guid tenantId,
+        params string[] roles)
     {
-        using var request = TestJwt.Authorized(method, url, userId, roles);
+        using var request = TestJwt.Authorized(method, url, userId, tenantId, roles);
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<T>();

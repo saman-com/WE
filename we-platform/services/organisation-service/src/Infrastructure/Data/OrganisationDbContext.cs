@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using OrganisationService.Domain;
+using WePlatform.Tenancy;
 
 namespace OrganisationService.Infrastructure.Data;
 
-public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext> options) : DbContext(options)
+public sealed class OrganisationDbContext(
+    DbContextOptions<OrganisationDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<Organisation> Organisations => Set<Organisation>();
     public DbSet<YearLevel> YearLevels => Set<YearLevel>();
@@ -20,6 +23,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.ToTable("organisations");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.Code).HasColumnName("code").IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
@@ -37,6 +41,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.ToTable("year_levels");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
@@ -50,6 +55,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
             entity.ToTable("classes");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.YearLevelId).HasColumnName("year_level_id");
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
@@ -65,6 +71,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
         {
             entity.ToTable("class_teachers");
             entity.HasKey(e => new { e.ClassId, e.TeacherUserId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.TeacherUserId).HasColumnName("teacher_user_id");
         });
@@ -73,6 +80,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
         {
             entity.ToTable("class_enrollments");
             entity.HasKey(e => new { e.ClassId, e.StudentUserId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id");
         });
@@ -81,6 +89,7 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
         {
             entity.ToTable("parent_student_links");
             entity.HasKey(e => new { e.ParentUserId, e.StudentUserId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.ParentUserId).HasColumnName("parent_user_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id");
             entity.Property(e => e.LinkedAt).HasColumnName("linked_at");
@@ -90,9 +99,12 @@ public sealed class OrganisationDbContext(DbContextOptions<OrganisationDbContext
         {
             entity.ToTable("organisation_leaders");
             entity.HasKey(e => new { e.OrganisationId, e.LeaderUserId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.LeaderUserId).HasColumnName("leader_user_id");
             entity.Property(e => e.AssignedAt).HasColumnName("assigned_at");
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

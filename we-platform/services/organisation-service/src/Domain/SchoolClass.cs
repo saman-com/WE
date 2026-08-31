@@ -1,8 +1,11 @@
 namespace OrganisationService.Domain;
 
-public sealed class SchoolClass
+using WePlatform.Tenancy;
+
+public sealed class SchoolClass : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid OrganisationId { get; set; }
     public Guid YearLevelId { get; set; }
     public string Name { get; set; } = string.Empty;

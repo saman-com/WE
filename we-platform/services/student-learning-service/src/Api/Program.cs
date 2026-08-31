@@ -2,8 +2,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StudentLearningService.Api;
+using StudentLearningService.Domain;
 using StudentLearningService.Infrastructure;
 using StudentLearningService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +52,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<StudentLearningDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<StudentLearningProfile>(_ => DefaultTenant.Id);
+    await db.BackfillTenantIdsAsync<ProfileClassEnrollment>(TenantBackfill.ResolveOrganisationTenant);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

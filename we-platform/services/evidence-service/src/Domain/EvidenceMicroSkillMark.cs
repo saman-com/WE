@@ -1,7 +1,10 @@
 namespace EvidenceService.Domain;
 
-public sealed class EvidenceMicroSkillMark
+using WePlatform.Tenancy;
+
+public sealed class EvidenceMicroSkillMark : ITenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EvidenceId { get; set; }
     public Guid MicroSkillId { get; set; }
     public decimal Mark { get; set; }

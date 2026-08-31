@@ -77,6 +77,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/dashboard",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(org.Id, dashboard.OrganisationId);
@@ -109,6 +110,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/dashboard",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
@@ -125,6 +127,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/dashboard",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
@@ -151,6 +154,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/year-levels/{year7.Id}/leadership/dashboard",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(year7.Id, dashboard.YearLevelId);
@@ -183,6 +187,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/leadership/summary",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(schoolClass.Id, summary.Class.Id);
@@ -206,6 +211,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             "/api/v1/organisations",
             leaderId,
+            null,
             TestJwt.SchoolLeaderRole);
         Assert.Single(organisations);
         Assert.Equal(org.Id, organisations[0].Id);
@@ -214,6 +220,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Single(classes);
     }
@@ -272,6 +279,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/interventions",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(org.Id, monitoring.OrganisationId);
@@ -327,6 +335,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/interventions?classId={class7A.Id}",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Single(classFiltered.Interventions);
         Assert.Equal(student7, classFiltered.Interventions[0].StudentUserId);
@@ -335,6 +344,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/interventions?severity=High",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Single(severityFiltered.Interventions);
         Assert.Equal("High", severityFiltered.Interventions[0].GapSeverity);
@@ -343,6 +353,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/interventions?yearLevelId={year8.Id}",
             leaderId,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Single(yearFiltered.Interventions);
         Assert.Equal(student8, yearFiltered.Interventions[0].StudentUserId);
@@ -362,6 +373,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/leadership/interventions",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
@@ -388,6 +400,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/year-levels",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateYearLevelRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -406,6 +419,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateClassRequest(name, code, yearLevelId));
         var response = await _client.SendAsync(request);
@@ -419,6 +433,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes/{classId}/enrollments",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
         var response = await _client.SendAsync(request);
@@ -431,6 +446,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes/{classId}/teachers",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new AssignTeacherRequest(teacherId));
         var response = await _client.SendAsync(request);
@@ -443,15 +459,18 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/leaders",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new AssignSchoolLeaderRequest(leaderId));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, Guid? tenantId, string role)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<T>())!;

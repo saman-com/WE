@@ -9,6 +9,7 @@ using NotificationService.Infrastructure.Messaging.Consumers;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Infrastructure;
 
@@ -21,6 +22,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("NotificationDb");
 
         services.AddDbContext<NotificationDbContext>(options =>

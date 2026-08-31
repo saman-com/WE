@@ -1,8 +1,11 @@
 namespace InterventionService.Domain;
 
-public sealed class Intervention
+using WePlatform.Tenancy;
+
+public sealed class Intervention : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid OrganisationId { get; set; }
     public string StudentUserId { get; set; } = string.Empty;
     public Guid LearningGapId { get; set; }

@@ -9,6 +9,7 @@ using OrganisationService.Infrastructure.Intervention;
 using OrganisationService.Infrastructure.Mastery;
 using OrganisationService.Infrastructure.Ei;
 using OrganisationService.Infrastructure.StudentLearning;
+using WePlatform.Tenancy;
 
 namespace OrganisationService.Infrastructure;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("OrganisationDb");
 
         services.AddDbContext<OrganisationDbContext>(options =>

@@ -1,8 +1,11 @@
 namespace MasteryService.Domain;
 
-public sealed class MasteryRecord
+using WePlatform.Tenancy;
+
+public sealed class MasteryRecord : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string StudentUserId { get; set; } = string.Empty;
     public Guid OrganisationId { get; set; }
     public Guid MicroSkillId { get; set; }

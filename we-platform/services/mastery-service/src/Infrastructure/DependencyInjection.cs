@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using WePlatform.Tenancy;
 
 namespace MasteryService.Infrastructure;
 
@@ -16,6 +17,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("MasteryDb");
         var thresholds = configuration.GetSection("Mastery").Get<MasteryThresholds>() ?? new MasteryThresholds();
 

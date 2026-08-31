@@ -1,7 +1,10 @@
 namespace EdwIngestService.Domain;
 
-public sealed class AssessmentFact
+using WePlatform.Tenancy;
+
+public sealed class AssessmentFact : ITenantEntity, IOrganisationTenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EventId { get; set; }
     public Guid AssessmentId { get; set; }
     public Guid OrganisationId { get; set; }

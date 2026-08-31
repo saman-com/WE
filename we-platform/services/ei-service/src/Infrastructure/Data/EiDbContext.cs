@@ -1,9 +1,12 @@
 using EiService.Domain;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace EiService.Infrastructure.Data;
 
-public sealed class EiDbContext(DbContextOptions<EiDbContext> options) : DbContext(options)
+public sealed class EiDbContext(
+    DbContextOptions<EiDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<AiSummaryAuditLog> AiSummaryAuditLogs => Set<AiSummaryAuditLog>();
 
@@ -13,6 +16,7 @@ public sealed class EiDbContext(DbContextOptions<EiDbContext> options) : DbConte
         {
             entity.ToTable("ai_summary_audit_logs");
             entity.HasKey(e => e.Id);
+            entity.ConfigureTenantId();
             entity.Property(e => e.SummaryType).IsRequired();
             entity.Property(e => e.TeacherUserId).IsRequired();
             entity.Property(e => e.PromptId).IsRequired();
@@ -22,5 +26,7 @@ public sealed class EiDbContext(DbContextOptions<EiDbContext> options) : DbConte
             entity.Property(e => e.AiResponse).IsRequired();
             entity.Property(e => e.CreatedAt).IsRequired();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

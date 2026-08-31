@@ -83,6 +83,7 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/classes/{classId}/class-progress",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
 
         Assert.Equal(ReportTypes.ClassProgress, report.ReportType);
@@ -109,6 +110,7 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/classes/{classId}/class-progress",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -163,6 +165,7 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/school-summary",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
 
         Assert.Equal(ReportTypes.SchoolSummary, report.ReportType);
@@ -188,6 +191,7 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/school-summary",
             leaderId,
+            organisationId,
             TestJwt.SchoolLeaderRole);
         var response = await _client.SendAsync(request);
 
@@ -227,12 +231,14 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/classes/{classId}/class-progress",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
 
         using var pdfRequest = TestJwt.Authorized(
             HttpMethod.Get,
             $"/api/v1/reports/{report.Id}/pdf",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var pdfResponse = await _client.SendAsync(pdfRequest);
 
@@ -254,15 +260,21 @@ public class ReportingEndpointTests : IClassFixture<ReportingWebApplicationFacto
             HttpMethod.Post,
             $"/api/v1/reports/organisations/{organisationId}/classes/{classId}/class-progress",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, params string[] roles)
+    private async Task<T> SendAsAsync<T>(
+        HttpMethod method,
+        string url,
+        string userId,
+        Guid tenantId,
+        params string[] roles)
     {
-        using var request = TestJwt.Authorized(method, url, userId, roles);
+        using var request = TestJwt.Authorized(method, url, userId, tenantId, roles);
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<T>();

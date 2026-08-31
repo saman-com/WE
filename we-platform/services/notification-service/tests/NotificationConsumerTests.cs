@@ -8,6 +8,7 @@ using NotificationService.Infrastructure;
 using NotificationService.Infrastructure.Data;
 using NotificationService.Infrastructure.Messaging.Consumers;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Tests;
 
@@ -38,6 +39,7 @@ public class NotificationConsumerTests
             Assert.Equal(NotificationTypes.AssessmentPublished, notification.Type);
             Assert.Equal(domainEvent.EventId, notification.SourceEventId);
             Assert.Equal(domainEvent.AssessmentId, notification.RelatedEntityId);
+            Assert.Equal(domainEvent.OrganisationId, notification.TenantId);
 
             var email = Assert.Single(emailNotifier.Sent);
             Assert.Equal(studentId, email.RecipientUserId);
@@ -72,6 +74,7 @@ public class NotificationConsumerTests
             Assert.Equal(studentId, notification.RecipientUserId);
             Assert.Equal(NotificationTypes.FeedbackAvailable, notification.Type);
             Assert.Equal(domainEvent.AssessmentId, notification.RelatedEntityId);
+            Assert.Equal(domainEvent.OrganisationId, notification.TenantId);
             Assert.NotEmpty(emailNotifier.Sent);
         }
         finally
@@ -104,6 +107,7 @@ public class NotificationConsumerTests
             Assert.Equal(recipientId, notification.RecipientUserId);
             Assert.Equal(NotificationTypes.NewMessage, notification.Type);
             Assert.Equal(domainEvent.MessageId, notification.RelatedEntityId);
+            Assert.Equal(DefaultTenant.Id, notification.TenantId);
             Assert.NotEmpty(emailNotifier.Sent);
         }
         finally
@@ -115,6 +119,7 @@ public class NotificationConsumerTests
     private static ServiceProvider BuildProvider(FakeEmailNotifier emailNotifier)
     {
         var services = new ServiceCollection();
+        services.AddWePlatformTenancy();
         services.AddDbContext<NotificationDbContext>(
             options => options.UseInMemoryDatabase(Guid.NewGuid().ToString()),
             ServiceLifetime.Singleton);

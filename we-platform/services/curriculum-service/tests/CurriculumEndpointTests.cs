@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using CurriculumService.Application;
 
+using WePlatform.Tenancy;
+
 namespace CurriculumService.Tests;
 
 public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFactory>
@@ -77,20 +79,23 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum?organisationId={organisationId}",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
         Assert.Contains(listed, item => item.Id == created.Id);
 
         var fetched = await SendAsAsync<CurriculumResponse>(
             HttpMethod.Get,
             $"/api/v1/curriculum/{created.Id}",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
         Assert.Equal(created.Id, fetched.Id);
 
         using var updateCurriculum = TestJwt.Authorized(
             HttpMethod.Put,
             $"/api/v1/curriculum/{created.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         updateCurriculum.Content = JsonContent.Create(
             new UpdateCurriculumRequest("Cambridge Science", "2027.1", "Active"));
@@ -103,6 +108,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var subject = await CreateSubjectAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             created.Id,
             "Chemistry",
             "CHEM",
@@ -114,6 +120,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Put,
             $"/api/v1/curriculum/{created.Id}/subjects/{subject.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         updateSubject.Content = JsonContent.Create(new UpdateSubjectRequest("Chemistry", "CHM", 2));
         var updateSubjectResponse = await _client.SendAsync(updateSubject);
@@ -122,6 +129,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var unit = await CreateUnitAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             created.Id,
             subject.Id,
             "Chemical Reactions",
@@ -134,6 +142,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Put,
             $"/api/v1/curriculum/{created.Id}/subjects/{subject.Id}/units/{unit.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         updateUnit.Content = JsonContent.Create(new UpdateUnitRequest("Chemical Changes", 2));
         var updateUnitResponse = await _client.SendAsync(updateUnit);
@@ -142,6 +151,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var topic = await CreateTopicAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             created.Id,
             subject.Id,
             unit.Id,
@@ -154,6 +164,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Delete,
             $"/api/v1/curriculum/{created.Id}/subjects/{subject.Id}/units/{unit.Id}/topics/{topic.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteTopic)).StatusCode);
 
@@ -161,6 +172,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Delete,
             $"/api/v1/curriculum/{created.Id}/subjects/{subject.Id}/units/{unit.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteUnit)).StatusCode);
 
@@ -168,6 +180,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Delete,
             $"/api/v1/curriculum/{created.Id}/subjects/{subject.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteSubject)).StatusCode);
 
@@ -175,6 +188,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Delete,
             $"/api/v1/curriculum/{created.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteCurriculum)).StatusCode);
 
@@ -182,6 +196,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum/{created.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missing)).StatusCode);
     }
@@ -213,7 +228,8 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum?organisationId={organisationId}",
             adminId,
-            TestJwt.AdminRole);
+            TestJwt.AdminRole,
+            organisationId);
 
         Assert.Contains(listed, item => item.Id == created.Id);
         Assert.DoesNotContain(listed, item => item.Id == other.Id);
@@ -224,10 +240,12 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     public async Task CreateCurriculum_WithoutOrganisation_ReturnsBadRequest()
     {
         var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             "/api/v1/curriculum",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateCurriculumRequest(
             Guid.Empty,
@@ -244,10 +262,11 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     public async Task CreateUnit_ForUnknownSubject_ReturnsNotFound()
     {
         var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
         var curriculum = await CreateCurriculumAsync(
             teacherId,
             TestJwt.TeacherRole,
-            Guid.NewGuid(),
+            organisationId,
             "Orphan Guard",
             "2026");
 
@@ -255,6 +274,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{Guid.NewGuid()}/units",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateUnitRequest("Orphan Unit", 1));
 
@@ -267,21 +287,24 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     public async Task CreateUnit_ForSubjectInDifferentCurriculum_ReturnsNotFound()
     {
         var teacherId = Guid.NewGuid().ToString();
+        var firstOrganisationId = Guid.NewGuid();
+        var secondOrganisationId = Guid.NewGuid();
         var first = await CreateCurriculumAsync(
             teacherId,
             TestJwt.TeacherRole,
-            Guid.NewGuid(),
+            firstOrganisationId,
             "Curriculum A",
             "2026");
         var second = await CreateCurriculumAsync(
             teacherId,
             TestJwt.TeacherRole,
-            Guid.NewGuid(),
+            secondOrganisationId,
             "Curriculum B",
             "2026");
         var subject = await CreateSubjectAsync(
             teacherId,
             TestJwt.TeacherRole,
+            firstOrganisationId,
             first.Id,
             "Physics",
             "PHY",
@@ -291,6 +314,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/curriculum/{second.Id}/subjects/{subject.Id}/units",
             teacherId,
+            secondOrganisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateUnitRequest("Mis-scoped Unit", 1));
 
@@ -303,15 +327,17 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     public async Task DeletingSubject_RemovesUnits_LeavingNoOrphans()
     {
         var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
         var curriculum = await CreateCurriculumAsync(
             teacherId,
             TestJwt.TeacherRole,
-            Guid.NewGuid(),
+            organisationId,
             "Integrity Curriculum",
             "2026");
         var subject = await CreateSubjectAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             "Biology",
             "BIO",
@@ -319,6 +345,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var unit = await CreateUnitAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             subject.Id,
             "Cells",
@@ -328,6 +355,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Delete,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteSubject)).StatusCode);
 
@@ -335,6 +363,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missingUnit)).StatusCode);
 
@@ -342,6 +371,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missingSubjectUnits)).StatusCode);
 
@@ -349,7 +379,8 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/tree",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
         Assert.DoesNotContain(tree.Subjects, item => item.Id == subject.Id);
         Assert.DoesNotContain(
             tree.Subjects.SelectMany(item => item.Units),
@@ -370,6 +401,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var chemistry = await CreateSubjectAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             "Chemistry",
             "CHEM",
@@ -377,6 +409,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var physics = await CreateSubjectAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             "Physics",
             "PHY",
@@ -384,6 +417,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         var reactions = await CreateUnitAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             chemistry.Id,
             "Chemical Reactions",
@@ -391,6 +425,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         await CreateUnitAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             physics.Id,
             "Forces",
@@ -398,6 +433,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         await CreateTopicAsync(
             teacherId,
             TestJwt.TeacherRole,
+            organisationId,
             curriculum.Id,
             chemistry.Id,
             reactions.Id,
@@ -408,7 +444,8 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/tree",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Equal(curriculum.Id, tree.Id);
         Assert.Equal(organisationId, tree.OrganisationId);
@@ -427,7 +464,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         string name,
         string version)
     {
-        using var request = TestJwt.Authorized(HttpMethod.Post, "/api/v1/curriculum", userId, role);
+        using var request = TestJwt.Authorized(HttpMethod.Post, "/api/v1/curriculum", userId, organisationId, role);
         request.Content = JsonContent.Create(new CreateCurriculumRequest(organisationId, name, version, "Draft"));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -438,6 +475,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     private async Task<SubjectResponse> CreateSubjectAsync(
         string userId,
         string role,
+        Guid organisationId,
         Guid curriculumId,
         string name,
         string code,
@@ -447,6 +485,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects",
             userId,
+            organisationId,
             role);
         request.Content = JsonContent.Create(new CreateSubjectRequest(name, code, sortOrder));
         var response = await _client.SendAsync(request);
@@ -458,6 +497,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     private async Task<UnitResponse> CreateUnitAsync(
         string userId,
         string role,
+        Guid organisationId,
         Guid curriculumId,
         Guid subjectId,
         string name,
@@ -467,6 +507,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units",
             userId,
+            organisationId,
             role);
         request.Content = JsonContent.Create(new CreateUnitRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -478,6 +519,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
     private async Task<TopicResponse> CreateTopicAsync(
         string userId,
         string role,
+        Guid organisationId,
         Guid curriculumId,
         Guid subjectId,
         Guid unitId,
@@ -488,6 +530,7 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units/{unitId}/topics",
             userId,
+            organisationId,
             role);
         request.Content = JsonContent.Create(new CreateTopicRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -496,9 +539,11 @@ public class CurriculumEndpointTests : IClassFixture<CurriculumWebApplicationFac
         return payload ?? throw new InvalidOperationException("Missing topic payload.");
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<T>();

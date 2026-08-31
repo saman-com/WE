@@ -5,6 +5,8 @@ using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 
+using WePlatform.Tenancy;
+
 namespace AssessmentService.Tests;
 
 public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicationFactory>
@@ -43,6 +45,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
         var submission = await SubmitAssessmentAsync(
             studentId,
             published.Id,
+            organisationId,
             "Student work on fractions.");
 
         var draft = await RequestDraftAsync(
@@ -77,7 +80,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             "Protected quiz",
             null,
             [microSkillId]);
-        var submission = await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+        var submission = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student work.");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
@@ -112,6 +115,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
         var submission = await SubmitAssessmentAsync(
             studentId,
             published.Id,
+            organisationId,
             "Original student responses.");
 
         await RequestDraftAsync(teacherId, published.Id, submission.Id, microSkillId);
@@ -144,7 +148,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             "Audit quiz",
             null,
             [microSkillId]);
-        var submission = await SubmitAssessmentAsync(studentId, published.Id, "Evidence summary text.");
+        var submission = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Evidence summary text.");
 
         var draft = await RequestDraftAsync(
             teacherId,
@@ -182,7 +186,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             "Finalize audit quiz",
             null,
             [microSkillId]);
-        var submission = await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+        var submission = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student work.");
 
         var draft = await RequestDraftAsync(
             teacherId,
@@ -219,7 +223,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             "Human review gate quiz",
             null,
             [microSkillId]);
-        var submission = await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+        var submission = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student work.");
 
         var draft = await RequestDraftAsync(
             teacherId,
@@ -292,6 +296,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             HttpMethod.Post,
             "/api/v1/assessments",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         createRequest.Content = JsonContent.Create(new CreateAssessmentRequest(
             organisationId,
@@ -311,18 +316,21 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
     }
 
     private async Task<SubmissionResponse> SubmitAssessmentAsync(
         string studentId,
         Guid assessmentId,
+        Guid organisationId,
         string responses)
     {
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/assessments/{assessmentId}/submissions",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         request.Content = JsonContent.Create(new SubmitAssessmentRequest(responses));
 
@@ -332,9 +340,11 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             ?? throw new InvalidOperationException("Missing submission payload.");
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>()

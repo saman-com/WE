@@ -2,6 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using ReportingService.Application;
 using ReportingService.Domain;
+using ReportingService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Api;
 
@@ -27,10 +30,16 @@ public static class ReportEndpoints
         ClaimsPrincipal principal,
         IOrganisationAccessChecker accessChecker,
         IReportGenerator reportGenerator,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -70,10 +79,16 @@ public static class ReportEndpoints
         ClaimsPrincipal principal,
         IOrganisationAccessChecker accessChecker,
         IReportGenerator reportGenerator,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsSchoolLeader() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -109,6 +124,8 @@ public static class ReportEndpoints
     private static async Task<IResult> GetReport(
         Guid reportId,
         ClaimsPrincipal principal,
+        ReportingDbContext db,
+        ITenantContext tenantContext,
         IReportGenerator reportGenerator,
         HttpContext httpContext,
         CancellationToken cancellationToken)
@@ -118,10 +135,30 @@ public static class ReportEndpoints
             return Results.Forbid();
         }
 
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
         var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
         if (bearerToken is null)
         {
             return Results.Forbid();
+        }
+
+        var reportEntity = await db.Reports
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
+        if (reportEntity is null)
+        {
+            return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, reportEntity);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var report = await reportGenerator.GetReportAsync(
@@ -136,6 +173,8 @@ public static class ReportEndpoints
     private static async Task<IResult> ExportReportPdf(
         Guid reportId,
         ClaimsPrincipal principal,
+        ReportingDbContext db,
+        ITenantContext tenantContext,
         IReportGenerator reportGenerator,
         HttpContext httpContext,
         CancellationToken cancellationToken)
@@ -145,10 +184,30 @@ public static class ReportEndpoints
             return Results.Forbid();
         }
 
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
         var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
         if (bearerToken is null)
         {
             return Results.Forbid();
+        }
+
+        var reportEntity = await db.Reports
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
+        if (reportEntity is null)
+        {
+            return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, reportEntity);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var pdfBytes = await reportGenerator.ExportReportPdfAsync(

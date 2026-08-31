@@ -57,6 +57,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             "/api/v1/organisations",
             adminId,
+            null,
             TestJwt.AdminRole);
         Assert.Contains(listed, org => org.Id == createdOrg.Id);
 
@@ -64,6 +65,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{createdOrg.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Equal(createdOrg.Id, fetched.Id);
 
@@ -71,6 +73,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Put,
             $"/api/v1/organisations/{createdOrg.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         updateRequest.Content = JsonContent.Create(new UpdateOrganisationRequest("Riverside Primary", code));
         var updateResponse = await _client.SendAsync(updateRequest);
@@ -86,6 +89,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Put,
             $"/api/v1/organisations/{createdOrg.Id}/year-levels/{yearLevel.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         updateYearRequest.Content = JsonContent.Create(new UpdateYearLevelRequest("Year 8", 8));
         var updateYearResponse = await _client.SendAsync(updateYearRequest);
@@ -99,6 +103,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Put,
             $"/api/v1/organisations/{createdOrg.Id}/classes/{schoolClass.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         updateClassRequest.Content = JsonContent.Create(
             new UpdateClassRequest("8B", schoolClass.Code, yearLevel.Id));
@@ -109,6 +114,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Delete,
             $"/api/v1/organisations/{createdOrg.Id}/classes/{schoolClass.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteClass)).StatusCode);
 
@@ -116,6 +122,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Delete,
             $"/api/v1/organisations/{createdOrg.Id}/year-levels/{yearLevel.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteYear)).StatusCode);
 
@@ -123,6 +130,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Delete,
             $"/api/v1/organisations/{createdOrg.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteOrg)).StatusCode);
 
@@ -130,6 +138,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{createdOrg.Id}",
             adminId,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missing)).StatusCode);
     }
@@ -148,6 +157,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/teachers",
             adminId,
+            org.Id,
             TestJwt.AdminRole);
         assign.Content = JsonContent.Create(new AssignTeacherRequest(teacherId));
         var assignResponse = await _client.SendAsync(assign);
@@ -157,6 +167,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/enrollments",
             adminId,
+            org.Id,
             TestJwt.AdminRole);
         enroll.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
         var enrollResponse = await _client.SendAsync(enroll);
@@ -166,6 +177,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/teachers",
             adminId,
+            org.Id,
             TestJwt.AdminRole);
         Assert.Contains(teachers, member => member.UserId == teacherId);
 
@@ -173,6 +185,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/enrollments",
             adminId,
+            org.Id,
             TestJwt.AdminRole);
         Assert.Contains(enrollments, member => member.UserId == studentId);
         Assert.Contains(_profileClient.SyncCalls, call =>
@@ -218,6 +231,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
 
         Assert.Contains(classes, item => item.Id == assigned.Id);
@@ -243,6 +257,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes",
             studentId,
+            org.Id,
             TestJwt.StudentRole);
 
         Assert.Contains(classes, item => item.Id == enrolledClass.Id);
@@ -252,6 +267,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{enrolledClass.Id}/enrollments",
             studentId,
+            org.Id,
             TestJwt.StudentRole);
 
         Assert.Single(enrollments);
@@ -277,6 +293,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{other.Id}",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(classRequest)).StatusCode);
 
@@ -284,6 +301,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{other.Id}/enrollments",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(enrollmentsRequest)).StatusCode);
     }
@@ -315,6 +333,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/dashboard",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
 
         Assert.Equal(schoolClass.Id, dashboard.Class.Id);
@@ -347,6 +366,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{other.Id}/dashboard",
             teacherId,
+            org.Id,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
@@ -366,6 +386,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/dashboard",
             studentId,
+            org.Id,
             TestJwt.StudentRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
@@ -414,6 +435,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/students/{studentId}/workspace",
             studentId,
+            null,
             TestJwt.StudentRole);
 
         Assert.Equal(studentId, workspace.StudentUserId);
@@ -490,6 +512,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{other.Id}",
             studentId,
+            org.Id,
             TestJwt.StudentRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(classRequest)).StatusCode);
 
@@ -497,6 +520,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/organisations/{org.Id}/classes/{other.Id}/enrollments",
             studentId,
+            org.Id,
             TestJwt.StudentRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(enrollmentsRequest)).StatusCode);
     }
@@ -521,6 +545,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/year-levels",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateYearLevelRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -540,6 +565,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateClassRequest(name, code, yearLevelId));
         var response = await _client.SendAsync(request);
@@ -554,6 +580,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes/{classId}/teachers",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new AssignTeacherRequest(teacherId));
         var response = await _client.SendAsync(request);
@@ -566,15 +593,18 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes/{classId}/enrollments",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, Guid? tenantId, string role)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<T>();

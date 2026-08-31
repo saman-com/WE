@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using ReportingService.Application;
 using ReportingService.Domain;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Api;
 
@@ -25,10 +26,16 @@ public static class LongitudinalAnalyticsEndpoints
         ClaimsPrincipal principal,
         IOrganisationAccessChecker accessChecker,
         ILongitudinalAnalyticsQuery analyticsQuery,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsTeacher() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -65,10 +72,16 @@ public static class LongitudinalAnalyticsEndpoints
         ClaimsPrincipal principal,
         IOrganisationAccessChecker accessChecker,
         ILongitudinalAnalyticsQuery analyticsQuery,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsSchoolLeader() && !principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }

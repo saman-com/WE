@@ -5,6 +5,7 @@ using EvidenceService.Application;
 using EvidenceService.Domain;
 using EvidenceService.Infrastructure.Data;
 using EvidenceService.Infrastructure.Messaging;
+using WePlatform.Tenancy;
 
 namespace EvidenceService.Api;
 
@@ -30,9 +31,15 @@ public static class EvidenceEndpoints
         IClassAccessChecker accessChecker,
         IStudentLearningProfileClient profileClient,
         IDomainEventPublisher eventPublisher,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || request.OrganisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -70,6 +77,7 @@ public static class EvidenceEndpoints
         var evidence = new EducationalEvidence
         {
             Id = Guid.CreateVersion7(),
+            TenantId = request.OrganisationId,
             OrganisationId = request.OrganisationId,
             ClassId = request.ClassId,
             AssessmentId = request.AssessmentId,
@@ -86,6 +94,7 @@ public static class EvidenceEndpoints
         {
             evidence.MicroSkillMarks.Add(new EvidenceMicroSkillMark
             {
+                TenantId = request.OrganisationId,
                 EvidenceId = evidence.Id,
                 MicroSkillId = mark.MicroSkillId,
                 Mark = mark.Mark,
@@ -252,12 +261,19 @@ public static class EvidenceEndpoints
         ClaimsPrincipal principal,
         EvidenceDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         var evidence = await LoadEvidenceAsync(db, evidenceId);
         if (evidence is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, evidence);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (principal.IsStudent())
@@ -299,6 +315,7 @@ public static class EvidenceEndpoints
 
     private static async Task<EducationalEvidence?> LoadEvidenceAsync(EvidenceDbContext db, Guid evidenceId) =>
         await db.Evidence
+            .IgnoreQueryFilters()
             .Include(e => e.MicroSkillMarks)
             .FirstOrDefaultAsync(e => e.Id == evidenceId);
 

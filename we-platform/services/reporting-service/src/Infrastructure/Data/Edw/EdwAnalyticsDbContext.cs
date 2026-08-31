@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Infrastructure.Data.Edw;
 
-public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext> options) : DbContext(options)
+public sealed class EdwAnalyticsDbContext(
+    DbContextOptions<EdwAnalyticsDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<EdwDimTime> DimTimes => Set<EdwDimTime>();
     public DbSet<EdwEvidenceFact> EvidenceFacts => Set<EdwEvidenceFact>();
@@ -14,6 +17,7 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
         {
             entity.ToTable("dim_time");
             entity.HasKey(e => e.DateKey);
+            entity.ConfigureTenantId();
             entity.Property(e => e.DateKey).HasColumnName("date_key");
             entity.Property(e => e.CalendarDate).HasColumnName("calendar_date");
             entity.Property(e => e.Year).HasColumnName("year");
@@ -25,6 +29,7 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
         {
             entity.ToTable("fact_evidence");
             entity.HasKey(e => e.EventId);
+            entity.ConfigureTenantId();
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
@@ -54,6 +59,7 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
         {
             entity.ToTable("fact_intervention");
             entity.HasKey(e => e.EventId);
+            entity.ConfigureTenantId();
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.InterventionId).HasColumnName("intervention_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
@@ -69,5 +75,7 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => e.TimeKey);
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

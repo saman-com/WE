@@ -1,9 +1,12 @@
 using EdwIngestService.Domain;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace EdwIngestService.Infrastructure.Data;
 
-public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbContext(options)
+public sealed class EdwDbContext(
+    DbContextOptions<EdwDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<DimTime> DimTimes => Set<DimTime>();
     public DbSet<EvidenceFact> EvidenceFacts => Set<EvidenceFact>();
@@ -16,6 +19,7 @@ public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbCon
         {
             entity.ToTable("dim_time");
             entity.HasKey(e => e.DateKey);
+            entity.ConfigureTenantId();
             entity.Property(e => e.DateKey).HasColumnName("date_key");
             entity.Property(e => e.CalendarDate).HasColumnName("calendar_date");
             entity.Property(e => e.Year).HasColumnName("year");
@@ -27,6 +31,7 @@ public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbCon
         {
             entity.ToTable("fact_evidence");
             entity.HasKey(e => e.EventId);
+            entity.ConfigureTenantId();
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
@@ -48,6 +53,7 @@ public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbCon
         {
             entity.ToTable("fact_assessment");
             entity.HasKey(e => e.EventId);
+            entity.ConfigureTenantId();
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
@@ -68,6 +74,7 @@ public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbCon
         {
             entity.ToTable("fact_intervention");
             entity.HasKey(e => e.EventId);
+            entity.ConfigureTenantId();
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.InterventionId).HasColumnName("intervention_id");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
@@ -82,5 +89,7 @@ public sealed class EdwDbContext(DbContextOptions<EdwDbContext> options) : DbCon
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => e.TimeKey);
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

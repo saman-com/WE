@@ -7,6 +7,7 @@ using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
 using AssessmentService.Infrastructure.Messaging;
 using AssessmentService.Infrastructure.Organisation;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("AssessmentDb");
 
         services.AddDbContext<AssessmentDbContext>(options =>

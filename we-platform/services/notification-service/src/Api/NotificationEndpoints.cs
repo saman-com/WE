@@ -4,6 +4,7 @@ using NotificationService.Application;
 using NotificationService.Domain;
 using NotificationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Api;
 
@@ -19,11 +20,17 @@ public static class NotificationEndpoints
 
     private static async Task<IResult> ListNotifications(
         ClaimsPrincipal principal,
-        NotificationDbContext db)
+        NotificationDbContext db,
+        ITenantContext tenantContext)
     {
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
         var userId = principal.UserId();
         var notifications = await db.Notifications
-            .Where(n => n.RecipientUserId == userId)
+            .Where(n => n.RecipientUserId == userId && n.TenantId == tenantContext.TenantId)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
 
@@ -33,12 +40,21 @@ public static class NotificationEndpoints
     private static async Task<IResult> MarkAsRead(
         Guid notificationId,
         ClaimsPrincipal principal,
-        NotificationDbContext db)
+        NotificationDbContext db,
+        ITenantContext tenantContext)
     {
-        var notification = await db.Notifications.FindAsync(notificationId);
+        var notification = await db.Notifications
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(n => n.Id == notificationId);
         if (notification is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, notification);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (notification.RecipientUserId != principal.UserId())

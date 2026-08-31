@@ -3,6 +3,7 @@ using System.Security.Claims;
 using EiService.Application;
 using EiService.Domain;
 using EiService.Infrastructure.Ai;
+using WePlatform.Tenancy;
 
 namespace EiService.Api;
 
@@ -26,9 +27,15 @@ public static class EiEndpoints
         ClaimsPrincipal principal,
         IClassAccessChecker accessChecker,
         IClassInsightsProvider insightsProvider,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsTeacher() && !principal.IsAdmin() && !principal.IsSchoolLeader())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -79,10 +86,16 @@ public static class EiEndpoints
         ClaimsPrincipal principal,
         IClassAccessChecker accessChecker,
         AiSummaryDraftService draftService,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -126,10 +139,16 @@ public static class EiEndpoints
         ClaimsPrincipal principal,
         IClassAccessChecker accessChecker,
         AiSummaryDraftService draftService,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || request.OrganisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -172,9 +191,15 @@ public static class EiEndpoints
         FinalizeAiSummaryAuditRequest request,
         ClaimsPrincipal principal,
         AiSummaryDraftService draftService,
+        ITenantContext tenantContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsTeacher())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
         {
             return Results.Forbid();
         }

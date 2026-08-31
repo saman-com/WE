@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\src\Api\OrganisationService.Api.csproj" />
   </ItemGroup>
 

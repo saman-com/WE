@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\Application\AssessmentService.Application.csproj" />
     <ProjectReference Include="..\Domain\AssessmentService.Domain.csproj" />
     <ProjectReference Include="..\..\..\..\shared\events\WePlatform.Events.csproj" />

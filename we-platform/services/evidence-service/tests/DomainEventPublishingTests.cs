@@ -110,6 +110,7 @@ public class DomainEventPublishingTests : IClassFixture<EvidenceWebApplicationFa
             System.Net.Http.HttpMethod.Post,
             "/api/v1/evidence",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         request.Content = System.Net.Http.Json.JsonContent.Create(new Application.ApproveEvidenceRequest(
             organisationId,
@@ -143,6 +144,7 @@ public class DomainEventPublishingTests : IClassFixture<EvidenceWebApplicationFa
             System.Net.Http.HttpMethod.Post,
             "/api/v1/evidence",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = System.Net.Http.Json.JsonContent.Create(new Application.ApproveEvidenceRequest(
             organisationId,

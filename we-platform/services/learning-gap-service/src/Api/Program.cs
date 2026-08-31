@@ -1,9 +1,11 @@
 using System.Text;
 using LearningGapService.Api;
+using LearningGapService.Domain;
 using LearningGapService.Infrastructure;
 using LearningGapService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +52,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<GapDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<LearningGap>(TenantBackfill.ResolveOrganisationTenant);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 namespace LearningGapService.Tests;
 
@@ -12,12 +13,16 @@ internal static class TestJwt
     public const string TeacherRole = "Teacher";
     public const string StudentRole = "Student";
 
-    public static string Create(string userId, params string[] roles)
+    public static string Create(string userId, params string[] roles) =>
+        Create(userId, DefaultTenant.Id, roles);
+
+    public static string Create(string userId, Guid tenantId, params string[] roles)
     {
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId),
-            new(ClaimTypes.NameIdentifier, userId)
+            new(ClaimTypes.NameIdentifier, userId),
+            new(TenantClaimTypes.TenantId, tenantId.ToString())
         };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
@@ -32,10 +37,18 @@ internal static class TestJwt
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public static HttpRequestMessage Authorized(HttpMethod method, string url, string userId, params string[] roles)
+    public static HttpRequestMessage Authorized(HttpMethod method, string url, string userId, params string[] roles) =>
+        Authorized(method, url, userId, DefaultTenant.Id, roles);
+
+    public static HttpRequestMessage Authorized(
+        HttpMethod method,
+        string url,
+        string userId,
+        Guid tenantId,
+        params string[] roles)
     {
         var request = new HttpRequestMessage(method, url);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Create(userId, roles));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Create(userId, tenantId, roles));
         return request;
     }
 }

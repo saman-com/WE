@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\src\Api\MasteryService.Api.csproj" />
     <ProjectReference Include="..\src\Application\MasteryService.Application.csproj" />
   </ItemGroup>

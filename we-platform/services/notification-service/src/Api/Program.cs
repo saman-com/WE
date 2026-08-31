@@ -1,9 +1,11 @@
 using System.Text;
 using NotificationService.Api;
+using NotificationService.Domain;
 using NotificationService.Infrastructure;
 using NotificationService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +52,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<Notification>(_ => DefaultTenant.Id);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

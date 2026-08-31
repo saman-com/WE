@@ -1,8 +1,11 @@
 namespace EiService.Domain;
 
-public sealed class AiSummaryAuditLog
+using WePlatform.Tenancy;
+
+public sealed class AiSummaryAuditLog : ITenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string SummaryType { get; set; } = string.Empty;
     public Guid? OrganisationId { get; set; }
     public Guid? ClassId { get; set; }

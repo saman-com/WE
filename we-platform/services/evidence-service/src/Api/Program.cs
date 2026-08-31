@@ -1,9 +1,12 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using EvidenceService.Api;
+using EvidenceService.Domain;
 using EvidenceService.Infrastructure;
 using EvidenceService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +53,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EvidenceDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<EducationalEvidence>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<EvidenceMicroSkillMark>(m =>
+    {
+        var evidence = db.Evidence.IgnoreQueryFilters().FirstOrDefault(e => e.Id == m.EvidenceId);
+        return evidence?.OrganisationId ?? DefaultTenant.Id;
+    });
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

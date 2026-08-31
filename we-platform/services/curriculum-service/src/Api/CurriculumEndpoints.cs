@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using CurriculumService.Application;
 using CurriculumService.Domain;
 using CurriculumService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 namespace CurriculumService.Api;
 
@@ -53,7 +54,8 @@ public static class CurriculumEndpoints
     private static async Task<IResult> ListCurricula(
         Guid? organisationId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -82,7 +84,8 @@ public static class CurriculumEndpoints
     private static async Task<IResult> CreateCurriculum(
         CreateCurriculumRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -96,6 +99,11 @@ public static class CurriculumEndpoints
             return Results.BadRequest();
         }
 
+        if (!tenantContext.HasTenant || request.OrganisationId != tenantContext.TenantId)
+        {
+            return Results.Forbid();
+        }
+
         var status = string.IsNullOrWhiteSpace(request.Status)
             ? CurriculumStatuses.Draft
             : request.Status.Trim();
@@ -107,6 +115,7 @@ public static class CurriculumEndpoints
         var curriculum = new Curriculum
         {
             Id = Guid.CreateVersion7(),
+            TenantId = request.OrganisationId,
             OrganisationId = request.OrganisationId,
             Name = request.Name.Trim(),
             Version = request.Version.Trim(),
@@ -123,32 +132,46 @@ public static class CurriculumEndpoints
     private static async Task<IResult> GetCurriculum(
         Guid curriculumId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var curriculum = await db.Curricula.FindAsync(curriculumId);
-        return curriculum is null ? Results.NotFound() : Results.Ok(ToCurriculum(curriculum));
+        var curriculum = await db.Curricula.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == curriculumId);
+        if (curriculum is null)
+        {
+            return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, curriculum);
+        return tenantAccess is not null ? tenantAccess : Results.Ok(ToCurriculum(curriculum));
     }
 
     private static async Task<IResult> UpdateCurriculum(
         Guid curriculumId,
         UpdateCurriculumRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var curriculum = await db.Curricula.FindAsync(curriculumId);
+        var curriculum = await db.Curricula.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == curriculumId);
         if (curriculum is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, curriculum);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (string.IsNullOrWhiteSpace(request.Name)
@@ -168,17 +191,24 @@ public static class CurriculumEndpoints
     private static async Task<IResult> DeleteCurriculum(
         Guid curriculumId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var curriculum = await db.Curricula.FindAsync(curriculumId);
+        var curriculum = await db.Curricula.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == curriculumId);
         if (curriculum is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, curriculum);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         db.Curricula.Remove(curriculum);
@@ -189,7 +219,8 @@ public static class CurriculumEndpoints
     private static async Task<IResult> GetTree(
         Guid curriculumId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -197,6 +228,7 @@ public static class CurriculumEndpoints
         }
 
         var curriculum = await db.Curricula
+            .IgnoreQueryFilters()
             .Include(item => item.Subjects)
             .ThenInclude(subject => subject.Units)
             .ThenInclude(unit => unit.Topics)
@@ -209,6 +241,12 @@ public static class CurriculumEndpoints
         if (curriculum is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, curriculum);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var subjects = curriculum.Subjects
@@ -262,14 +300,15 @@ public static class CurriculumEndpoints
     private static async Task<IResult> ListSubjects(
         Guid curriculumId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        if (await db.Curricula.FindAsync(curriculumId) is null)
+        if (await FindCurriculumAsync(db, curriculumId, tenantContext) is null)
         {
             return Results.NotFound();
         }
@@ -292,14 +331,15 @@ public static class CurriculumEndpoints
         Guid curriculumId,
         CreateSubjectRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        if (await db.Curricula.FindAsync(curriculumId) is null)
+        if (await FindCurriculumAsync(db, curriculumId, tenantContext) is null)
         {
             return Results.NotFound();
         }
@@ -335,14 +375,15 @@ public static class CurriculumEndpoints
         Guid curriculumId,
         Guid subjectId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var subject = await FindSubjectAsync(db, curriculumId, subjectId);
+        var subject = await FindSubjectAsync(db, curriculumId, subjectId, tenantContext);
         return subject is null ? Results.NotFound() : Results.Ok(ToSubject(subject));
     }
 
@@ -351,14 +392,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         UpdateSubjectRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var subject = await FindSubjectAsync(db, curriculumId, subjectId);
+        var subject = await FindSubjectAsync(db, curriculumId, subjectId, tenantContext);
         if (subject is null)
         {
             return Results.NotFound();
@@ -386,14 +428,15 @@ public static class CurriculumEndpoints
         Guid curriculumId,
         Guid subjectId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var subject = await FindSubjectAsync(db, curriculumId, subjectId);
+        var subject = await FindSubjectAsync(db, curriculumId, subjectId, tenantContext);
         if (subject is null)
         {
             return Results.NotFound();
@@ -408,14 +451,15 @@ public static class CurriculumEndpoints
         Guid curriculumId,
         Guid subjectId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var subject = await FindSubjectAsync(db, curriculumId, subjectId);
+        var subject = await FindSubjectAsync(db, curriculumId, subjectId, tenantContext);
         if (subject is null)
         {
             return Results.NotFound();
@@ -440,14 +484,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         CreateUnitRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var subject = await FindSubjectAsync(db, curriculumId, subjectId);
+        var subject = await FindSubjectAsync(db, curriculumId, subjectId, tenantContext);
         if (subject is null)
         {
             return Results.NotFound();
@@ -478,14 +523,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         Guid unitId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         return unit is null ? Results.NotFound() : Results.Ok(ToUnit(unit, curriculumId));
     }
 
@@ -495,14 +541,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         UpdateUnitRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -524,14 +571,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         Guid unitId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -547,14 +595,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         Guid unitId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -581,14 +630,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         CreateTopicRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -620,14 +670,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         Guid topicId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId);
+        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId, tenantContext);
         return topic is null ? Results.NotFound() : Results.Ok(ToTopic(topic, subjectId, curriculumId));
     }
 
@@ -638,14 +689,15 @@ public static class CurriculumEndpoints
         Guid topicId,
         UpdateTopicRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId);
+        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId, tenantContext);
         if (topic is null)
         {
             return Results.NotFound();
@@ -668,14 +720,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         Guid topicId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId);
+        var topic = await FindTopicAsync(db, curriculumId, subjectId, unitId, topicId, tenantContext);
         if (topic is null)
         {
             return Results.NotFound();
@@ -691,14 +744,15 @@ public static class CurriculumEndpoints
         Guid subjectId,
         Guid unitId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -725,14 +779,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         CreateLearningObjectiveRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId);
+        var unit = await FindUnitAsync(db, curriculumId, subjectId, unitId, tenantContext);
         if (unit is null)
         {
             return Results.NotFound();
@@ -764,14 +819,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         Guid learningObjectiveId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId, tenantContext);
         return objective is null
             ? Results.NotFound()
             : Results.Ok(ToLearningObjective(objective, subjectId, curriculumId));
@@ -784,14 +840,15 @@ public static class CurriculumEndpoints
         Guid learningObjectiveId,
         UpdateLearningObjectiveRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId, tenantContext);
         if (objective is null)
         {
             return Results.NotFound();
@@ -814,14 +871,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         Guid learningObjectiveId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId, tenantContext);
         if (objective is null)
         {
             return Results.NotFound();
@@ -838,14 +896,15 @@ public static class CurriculumEndpoints
         Guid unitId,
         Guid learningObjectiveId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId, tenantContext);
         if (objective is null)
         {
             return Results.NotFound();
@@ -874,14 +933,15 @@ public static class CurriculumEndpoints
         Guid learningObjectiveId,
         CreateMicroSkillRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
             return Results.Forbid();
         }
 
-        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId);
+        var objective = await FindLearningObjectiveAsync(db, curriculumId, subjectId, unitId, learningObjectiveId, tenantContext);
         if (objective is null)
         {
             return Results.NotFound();
@@ -914,7 +974,8 @@ public static class CurriculumEndpoints
         Guid learningObjectiveId,
         Guid microSkillId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -927,7 +988,8 @@ public static class CurriculumEndpoints
             subjectId,
             unitId,
             learningObjectiveId,
-            microSkillId);
+            microSkillId,
+            tenantContext);
         return microSkill is null
             ? Results.NotFound()
             : Results.Ok(ToMicroSkill(microSkill, unitId, subjectId, curriculumId));
@@ -941,7 +1003,8 @@ public static class CurriculumEndpoints
         Guid microSkillId,
         UpdateMicroSkillRequest request,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -954,7 +1017,8 @@ public static class CurriculumEndpoints
             subjectId,
             unitId,
             learningObjectiveId,
-            microSkillId);
+            microSkillId,
+            tenantContext);
         if (microSkill is null)
         {
             return Results.NotFound();
@@ -978,7 +1042,8 @@ public static class CurriculumEndpoints
         Guid learningObjectiveId,
         Guid microSkillId,
         ClaimsPrincipal principal,
-        CurriculumDbContext db)
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.CanManageCurriculum())
         {
@@ -991,7 +1056,8 @@ public static class CurriculumEndpoints
             subjectId,
             unitId,
             learningObjectiveId,
-            microSkillId);
+            microSkillId,
+            tenantContext);
         if (microSkill is null)
         {
             return Results.NotFound();
@@ -1005,43 +1071,86 @@ public static class CurriculumEndpoints
     private static async Task<Subject?> FindSubjectAsync(
         CurriculumDbContext db,
         Guid curriculumId,
-        Guid subjectId) =>
-        await db.Subjects.FirstOrDefaultAsync(subject =>
-            subject.Id == subjectId && subject.CurriculumId == curriculumId);
+        Guid subjectId,
+        ITenantContext tenantContext)
+    {
+        var subject = await db.Subjects
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Id == subjectId && s.CurriculumId == curriculumId);
+        if (subject is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, subject) is null ? subject : null;
+    }
 
     private static async Task<Unit?> FindUnitAsync(
         CurriculumDbContext db,
         Guid curriculumId,
         Guid subjectId,
-        Guid unitId) =>
-        await db.Units.FirstOrDefaultAsync(unit =>
-            unit.Id == unitId
-            && unit.SubjectId == subjectId
-            && unit.Subject.CurriculumId == curriculumId);
+        Guid unitId,
+        ITenantContext tenantContext)
+    {
+        var unit = await db.Units
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u =>
+                u.Id == unitId
+                && u.SubjectId == subjectId
+                && u.Subject.CurriculumId == curriculumId);
+        if (unit is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, unit) is null ? unit : null;
+    }
 
     private static async Task<Topic?> FindTopicAsync(
         CurriculumDbContext db,
         Guid curriculumId,
         Guid subjectId,
         Guid unitId,
-        Guid topicId) =>
-        await db.Topics.FirstOrDefaultAsync(topic =>
-            topic.Id == topicId
-            && topic.UnitId == unitId
-            && topic.Unit.SubjectId == subjectId
-            && topic.Unit.Subject.CurriculumId == curriculumId);
+        Guid topicId,
+        ITenantContext tenantContext)
+    {
+        var topic = await db.Topics
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t =>
+                t.Id == topicId
+                && t.UnitId == unitId
+                && t.Unit.SubjectId == subjectId
+                && t.Unit.Subject.CurriculumId == curriculumId);
+        if (topic is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, topic) is null ? topic : null;
+    }
 
     private static async Task<LearningObjective?> FindLearningObjectiveAsync(
         CurriculumDbContext db,
         Guid curriculumId,
         Guid subjectId,
         Guid unitId,
-        Guid learningObjectiveId) =>
-        await db.LearningObjectives.FirstOrDefaultAsync(objective =>
-            objective.Id == learningObjectiveId
-            && objective.UnitId == unitId
-            && objective.Unit.SubjectId == subjectId
-            && objective.Unit.Subject.CurriculumId == curriculumId);
+        Guid learningObjectiveId,
+        ITenantContext tenantContext)
+    {
+        var objective = await db.LearningObjectives
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o =>
+                o.Id == learningObjectiveId
+                && o.UnitId == unitId
+                && o.Unit.SubjectId == subjectId
+                && o.Unit.Subject.CurriculumId == curriculumId);
+        if (objective is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, objective) is null ? objective : null;
+    }
 
     private static async Task<MicroSkill?> FindMicroSkillAsync(
         CurriculumDbContext db,
@@ -1049,13 +1158,38 @@ public static class CurriculumEndpoints
         Guid subjectId,
         Guid unitId,
         Guid learningObjectiveId,
-        Guid microSkillId) =>
-        await db.MicroSkills.FirstOrDefaultAsync(skill =>
-            skill.Id == microSkillId
-            && skill.LearningObjectiveId == learningObjectiveId
-            && skill.LearningObjective.UnitId == unitId
-            && skill.LearningObjective.Unit.SubjectId == subjectId
-            && skill.LearningObjective.Unit.Subject.CurriculumId == curriculumId);
+        Guid microSkillId,
+        ITenantContext tenantContext)
+    {
+        var skill = await db.MicroSkills
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s =>
+                s.Id == microSkillId
+                && s.LearningObjectiveId == learningObjectiveId
+                && s.LearningObjective.UnitId == unitId
+                && s.LearningObjective.Unit.SubjectId == subjectId
+                && s.LearningObjective.Unit.Subject.CurriculumId == curriculumId);
+        if (skill is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, skill) is null ? skill : null;
+    }
+
+    private static async Task<Curriculum?> FindCurriculumAsync(
+        CurriculumDbContext db,
+        Guid curriculumId,
+        ITenantContext tenantContext)
+    {
+        var curriculum = await db.Curricula.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == curriculumId);
+        if (curriculum is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, curriculum) is null ? curriculum : null;
+    }
 
     private static CurriculumResponse ToCurriculum(Curriculum curriculum) =>
         new(curriculum.Id, curriculum.OrganisationId, curriculum.Name, curriculum.Version, curriculum.Status);

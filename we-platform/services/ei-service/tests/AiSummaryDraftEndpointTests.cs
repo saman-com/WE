@@ -125,6 +125,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
             HttpMethod.Post,
             $"/api/v1/ei/organisations/{organisationId}/classes/{classId}/lesson-summary-draft",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         lessonRequest.Content = JsonContent.Create(new RequestLessonSummaryDraftRequest(unitId));
         var lessonResponse = await _client.SendAsync(lessonRequest);
@@ -133,6 +134,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
             HttpMethod.Post,
             $"/api/v1/ei/students/{studentId}/progress-report-draft",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         reportRequest.Content = JsonContent.Create(new RequestProgressReportDraftRequest(
             organisationId,
@@ -171,7 +173,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
         Assert.True(draft.IsAiAssistedDraft);
 
         var editedContent = "Teacher-edited lesson summary ready for parents.";
-        var finalized = await FinalizeAuditAsync(draft.AuditLogId, teacherId, editedContent);
+        var finalized = await FinalizeAuditAsync(draft.AuditLogId, teacherId, organisationId, editedContent);
 
         Assert.False(finalized.IsAiAssistedDraft);
         Assert.True(finalized.FinalApprovedAt > DateTimeOffset.MinValue);
@@ -287,6 +289,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
             HttpMethod.Post,
             $"/api/v1/ei/organisations/{organisationId}/classes/{classId}/lesson-summary-draft",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new RequestLessonSummaryDraftRequest(unitId));
 
@@ -306,6 +309,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
             HttpMethod.Post,
             $"/api/v1/ei/students/{studentUserId}/progress-report-draft",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new RequestProgressReportDraftRequest(
             organisationId,
@@ -320,12 +324,14 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
     private async Task<FinalizeAiSummaryAuditResponse> FinalizeAuditAsync(
         Guid auditLogId,
         string teacherId,
+        Guid organisationId,
         string teacherEditedContent)
     {
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/ei/ai-summary-audit/{auditLogId}/finalize",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new FinalizeAiSummaryAuditRequest(teacherEditedContent));
 

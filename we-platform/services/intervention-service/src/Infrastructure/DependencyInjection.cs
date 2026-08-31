@@ -4,6 +4,7 @@ using InterventionService.Infrastructure.Organisation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WePlatform.Tenancy;
 
 namespace InterventionService.Infrastructure;
 
@@ -13,13 +14,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("InterventionDb");
 
         services.AddDbContext<InterventionDbContext>(options =>
         {
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                options.UseInMemoryDatabase("InterventionService");
+                var databaseName = configuration["InMemoryDatabaseName"] ?? "InterventionService";
+                options.UseInMemoryDatabase(databaseName);
                 return;
             }
 

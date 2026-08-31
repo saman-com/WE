@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using LearningGapService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace LearningGapService.Infrastructure.Data;
 
-public sealed class GapDbContext(DbContextOptions<GapDbContext> options) : DbContext(options)
+public sealed class GapDbContext(
+    DbContextOptions<GapDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<LearningGap> Gaps => Set<LearningGap>();
 
@@ -14,6 +17,7 @@ public sealed class GapDbContext(DbContextOptions<GapDbContext> options) : DbCon
             entity.ToTable("learning_gaps");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
@@ -30,5 +34,7 @@ public sealed class GapDbContext(DbContextOptions<GapDbContext> options) : DbCon
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.EvidenceId, e.MicroSkillId }).IsUnique();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

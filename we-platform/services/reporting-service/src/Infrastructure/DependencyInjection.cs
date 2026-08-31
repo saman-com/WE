@@ -14,6 +14,7 @@ using ReportingService.Infrastructure.Data.Edw;
 using ReportingService.Infrastructure.Ei;
 using ReportingService.Infrastructure.Export;
 using ReportingService.Infrastructure.Organisation;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Infrastructure;
 
@@ -24,6 +25,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("ReportingDb");
         var edwConnectionString = configuration.GetConnectionString("EdwDb");
 
@@ -102,6 +104,7 @@ internal sealed class ReportGenerator(
         var report = new GeneratedReport
         {
             Id = Guid.CreateVersion7(),
+            TenantId = organisationId,
             ReportType = ReportTypes.ClassProgress,
             OrganisationId = organisationId,
             ClassId = classId,
@@ -137,6 +140,7 @@ internal sealed class ReportGenerator(
         var report = new GeneratedReport
         {
             Id = Guid.CreateVersion7(),
+            TenantId = organisationId,
             ReportType = ReportTypes.SchoolSummary,
             OrganisationId = organisationId,
             ClassId = null,
@@ -157,7 +161,9 @@ internal sealed class ReportGenerator(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var report = await db.Reports.AsNoTracking()
+        var report = await db.Reports
+            .IgnoreQueryFilters()
+            .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
 
         return report is null ? null : ToResponse(report, DeserializeContent(report));
@@ -169,7 +175,9 @@ internal sealed class ReportGenerator(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var report = await db.Reports.AsNoTracking()
+        var report = await db.Reports
+            .IgnoreQueryFilters()
+            .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
 
         if (report is null)

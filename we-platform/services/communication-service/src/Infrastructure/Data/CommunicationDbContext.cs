@@ -1,9 +1,12 @@
 using CommunicationService.Domain;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace CommunicationService.Infrastructure.Data;
 
-public sealed class CommunicationDbContext(DbContextOptions<CommunicationDbContext> options) : DbContext(options)
+public sealed class CommunicationDbContext(
+    DbContextOptions<CommunicationDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<ParentTeacherMessage> Messages => Set<ParentTeacherMessage>();
 
@@ -14,6 +17,7 @@ public sealed class CommunicationDbContext(DbContextOptions<CommunicationDbConte
             entity.ToTable("parent_teacher_messages");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.ParentUserId).HasColumnName("parent_user_id").IsRequired();
             entity.Property(e => e.TeacherUserId).HasColumnName("teacher_user_id").IsRequired();
@@ -26,5 +30,7 @@ public sealed class CommunicationDbContext(DbContextOptions<CommunicationDbConte
             entity.HasIndex(e => e.ParentUserId);
             entity.HasIndex(e => new { e.StudentUserId, e.ParentUserId, e.TeacherUserId });
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

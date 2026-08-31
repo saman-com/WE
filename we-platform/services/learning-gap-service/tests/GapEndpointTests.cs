@@ -5,6 +5,7 @@ using LearningGapService.Infrastructure.Messaging.Consumers;
 using MassTransit;
 using MassTransit.Testing;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace LearningGapService.Tests;
 
@@ -115,7 +116,7 @@ public class GapEndpointTests : IClassFixture<GapWebApplicationFactory>
             eventId,
             eventId,
             DateTimeOffset.UtcNow,
-            Guid.CreateVersion7(),
+            DefaultTenant.Id,
             EvidenceCreated.CurrentVersion,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
@@ -167,7 +168,7 @@ public class EvidenceCreatedConsumerTests
             eventId,
             eventId,
             DateTimeOffset.UtcNow,
-            Guid.CreateVersion7(),
+            DefaultTenant.Id,
             EvidenceCreated.CurrentVersion,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),

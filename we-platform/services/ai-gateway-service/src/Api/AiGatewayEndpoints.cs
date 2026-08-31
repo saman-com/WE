@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using AiGatewayService.Application;
 using AiGatewayService.Domain;
+using WePlatform.Tenancy;
 
 namespace AiGatewayService.Api;
 
@@ -19,9 +20,15 @@ public static class AiGatewayEndpoints
         AiCompletionRequest request,
         ClaimsPrincipal principal,
         IAiCompletionService completionService,
+        ITenantContext tenantContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsPlatformService())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
         {
             return Results.Forbid();
         }
@@ -49,9 +56,15 @@ public static class AiGatewayEndpoints
         int? limit,
         ClaimsPrincipal principal,
         IAiAuditQueryService auditQueryService,
+        ITenantContext tenantContext,
         CancellationToken cancellationToken)
     {
         if (!principal.IsInRole(PlatformRoles.SystemAdministrator))
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
         {
             return Results.Forbid();
         }

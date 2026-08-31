@@ -1,7 +1,10 @@
 namespace EdwIngestService.Domain;
 
-public sealed class EvidenceFact
+using WePlatform.Tenancy;
+
+public sealed class EvidenceFact : ITenantEntity, IOrganisationTenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EventId { get; set; }
     public Guid EvidenceId { get; set; }
     public Guid OrganisationId { get; set; }

@@ -20,6 +20,7 @@ public sealed class AssessmentPublishedConsumer(INotificationCreator notificatio
                 message.EventId,
                 AssessmentPublished.EventType,
                 message.AssessmentId,
+                message.OrganisationId,
                 context.CancellationToken);
         }
     }

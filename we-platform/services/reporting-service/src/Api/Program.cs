@@ -1,10 +1,13 @@
 using System.Text;
 using ReportingService.Api;
+using ReportingService.Domain;
 using ReportingService.Infrastructure;
 using ReportingService.Infrastructure.Data;
 using ReportingService.Infrastructure.Data.Edw;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,13 +54,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ReportingDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<GeneratedReport>(TenantBackfill.ResolveOrganisationTenant);
 
     var edwDb = scope.ServiceProvider.GetRequiredService<EdwAnalyticsDbContext>();
     await edwDb.Database.EnsureCreatedAsync();
+    await edwDb.BackfillTenantIdsAsync<EdwDimTime>(_ => DefaultTenant.Id);
+    await edwDb.BackfillTenantIdsAsync<EdwEvidenceFact>(TenantBackfill.ResolveOrganisationTenant);
+    await edwDb.BackfillTenantIdsAsync<EdwInterventionFact>(TenantBackfill.ResolveOrganisationTenant);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,11 +58,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<ApplicationUser>(_ => DefaultTenant.Id);
     await IdentityDataSeeder.SeedAsync(app.Services);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
@@ -83,7 +86,8 @@ app.MapPost("/api/v1/auth/login", async (
 
 app.MapGet("/api/v1/auth/me", [Authorize] async (
     ClaimsPrincipal principal,
-    UserManager<ApplicationUser> userManager) =>
+    UserManager<ApplicationUser> userManager,
+    ITenantContext tenantContext) =>
 {
     var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
@@ -97,6 +101,12 @@ app.MapGet("/api/v1/auth/me", [Authorize] async (
     if (user is null)
     {
         return Results.Unauthorized();
+    }
+
+    var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, user);
+    if (tenantAccess is not null)
+    {
+        return tenantAccess;
     }
 
     var roles = await userManager.GetRolesAsync(user);

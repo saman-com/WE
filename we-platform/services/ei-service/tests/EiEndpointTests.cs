@@ -78,6 +78,7 @@ public class EiEndpointTests : IClassFixture<EiWebApplicationFactory>
             HttpMethod.Get,
             $"/api/v1/ei/organisations/{organisationId}/classes/{classId}/insights",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
 
         Assert.Equal(classId, response.ClassId);
@@ -99,6 +100,7 @@ public class EiEndpointTests : IClassFixture<EiWebApplicationFactory>
             HttpMethod.Get,
             $"/api/v1/ei/organisations/{organisationId}/classes/{classId}/insights",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -116,15 +118,21 @@ public class EiEndpointTests : IClassFixture<EiWebApplicationFactory>
             HttpMethod.Get,
             $"/api/v1/ei/organisations/{organisationId}/classes/{classId}/insights",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, params string[] roles)
+    private async Task<T> SendAsAsync<T>(
+        HttpMethod method,
+        string url,
+        string userId,
+        Guid tenantId,
+        params string[] roles)
     {
-        using var request = TestJwt.Authorized(method, url, userId, roles);
+        using var request = TestJwt.Authorized(method, url, userId, tenantId, roles);
         using var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<T>())!;

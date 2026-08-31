@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using DiagnosticService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace DiagnosticService.Infrastructure.Data;
 
-public sealed class DiagnosticDbContext(DbContextOptions<DiagnosticDbContext> options) : DbContext(options)
+public sealed class DiagnosticDbContext(
+    DbContextOptions<DiagnosticDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<MicroSkillDiagnostic> Diagnostics => Set<MicroSkillDiagnostic>();
 
@@ -14,6 +17,7 @@ public sealed class DiagnosticDbContext(DbContextOptions<DiagnosticDbContext> op
             entity.ToTable("micro_skill_diagnostics");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
@@ -26,5 +30,7 @@ public sealed class DiagnosticDbContext(DbContextOptions<DiagnosticDbContext> op
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.EvidenceId, e.MicroSkillId }).IsUnique();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

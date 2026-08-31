@@ -2,6 +2,7 @@ using MassTransit;
 using NotificationService.Application;
 using NotificationService.Domain;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Infrastructure.Messaging.Consumers;
 
@@ -18,6 +19,7 @@ public sealed class AssessmentApprovedConsumer(INotificationCreator notification
             message.EventId,
             AssessmentApproved.EventType,
             message.AssessmentId,
+            message.OrganisationId,
             context.CancellationToken);
     }
 }

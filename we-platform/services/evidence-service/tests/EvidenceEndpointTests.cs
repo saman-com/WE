@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using EvidenceService.Application;
 
+using WePlatform.Tenancy;
+
 namespace EvidenceService.Tests;
 
 public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory>
@@ -110,6 +112,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Put,
             $"/api/v1/evidence/{evidence.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new ApproveEvidenceRequest(
             organisationId,
@@ -150,6 +153,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Delete,
             $"/api/v1/evidence/{evidence.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -169,6 +173,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Post,
             "/api/v1/evidence",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         request.Content = JsonContent.Create(new ApproveEvidenceRequest(
             organisationId,
@@ -199,6 +204,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Post,
             "/api/v1/evidence",
             aiId,
+            organisationId,
             TestJwt.AiRole);
         request.Content = JsonContent.Create(new ApproveEvidenceRequest(
             organisationId,
@@ -242,7 +248,8 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Get,
             $"/api/v1/evidence/class-summary?organisationId={organisationId}&classId={classId}",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Contains(summaries, item => item.AssessmentId == assessmentId && item.ReviewedCount == 1);
     }
@@ -258,6 +265,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Get,
             $"/api/v1/evidence/class-summary?organisationId={organisationId}&classId={classId}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -304,7 +312,8 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Get,
             "/api/v1/evidence/student-feedback",
             studentId,
-            TestJwt.StudentRole);
+            TestJwt.StudentRole,
+            organisationId);
 
         Assert.Single(feedback);
         Assert.Equal(evidence.Id, feedback[0].Id);
@@ -326,9 +335,11 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>()
@@ -351,6 +362,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             HttpMethod.Post,
             "/api/v1/evidence",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new ApproveEvidenceRequest(
             organisationId,

@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\src\Api\AiGatewayService.Api.csproj" />
     <ProjectReference Include="..\src\Application\AiGatewayService.Application.csproj" />
     <ProjectReference Include="..\src\Infrastructure\AiGatewayService.Infrastructure.csproj" />

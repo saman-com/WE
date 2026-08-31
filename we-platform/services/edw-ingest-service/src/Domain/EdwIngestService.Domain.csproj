@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
+  </ItemGroup>
+
 </Project>

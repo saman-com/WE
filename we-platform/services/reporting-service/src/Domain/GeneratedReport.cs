@@ -1,8 +1,11 @@
 namespace ReportingService.Domain;
 
-public sealed class GeneratedReport
+using WePlatform.Tenancy;
+
+public sealed class GeneratedReport : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string ReportType { get; set; } = string.Empty;
     public Guid OrganisationId { get; set; }
     public Guid? ClassId { get; set; }

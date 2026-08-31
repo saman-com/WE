@@ -5,6 +5,7 @@ using IdentityService.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 namespace IdentityService.Infrastructure.Auth;
 
@@ -17,7 +18,8 @@ public sealed class JwtTokenService(IConfiguration configuration, UserManager<Ap
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new(ClaimTypes.Name, user.DisplayName)
+            new(ClaimTypes.Name, user.DisplayName),
+            new(TenantClaimTypes.TenantId, user.TenantId.ToString())
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));

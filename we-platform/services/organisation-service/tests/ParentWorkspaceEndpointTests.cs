@@ -45,6 +45,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Get,
             $"/api/v1/parents/{parentId}/children",
             adminId,
+            null,
             TestJwt.AdminRole);
         Assert.Contains(children, item => item.StudentUserId == studentId);
     }
@@ -104,6 +105,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Get,
             $"/api/v1/parents/me/children/{studentId}/progress",
             parentId,
+            null,
             TestJwt.ParentRole);
 
         Assert.Equal(studentId, progress.StudentUserId);
@@ -172,6 +174,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Get,
             "/api/v1/parents/me/children",
             parentId,
+            null,
             TestJwt.ParentRole);
 
         Assert.Equal(2, children.Count);
@@ -199,6 +202,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/year-levels",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateYearLevelRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -218,6 +222,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new CreateClassRequest(name, code, yearLevelId));
         var response = await _client.SendAsync(request);
@@ -232,6 +237,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Post,
             $"/api/v1/organisations/{organisationId}/classes/{classId}/enrollments",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
         var response = await _client.SendAsync(request);
@@ -250,9 +256,11 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, Guid? tenantId, string role)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<T>())

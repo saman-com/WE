@@ -2,10 +2,13 @@ using System.Text.RegularExpressions;
 using AiGatewayService.Application;
 using AiGatewayService.Domain;
 using AiGatewayService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 namespace AiGatewayService.Infrastructure.Audit;
 
-public sealed partial class AiAuditLogger(AiGatewayDbContext db) : IAiAuditLogger
+public sealed partial class AiAuditLogger(
+    AiGatewayDbContext db,
+    ITenantContext tenantContext) : IAiAuditLogger
 {
     public async Task LogAsync(
         string callerUserId,
@@ -23,6 +26,7 @@ public sealed partial class AiAuditLogger(AiGatewayDbContext db) : IAiAuditLogge
         db.AiAuditLogs.Add(new AiAuditLog
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantContext.TenantId ?? DefaultTenant.Id,
             CallerUserId = callerUserId,
             PromptId = promptId,
             PromptVersion = promptVersion,

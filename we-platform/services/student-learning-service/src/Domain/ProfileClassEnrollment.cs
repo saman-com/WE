@@ -1,8 +1,11 @@
 namespace StudentLearningService.Domain;
 
-public sealed class ProfileClassEnrollment
+using WePlatform.Tenancy;
+
+public sealed class ProfileClassEnrollment : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid ProfileId { get; set; }
     public StudentLearningProfile Profile { get; set; } = null!;
     public Guid OrganisationId { get; set; }

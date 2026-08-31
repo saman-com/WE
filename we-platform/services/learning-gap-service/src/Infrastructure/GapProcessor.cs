@@ -3,6 +3,7 @@ using LearningGapService.Domain;
 using LearningGapService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace LearningGapService.Infrastructure;
 
@@ -33,6 +34,10 @@ public sealed class GapProcessor(
             db.Gaps.Add(new LearningGap
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = TenantBackfill.ResolveOrganisationTenant(new LearningGap
+                {
+                    OrganisationId = evidence.OrganisationId
+                }),
                 StudentUserId = evidence.StudentUserId,
                 OrganisationId = evidence.OrganisationId,
                 EvidenceId = gap.EvidenceId,

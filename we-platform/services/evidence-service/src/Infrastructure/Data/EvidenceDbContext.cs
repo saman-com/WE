@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using EvidenceService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace EvidenceService.Infrastructure.Data;
 
-public sealed class EvidenceDbContext(DbContextOptions<EvidenceDbContext> options) : DbContext(options)
+public sealed class EvidenceDbContext(
+    DbContextOptions<EvidenceDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<EducationalEvidence> Evidence => Set<EducationalEvidence>();
     public DbSet<EvidenceMicroSkillMark> MicroSkillMarks => Set<EvidenceMicroSkillMark>();
@@ -27,6 +30,7 @@ public sealed class EvidenceDbContext(DbContextOptions<EvidenceDbContext> option
             entity.ToTable("educational_evidence");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
@@ -48,11 +52,14 @@ public sealed class EvidenceDbContext(DbContextOptions<EvidenceDbContext> option
         {
             entity.ToTable("evidence_micro_skill_marks");
             entity.HasKey(e => new { e.EvidenceId, e.MicroSkillId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.EvidenceId).HasColumnName("evidence_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
             entity.Property(e => e.Mark).HasColumnName("mark");
             entity.Property(e => e.Feedback).HasColumnName("feedback").IsRequired();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 
     private void RejectMutationsOfApprovedEvidence()

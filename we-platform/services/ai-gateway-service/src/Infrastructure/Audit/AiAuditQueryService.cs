@@ -1,16 +1,24 @@
 using AiGatewayService.Application;
 using AiGatewayService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace AiGatewayService.Infrastructure.Audit;
 
-public sealed class AiAuditQueryService(AiGatewayDbContext db) : IAiAuditQueryService
+public sealed class AiAuditQueryService(
+    AiGatewayDbContext db,
+    ITenantContext tenantContext) : IAiAuditQueryService
 {
     public async Task<IReadOnlyList<AiAuditLogResponse>> SearchAsync(
         AiAuditLogQuery query,
         CancellationToken cancellationToken = default)
     {
         var entries = db.AiAuditLogs.AsNoTracking().AsQueryable();
+
+        if (tenantContext.HasTenant)
+        {
+            entries = entries.Where(entry => entry.TenantId == tenantContext.TenantId);
+        }
 
         if (!string.IsNullOrWhiteSpace(query.PromptId))
         {

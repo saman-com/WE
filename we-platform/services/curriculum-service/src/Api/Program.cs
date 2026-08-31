@@ -1,9 +1,12 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using CurriculumService.Api;
+using CurriculumService.Domain;
 using CurriculumService.Infrastructure;
 using CurriculumService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +53,42 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CurriculumDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<Curriculum>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<Subject>(s =>
+    {
+        var curriculum = db.Curricula.IgnoreQueryFilters().FirstOrDefault(c => c.Id == s.CurriculumId);
+        return curriculum?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<Unit>(u =>
+    {
+        var subject = db.Subjects.IgnoreQueryFilters().Include(s => s.Curriculum)
+            .FirstOrDefault(s => s.Id == u.SubjectId);
+        return subject?.Curriculum.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<Topic>(t =>
+    {
+        var unit = db.Units.IgnoreQueryFilters().Include(u => u.Subject).ThenInclude(s => s.Curriculum)
+            .FirstOrDefault(u => u.Id == t.UnitId);
+        return unit?.Subject.Curriculum.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<LearningObjective>(o =>
+    {
+        var unit = db.Units.IgnoreQueryFilters().Include(u => u.Subject).ThenInclude(s => s.Curriculum)
+            .FirstOrDefault(u => u.Id == o.UnitId);
+        return unit?.Subject.Curriculum.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<MicroSkill>(m =>
+    {
+        var objective = db.LearningObjectives.IgnoreQueryFilters()
+            .Include(o => o.Unit).ThenInclude(u => u.Subject).ThenInclude(s => s.Curriculum)
+            .FirstOrDefault(o => o.Id == m.LearningObjectiveId);
+        return objective?.Unit.Subject.Curriculum.OrganisationId ?? DefaultTenant.Id;
+    });
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

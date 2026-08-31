@@ -4,6 +4,7 @@ using LearningGapService.Application;
 using LearningGapService.Domain;
 using LearningGapService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace LearningGapService.Api;
 
@@ -21,11 +22,17 @@ public static class GapEndpoints
         ClaimsPrincipal principal,
         GapDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateAccessAsync(
@@ -38,11 +45,21 @@ public static class GapEndpoints
             return access;
         }
 
-        var gaps = await db.Gaps
+        var allGaps = await db.Gaps
+            .IgnoreQueryFilters()
             .Where(g => g.StudentUserId == studentUserId)
             .OrderBy(g => g.CreatedAt)
             .ThenBy(g => g.MicroSkillId)
             .ToListAsync();
+
+        if (allGaps.Count > 0 && allGaps.All(g => g.TenantId != tenantContext.TenantId))
+        {
+            return Results.Forbid();
+        }
+
+        var gaps = allGaps
+            .Where(g => g.TenantId == tenantContext.TenantId)
+            .ToList();
 
         return Results.Ok(new StudentLearningGapsResponse(
             studentUserId,

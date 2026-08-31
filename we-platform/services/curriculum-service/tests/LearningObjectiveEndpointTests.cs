@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using CurriculumService.Application;
 
+using WePlatform.Tenancy;
+
 namespace CurriculumService.Tests;
 
 public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplicationFactory>
@@ -17,16 +19,18 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task Teacher_CanCrudLearningObjectiveAndMicroSkill()
     {
         var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
         var curriculum = await CreateCurriculumAsync(
             teacherId,
-            Guid.NewGuid(),
+            organisationId,
             "Science Objectives",
             "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "Chemistry", "CHEM", 1);
-        var unit = await CreateUnitAsync(teacherId, curriculum.Id, subject.Id, "Chemical Reactions", 1);
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "Chemistry", "CHEM", 1);
+        var unit = await CreateUnitAsync(teacherId, organisationId, curriculum.Id, subject.Id, "Chemical Reactions", 1);
 
         var objective = await CreateLearningObjectiveAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -39,13 +43,15 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
         var listed = await SendAsAsync<List<LearningObjectiveResponse>>(
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives",
-            teacherId);
+            teacherId,
+            organisationId);
         Assert.Contains(listed, item => item.Id == objective.Id);
 
         using var updateObjective = TestJwt.Authorized(
             HttpMethod.Put,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         updateObjective.Content = JsonContent.Create(
             new UpdateLearningObjectiveRequest("Balance equations accurately", 2));
@@ -54,6 +60,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
 
         var microSkill = await CreateMicroSkillAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -67,13 +74,15 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
         var microSkills = await SendAsAsync<List<MicroSkillResponse>>(
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}/micro-skills",
-            teacherId);
+            teacherId,
+            organisationId);
         Assert.Contains(microSkills, item => item.Id == microSkill.Id);
 
         using var updateMicroSkill = TestJwt.Authorized(
             HttpMethod.Put,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}/micro-skills/{microSkill.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         updateMicroSkill.Content = JsonContent.Create(
             new UpdateMicroSkillRequest("Identify reactants and products in an equation", 2));
@@ -83,6 +92,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Delete,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}/micro-skills/{microSkill.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteMicroSkill)).StatusCode);
 
@@ -90,6 +100,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Delete,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteObjective)).StatusCode);
     }
@@ -98,13 +109,15 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task CreateLearningObjective_ForUnknownUnit_ReturnsNotFound()
     {
         var teacherId = Guid.NewGuid().ToString();
-        var curriculum = await CreateCurriculumAsync(teacherId, Guid.NewGuid(), "Guard", "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "Physics", "PHY", 1);
+        var organisationId = Guid.NewGuid();
+        var curriculum = await CreateCurriculumAsync(teacherId, organisationId, "Guard", "2026");
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "Physics", "PHY", 1);
 
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{Guid.NewGuid()}/learning-objectives",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateLearningObjectiveRequest("Orphan objective", 1));
 
@@ -117,14 +130,16 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task CreateMicroSkill_ForUnknownLearningObjective_ReturnsNotFound()
     {
         var teacherId = Guid.NewGuid().ToString();
-        var curriculum = await CreateCurriculumAsync(teacherId, Guid.NewGuid(), "Guard", "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "Biology", "BIO", 1);
-        var unit = await CreateUnitAsync(teacherId, curriculum.Id, subject.Id, "Cells", 1);
+        var organisationId = Guid.NewGuid();
+        var curriculum = await CreateCurriculumAsync(teacherId, organisationId, "Guard", "2026");
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "Biology", "BIO", 1);
+        var unit = await CreateUnitAsync(teacherId, organisationId, curriculum.Id, subject.Id, "Cells", 1);
 
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{Guid.NewGuid()}/micro-skills",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateMicroSkillRequest("Orphan skill", 1));
 
@@ -137,11 +152,13 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task DeletingUnit_CascadesLearningObjectivesAndMicroSkills()
     {
         var teacherId = Guid.NewGuid().ToString();
-        var curriculum = await CreateCurriculumAsync(teacherId, Guid.NewGuid(), "Cascade", "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "Math", "MATH", 1);
-        var unit = await CreateUnitAsync(teacherId, curriculum.Id, subject.Id, "Algebra", 1);
+        var organisationId = Guid.NewGuid();
+        var curriculum = await CreateCurriculumAsync(teacherId, organisationId, "Cascade", "2026");
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "Math", "MATH", 1);
+        var unit = await CreateUnitAsync(teacherId, organisationId, curriculum.Id, subject.Id, "Algebra", 1);
         var objective = await CreateLearningObjectiveAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -149,6 +166,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             1);
         var microSkill = await CreateMicroSkillAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -160,6 +178,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Delete,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteUnit)).StatusCode);
 
@@ -167,6 +186,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missingObjective)).StatusCode);
 
@@ -174,13 +194,15 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}/micro-skills/{microSkill.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missingMicroSkill)).StatusCode);
 
         var tree = await SendAsAsync<CurriculumTreeResponse>(
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/tree",
-            teacherId);
+            teacherId,
+            organisationId);
         Assert.DoesNotContain(
             tree.Subjects.SelectMany(subjectNode => subjectNode.Units),
             item => item.Id == unit.Id);
@@ -190,11 +212,13 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task DeletingLearningObjective_CascadesMicroSkills()
     {
         var teacherId = Guid.NewGuid().ToString();
-        var curriculum = await CreateCurriculumAsync(teacherId, Guid.NewGuid(), "Objective Cascade", "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "History", "HIST", 1);
-        var unit = await CreateUnitAsync(teacherId, curriculum.Id, subject.Id, "World War II", 1);
+        var organisationId = Guid.NewGuid();
+        var curriculum = await CreateCurriculumAsync(teacherId, organisationId, "Objective Cascade", "2026");
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "History", "HIST", 1);
+        var unit = await CreateUnitAsync(teacherId, organisationId, curriculum.Id, subject.Id, "World War II", 1);
         var objective = await CreateLearningObjectiveAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -202,6 +226,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             1);
         var microSkill = await CreateMicroSkillAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -213,6 +238,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Delete,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteObjective)).StatusCode);
 
@@ -220,6 +246,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/subjects/{subject.Id}/units/{unit.Id}/learning-objectives/{objective.Id}/micro-skills/{microSkill.Id}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missingMicroSkill)).StatusCode);
     }
@@ -228,11 +255,13 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
     public async Task Tree_ReturnsLearningObjectiveMicroSkillHierarchyUnderUnit()
     {
         var teacherId = Guid.NewGuid().ToString();
-        var curriculum = await CreateCurriculumAsync(teacherId, Guid.NewGuid(), "Hierarchy", "2026");
-        var subject = await CreateSubjectAsync(teacherId, curriculum.Id, "English", "ENG", 1);
-        var unit = await CreateUnitAsync(teacherId, curriculum.Id, subject.Id, "Poetry", 1);
+        var organisationId = Guid.NewGuid();
+        var curriculum = await CreateCurriculumAsync(teacherId, organisationId, "Hierarchy", "2026");
+        var subject = await CreateSubjectAsync(teacherId, organisationId, curriculum.Id, "English", "ENG", 1);
+        var unit = await CreateUnitAsync(teacherId, organisationId, curriculum.Id, subject.Id, "Poetry", 1);
         var objective = await CreateLearningObjectiveAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -240,6 +269,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             1);
         var microSkill = await CreateMicroSkillAsync(
             teacherId,
+            organisationId,
             curriculum.Id,
             subject.Id,
             unit.Id,
@@ -250,7 +280,8 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
         var tree = await SendAsAsync<CurriculumTreeResponse>(
             HttpMethod.Get,
             $"/api/v1/curriculum/{curriculum.Id}/tree",
-            teacherId);
+            teacherId,
+            organisationId);
 
         var unitNode = Assert.Single(
             tree.Subjects.SelectMany(subjectNode => subjectNode.Units),
@@ -269,7 +300,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
         string name,
         string version)
     {
-        using var request = TestJwt.Authorized(HttpMethod.Post, "/api/v1/curriculum", userId, TestJwt.TeacherRole);
+        using var request = TestJwt.Authorized(HttpMethod.Post, "/api/v1/curriculum", userId, organisationId, TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateCurriculumRequest(organisationId, name, version, "Draft"));
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -279,6 +310,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
 
     private async Task<SubjectResponse> CreateSubjectAsync(
         string userId,
+        Guid organisationId,
         Guid curriculumId,
         string name,
         string code,
@@ -288,6 +320,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects",
             userId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateSubjectRequest(name, code, sortOrder));
         var response = await _client.SendAsync(request);
@@ -298,6 +331,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
 
     private async Task<UnitResponse> CreateUnitAsync(
         string userId,
+        Guid organisationId,
         Guid curriculumId,
         Guid subjectId,
         string name,
@@ -307,6 +341,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units",
             userId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateUnitRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -317,6 +352,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
 
     private async Task<LearningObjectiveResponse> CreateLearningObjectiveAsync(
         string userId,
+        Guid organisationId,
         Guid curriculumId,
         Guid subjectId,
         Guid unitId,
@@ -327,6 +363,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units/{unitId}/learning-objectives",
             userId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateLearningObjectiveRequest(title, sortOrder));
         var response = await _client.SendAsync(request);
@@ -337,6 +374,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
 
     private async Task<MicroSkillResponse> CreateMicroSkillAsync(
         string userId,
+        Guid organisationId,
         Guid curriculumId,
         Guid subjectId,
         Guid unitId,
@@ -348,6 +386,7 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             HttpMethod.Post,
             $"/api/v1/curriculum/{curriculumId}/subjects/{subjectId}/units/{unitId}/learning-objectives/{learningObjectiveId}/micro-skills",
             userId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateMicroSkillRequest(name, sortOrder));
         var response = await _client.SendAsync(request);
@@ -356,9 +395,11 @@ public class LearningObjectiveEndpointTests : IClassFixture<CurriculumWebApplica
             ?? throw new InvalidOperationException("Missing micro-skill payload.");
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, TestJwt.TeacherRole);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, TestJwt.TeacherRole)
+            : TestJwt.Authorized(method, url, userId, TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<T>())

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using StudentLearningService.Application;
 using StudentLearningService.Infrastructure.Data;
 using StudentLearningService.Infrastructure.Organisation;
+using WePlatform.Tenancy;
 
 namespace StudentLearningService.Infrastructure;
 
@@ -13,6 +14,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("StudentLearningDb");
 
         services.AddDbContext<StudentLearningDbContext>(options =>

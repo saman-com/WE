@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\src\Api\EdwIngestService.Api.csproj" />
     <ProjectReference Include="..\src\Infrastructure\EdwIngestService.Infrastructure.csproj" />
   </ItemGroup>

@@ -3,6 +3,7 @@ using EdwIngestService.Domain;
 using EdwIngestService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace EdwIngestService.Infrastructure;
 
@@ -22,6 +23,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
 
         db.EvidenceFacts.Add(new EvidenceFact
         {
+            TenantId = evidence.OrganisationId,
             EventId = evidence.EventId,
             EvidenceId = evidence.EvidenceId,
             OrganisationId = evidence.OrganisationId,
@@ -53,6 +55,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
 
         db.AssessmentFacts.Add(new AssessmentFact
         {
+            TenantId = assessment.OrganisationId,
             EventId = assessment.EventId,
             AssessmentId = assessment.AssessmentId,
             OrganisationId = assessment.OrganisationId,
@@ -83,6 +86,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
 
         db.InterventionFacts.Add(new InterventionFact
         {
+            TenantId = intervention.OrganisationId,
             EventId = intervention.EventId,
             InterventionId = intervention.InterventionId,
             OrganisationId = intervention.OrganisationId,
@@ -124,6 +128,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
             var timeKey = await EnsureTimeDimensionAsync(evidence.ApprovedAt, cancellationToken);
             db.EvidenceFacts.Add(new EvidenceFact
             {
+                TenantId = evidence.OrganisationId,
                 EventId = evidence.EventId,
                 EvidenceId = evidence.EvidenceId,
                 OrganisationId = evidence.OrganisationId,
@@ -155,6 +160,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
         {
             db.DimTimes.Add(new DimTime
             {
+                TenantId = DefaultTenant.Id,
                 DateKey = dateKey,
                 CalendarDate = date,
                 Year = date.Year,

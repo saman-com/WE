@@ -1,7 +1,10 @@
 namespace EdwIngestService.Domain;
 
-public sealed class DimTime
+using WePlatform.Tenancy;
+
+public sealed class DimTime : ITenantEntity
 {
+    public Guid TenantId { get; set; }
     public int DateKey { get; set; }
     public DateOnly CalendarDate { get; set; }
     public int Year { get; set; }

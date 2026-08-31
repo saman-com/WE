@@ -3,6 +3,7 @@ using MasteryService.Domain;
 using MasteryService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace MasteryService.Infrastructure;
 
@@ -30,6 +31,10 @@ public sealed class MasteryProcessor(
             db.EvidenceMarks.Add(new MasteryEvidenceMark
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = TenantBackfill.ResolveOrganisationTenant(new MasteryEvidenceMark
+                {
+                    OrganisationId = evidence.OrganisationId
+                }),
                 StudentUserId = evidence.StudentUserId,
                 OrganisationId = evidence.OrganisationId,
                 MicroSkillId = result.MicroSkillId,
@@ -85,6 +90,10 @@ public sealed class MasteryProcessor(
             db.Records.Add(new MasteryRecord
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = TenantBackfill.ResolveOrganisationTenant(new MasteryRecord
+                {
+                    OrganisationId = organisationId
+                }),
                 StudentUserId = studentUserId,
                 OrganisationId = organisationId,
                 MicroSkillId = microSkillId,

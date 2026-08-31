@@ -1,9 +1,13 @@
 using System.Security.Claims;
 using System.Text;
 using AiGatewayService.Api;
+using AiGatewayService.Domain;
 using AiGatewayService.Infrastructure;
+using AiGatewayService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +42,15 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AiGatewayDbContext>();
+    await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<AiAuditLog>(_ => DefaultTenant.Id);
+}
+
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

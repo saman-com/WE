@@ -10,5 +10,6 @@ public interface INotificationCreator
         Guid sourceEventId,
         string sourceEventType,
         Guid? relatedEntityId,
+        Guid tenantId,
         CancellationToken cancellationToken = default);
 }

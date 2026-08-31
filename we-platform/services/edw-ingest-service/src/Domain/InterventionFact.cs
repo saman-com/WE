@@ -1,7 +1,10 @@
 namespace EdwIngestService.Domain;
 
-public sealed class InterventionFact
+using WePlatform.Tenancy;
+
+public sealed class InterventionFact : ITenantEntity, IOrganisationTenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EventId { get; set; }
     public Guid InterventionId { get; set; }
     public Guid OrganisationId { get; set; }

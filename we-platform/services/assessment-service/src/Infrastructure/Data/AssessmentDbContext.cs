@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using AssessmentService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure.Data;
 
-public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> options) : DbContext(options)
+public sealed class AssessmentDbContext(
+    DbContextOptions<AssessmentDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<AssessmentLearningObjective> AssessmentLearningObjectives => Set<AssessmentLearningObjective>();
@@ -18,6 +21,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.ToTable("assessments");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.CreatedByTeacherUserId).HasColumnName("created_by_teacher_user_id").IsRequired();
@@ -43,6 +47,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
         {
             entity.ToTable("assessment_learning_objectives");
             entity.HasKey(e => new { e.AssessmentId, e.LearningObjectiveId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.LearningObjectiveId).HasColumnName("learning_objective_id");
         });
@@ -51,6 +56,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
         {
             entity.ToTable("assessment_micro_skills");
             entity.HasKey(e => new { e.AssessmentId, e.MicroSkillId });
+            entity.ConfigureTenantId();
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
         });
@@ -60,6 +66,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.ToTable("assessment_submissions");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.Responses).HasColumnName("responses").IsRequired();
@@ -78,6 +85,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.ToTable("ai_feedback_audit_logs");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.AssessmentId).HasColumnName("assessment_id");
             entity.Property(e => e.SubmissionId).HasColumnName("submission_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
@@ -93,5 +101,7 @@ public sealed class AssessmentDbContext(DbContextOptions<AssessmentDbContext> op
             entity.HasIndex(e => e.SubmissionId);
             entity.HasIndex(e => e.TeacherUserId);
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

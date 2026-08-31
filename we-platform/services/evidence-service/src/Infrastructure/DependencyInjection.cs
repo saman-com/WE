@@ -7,6 +7,7 @@ using EvidenceService.Infrastructure.Data;
 using EvidenceService.Infrastructure.Messaging;
 using EvidenceService.Infrastructure.Organisation;
 using EvidenceService.Infrastructure.StudentLearning;
+using WePlatform.Tenancy;
 
 namespace EvidenceService.Infrastructure;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("EvidenceDb");
 
         services.AddDbContext<EvidenceDbContext>(options =>

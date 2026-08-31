@@ -4,6 +4,8 @@ using AssessmentService.Application;
 using AssessmentService.Domain;
 using WePlatform.Events;
 
+using WePlatform.Tenancy;
+
 namespace AssessmentService.Tests;
 
 public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFactory>
@@ -78,7 +80,8 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Equal(AssessmentStatuses.Published, published.Status);
         Assert.NotNull(published.PublishedAt);
@@ -108,7 +111,8 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         var publishedEvent = _eventPublisher.AssessmentPublishedEvents.Single(e => e.AssessmentId == draft.Id);
         Assert.Equal("Weekly quiz", publishedEvent.Title);
@@ -168,13 +172,15 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         var visible = await SendAsAsync<List<AssessmentResponse>>(
             HttpMethod.Get,
             $"/api/v1/assessments?organisationId={organisationId}&classId={classId}",
             studentId,
-            TestJwt.StudentRole);
+            TestJwt.StudentRole,
+            organisationId);
 
         Assert.Single(visible);
         Assert.Equal(published.Id, visible[0].Id);
@@ -204,6 +210,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/{draft.Id}",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);
 
@@ -223,6 +230,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             "/api/v1/assessments",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         createRequest.Content = JsonContent.Create(new CreateAssessmentRequest(
             organisationId,
@@ -249,6 +257,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var publishResponse = await _client.SendAsync(publishRequest);
         Assert.Equal(HttpStatusCode.Forbidden, publishResponse.StatusCode);
@@ -271,13 +280,14 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             DateTimeOffset.UtcNow.AddDays(2),
             [],
             []);
-        var published = await PublishAssessmentAsync(teacherId, draft.Id);
+        var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
 
         var summaries = await SendAsAsync<List<ClassAssessmentSummaryResponse>>(
             HttpMethod.Get,
             $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Contains(summaries, item => item.Id == published.Id && item.SubmissionCount == 0);
     }
@@ -293,6 +303,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
@@ -320,7 +331,8 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
                 null,
                 DateTimeOffset.UtcNow.AddDays(3),
                 [learningObjectiveId],
-                [])).Id);
+                [])).Id,
+            organisationId);
         var completed = await PublishAssessmentAsync(
             teacherId,
             (await CreateAssessmentAsync(
@@ -331,12 +343,14 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
                 null,
                 DateTimeOffset.UtcNow.AddDays(1),
                 [],
-                [])).Id);
+                [])).Id,
+            organisationId);
 
         using var submitRequest = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/assessments/{completed.Id}/submissions",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         submitRequest.Content = JsonContent.Create(new SubmitAssessmentRequest("Done."));
         Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(submitRequest)).StatusCode);
@@ -345,7 +359,8 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
             studentId,
-            TestJwt.StudentRole);
+            TestJwt.StudentRole,
+            organisationId);
 
         Assert.Equal(2, summaries.Count);
         var pendingSummary = Assert.Single(summaries, item => item.Id == pending.Id);
@@ -369,6 +384,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);
 
@@ -387,18 +403,20 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private async Task<AssessmentResponse> PublishAssessmentAsync(string teacherId, Guid assessmentId) =>
+    private async Task<AssessmentResponse> PublishAssessmentAsync(string teacherId, Guid assessmentId, Guid organisationId) =>
         await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,
             $"/api/v1/assessments/{assessmentId}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
     private async Task<AssessmentResponse> CreateAssessmentAsync(
         string teacherId,
@@ -414,6 +432,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             "/api/v1/assessments",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateAssessmentRequest(
             organisationId,
@@ -430,9 +449,11 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             ?? throw new InvalidOperationException("Missing assessment payload.");
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>()

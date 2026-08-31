@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OrganisationService.Application;
 using OrganisationService.Domain;
 using OrganisationService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 namespace OrganisationService.Api;
 
@@ -46,7 +47,9 @@ public static class OrganisationEndpoints
         ClaimsPrincipal principal,
         OrganisationDbContext db)
     {
-        var query = db.Organisations.AsQueryable();
+        var query = principal.IsAdmin()
+            ? db.Organisations.IgnoreQueryFilters().AsQueryable()
+            : db.Organisations.AsQueryable();
         if (!principal.IsAdmin())
         {
             var userId = principal.UserId();
@@ -103,6 +106,7 @@ public static class OrganisationEndpoints
             Code = request.Code.Trim(),
             CreatedAt = DateTimeOffset.UtcNow
         };
+        organisation.TenantId = organisation.Id;
 
         db.Organisations.Add(organisation);
         await db.SaveChangesAsync();
@@ -114,12 +118,21 @@ public static class OrganisationEndpoints
     private static async Task<IResult> GetOrganisation(
         Guid organisationId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var organisation = await db.Organisations.FindAsync(organisationId);
+        var organisation = await db.Organisations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(org => org.Id == organisationId);
         if (organisation is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, organisation);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (!await CanViewOrganisationAsync(principal, organisationId, db))
@@ -134,17 +147,26 @@ public static class OrganisationEndpoints
         Guid organisationId,
         UpdateOrganisationRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var organisation = await db.Organisations.FindAsync(organisationId);
+        var organisation = await db.Organisations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(org => org.Id == organisationId);
         if (organisation is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, organisation);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code))
@@ -166,17 +188,26 @@ public static class OrganisationEndpoints
     private static async Task<IResult> DeleteOrganisation(
         Guid organisationId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var organisation = await db.Organisations.FindAsync(organisationId);
+        var organisation = await db.Organisations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(org => org.Id == organisationId);
         if (organisation is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, organisation);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         db.Organisations.Remove(organisation);
@@ -187,9 +218,10 @@ public static class OrganisationEndpoints
     private static async Task<IResult> ListYearLevels(
         Guid organisationId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        if (await db.Organisations.FindAsync(organisationId) is null)
+        if (await FindOrganisationAsync(db, organisationId, tenantContext) is null)
         {
             return Results.NotFound();
         }
@@ -212,14 +244,15 @@ public static class OrganisationEndpoints
         Guid organisationId,
         CreateYearLevelRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        if (await db.Organisations.FindAsync(organisationId) is null)
+        if (await FindOrganisationAsync(db, organisationId, tenantContext) is null)
         {
             return Results.NotFound();
         }
@@ -232,6 +265,7 @@ public static class OrganisationEndpoints
         var yearLevel = new YearLevel
         {
             Id = Guid.CreateVersion7(),
+            TenantId = organisationId,
             OrganisationId = organisationId,
             Name = request.Name.Trim(),
             SortOrder = request.SortOrder
@@ -248,9 +282,10 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid yearLevelId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId);
+        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId, tenantContext);
         if (yearLevel is null)
         {
             return Results.NotFound();
@@ -269,14 +304,15 @@ public static class OrganisationEndpoints
         Guid yearLevelId,
         UpdateYearLevelRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId);
+        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId, tenantContext);
         if (yearLevel is null)
         {
             return Results.NotFound();
@@ -297,14 +333,15 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid yearLevelId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId);
+        var yearLevel = await FindYearLevelAsync(db, organisationId, yearLevelId, tenantContext);
         if (yearLevel is null)
         {
             return Results.NotFound();
@@ -318,9 +355,10 @@ public static class OrganisationEndpoints
     private static async Task<IResult> ListClasses(
         Guid organisationId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        if (await db.Organisations.FindAsync(organisationId) is null)
+        if (await FindOrganisationAsync(db, organisationId, tenantContext) is null)
         {
             return Results.NotFound();
         }
@@ -362,19 +400,20 @@ public static class OrganisationEndpoints
         Guid organisationId,
         CreateClassRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        if (await db.Organisations.FindAsync(organisationId) is null)
+        if (await FindOrganisationAsync(db, organisationId, tenantContext) is null)
         {
             return Results.NotFound();
         }
 
-        var yearLevel = await FindYearLevelAsync(db, organisationId, request.YearLevelId);
+        var yearLevel = await FindYearLevelAsync(db, organisationId, request.YearLevelId, tenantContext);
         if (yearLevel is null)
         {
             return Results.NotFound();
@@ -388,6 +427,7 @@ public static class OrganisationEndpoints
         var schoolClass = new SchoolClass
         {
             Id = Guid.CreateVersion7(),
+            TenantId = organisationId,
             OrganisationId = organisationId,
             YearLevelId = yearLevel.Id,
             Name = request.Name.Trim(),
@@ -405,9 +445,10 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid classId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -422,20 +463,21 @@ public static class OrganisationEndpoints
         Guid classId,
         UpdateClassRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
         }
 
-        var yearLevel = await FindYearLevelAsync(db, organisationId, request.YearLevelId);
+        var yearLevel = await FindYearLevelAsync(db, organisationId, request.YearLevelId, tenantContext);
         if (yearLevel is null)
         {
             return Results.NotFound();
@@ -457,14 +499,15 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid classId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -479,9 +522,10 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid classId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -504,14 +548,15 @@ public static class OrganisationEndpoints
         Guid classId,
         AssignTeacherRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -529,6 +574,7 @@ public static class OrganisationEndpoints
 
         db.ClassTeachers.Add(new ClassTeacher
         {
+            TenantId = organisationId,
             ClassId = schoolClass.Id,
             TeacherUserId = request.UserId
         });
@@ -543,7 +589,8 @@ public static class OrganisationEndpoints
         Guid classId,
         string userId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
@@ -557,7 +604,7 @@ public static class OrganisationEndpoints
             return Results.NotFound();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -572,9 +619,10 @@ public static class OrganisationEndpoints
         Guid organisationId,
         Guid classId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -603,14 +651,15 @@ public static class OrganisationEndpoints
         ClaimsPrincipal principal,
         OrganisationDbContext db,
         IStudentLearningProfileClient profileClient,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -628,6 +677,7 @@ public static class OrganisationEndpoints
 
         db.ClassEnrollments.Add(new ClassEnrollment
         {
+            TenantId = organisationId,
             ClassId = schoolClass.Id,
             StudentUserId = request.UserId
         });
@@ -662,14 +712,15 @@ public static class OrganisationEndpoints
         Guid classId,
         string userId,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
         {
             return Results.Forbid();
         }
 
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -694,9 +745,10 @@ public static class OrganisationEndpoints
         IAssessmentDashboardClient assessmentClient,
         IEvidenceDashboardClient evidenceClient,
         IStudentLearningProfileClient profileClient,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        ITenantContext tenantContext)
     {
-        var schoolClass = await FindClassAsync(db, organisationId, classId);
+        var schoolClass = await FindClassAsync(db, organisationId, classId, tenantContext);
         if (schoolClass is null)
         {
             return Results.NotFound();
@@ -824,21 +876,64 @@ public static class OrganisationEndpoints
         return false;
     }
 
+    private static async Task<Organisation?> FindOrganisationAsync(
+        OrganisationDbContext db,
+        Guid organisationId,
+        ITenantContext tenantContext)
+    {
+        var organisation = await db.Organisations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(org => org.Id == organisationId);
+        if (organisation is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, organisation) is null
+            ? organisation
+            : null;
+    }
+
     private static async Task<YearLevel?> FindYearLevelAsync(
         OrganisationDbContext db,
         Guid organisationId,
-        Guid yearLevelId) =>
-        await db.YearLevels.FirstOrDefaultAsync(level =>
-            level.Id == yearLevelId && level.OrganisationId == organisationId);
+        Guid yearLevelId,
+        ITenantContext tenantContext)
+    {
+        var yearLevel = await db.YearLevels
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(level =>
+                level.Id == yearLevelId && level.OrganisationId == organisationId);
+        if (yearLevel is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, yearLevel) is null
+            ? yearLevel
+            : null;
+    }
 
     private static async Task<SchoolClass?> FindClassAsync(
         OrganisationDbContext db,
         Guid organisationId,
-        Guid classId) =>
-        await db.Classes
+        Guid classId,
+        ITenantContext tenantContext)
+    {
+        var schoolClass = await db.Classes
+            .IgnoreQueryFilters()
             .Include(c => c.Teachers)
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == classId && c.OrganisationId == organisationId);
+        if (schoolClass is null)
+        {
+            return null;
+        }
+
+        return TenantAccess.ValidateEntityAccess(tenantContext, schoolClass) is null
+            ? schoolClass
+            : null;
+    }
 
     private static OrganisationResponse ToOrganisation(Organisation organisation) =>
         new(organisation.Id, organisation.Name, organisation.Code);

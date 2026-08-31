@@ -7,6 +7,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace EdwIngestService.Tests;
 
@@ -93,7 +94,7 @@ public class EdwIngestProcessorTests
         var options = new DbContextOptionsBuilder<EdwDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EdwDbContext(options);
+        return new EdwDbContext(options, new TenantContext());
     }
 
     private static IEdwIngestProcessor CreateProcessor(EdwDbContext context) =>
@@ -242,7 +243,7 @@ public class EdwIngestConsumerTests
         var options = new DbContextOptionsBuilder<EdwDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EdwDbContext(options);
+        return new EdwDbContext(options, new TenantContext());
     }
 
     private static IEdwIngestProcessor CreateProcessor(EdwDbContext context) =>

@@ -6,6 +6,7 @@ using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Api;
 
@@ -36,9 +37,15 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant || request.OrganisationId != tenantContext.TenantId)
         {
             return Results.Forbid();
         }
@@ -63,6 +70,7 @@ public static class AssessmentEndpoints
         var assessment = new Assessment
         {
             Id = Guid.CreateVersion7(),
+            TenantId = request.OrganisationId,
             OrganisationId = request.OrganisationId,
             ClassId = request.ClassId,
             CreatedByTeacherUserId = principal.UserId(),
@@ -268,12 +276,19 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         var assessment = await LoadAssessmentAsync(db, assessmentId);
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var access = await EvaluateViewAccessAsync(
@@ -769,9 +784,18 @@ public static class AssessmentEndpoints
 
     private static async Task<Assessment?> LoadAssessmentAsync(AssessmentDbContext db, Guid assessmentId) =>
         await db.Assessments
+            .IgnoreQueryFilters()
             .Include(a => a.LearningObjectives)
             .Include(a => a.MicroSkills)
             .FirstOrDefaultAsync(a => a.Id == assessmentId);
+
+    private static async Task<AssessmentSubmission?> LoadSubmissionAsync(
+        AssessmentDbContext db,
+        Guid assessmentId,
+        Guid submissionId) =>
+        await db.Submissions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Id == submissionId && s.AssessmentId == assessmentId);
 
     private static AssessmentResponse ToResponse(Assessment assessment) =>
         new(

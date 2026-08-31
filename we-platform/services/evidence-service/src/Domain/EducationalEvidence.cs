@@ -1,8 +1,11 @@
 namespace EvidenceService.Domain;
 
-public sealed class EducationalEvidence
+using WePlatform.Tenancy;
+
+public sealed class EducationalEvidence : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public Guid OrganisationId { get; set; }
     public Guid ClassId { get; set; }
     public Guid AssessmentId { get; set; }

@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using AssessmentService.Application;
 using AssessmentService.Domain;
 
+using WePlatform.Tenancy;
+
 namespace AssessmentService.Tests;
 
 public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFactory>
@@ -36,6 +38,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
         var submission = await SubmitAssessmentAsync(
             studentId,
             published.Id,
+            organisationId,
             "My answers for quiz 1.");
 
         Assert.Equal(studentId, submission.StudentUserId);
@@ -66,6 +69,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
         var submission = await SubmitAssessmentAsync(
             studentId,
             published.Id,
+            organisationId,
             "Late but submitted.");
 
         Assert.Equal(SubmissionStatuses.Submitted, submission.Status);
@@ -89,12 +93,13 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             "One attempt only",
             null);
 
-        await SubmitAssessmentAsync(studentId, published.Id, "First attempt.");
+        await SubmitAssessmentAsync(studentId, published.Id, organisationId, "First attempt.");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/assessments/{published.Id}/submissions",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         request.Content = JsonContent.Create(new SubmitAssessmentRequest("Second attempt."));
 
@@ -122,7 +127,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             "Shared class quiz",
             null);
 
-        var submission = await SubmitAssessmentAsync(studentId, published.Id, "Student one answers.");
+        var submission = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student one answers.");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
@@ -151,7 +156,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             "Profile quiz",
             null);
 
-        var submitted = await SubmitAssessmentAsync(studentId, published.Id, "My work.");
+        var submitted = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "My work.");
 
         var loaded = await SendAsAsync<SubmissionResponse>(
             HttpMethod.Get,
@@ -179,7 +184,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             classId,
             "Review quiz",
             null);
-        var submitted = await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+        var submitted = await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student work.");
 
         var listed = await SendAsAsync<List<SubmissionResponse>>(
             HttpMethod.Get,
@@ -208,7 +213,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             classId,
             "Private submissions",
             null);
-        await SubmitAssessmentAsync(studentId, published.Id, "Student work.");
+        await SubmitAssessmentAsync(studentId, published.Id, organisationId, "Student work.");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
@@ -260,6 +265,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             "/api/v1/assessments",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new CreateAssessmentRequest(
             organisationId,
@@ -288,18 +294,21 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
     }
 
     private async Task<SubmissionResponse> SubmitAssessmentAsync(
         string studentId,
         Guid assessmentId,
+        Guid organisationId,
         string responses)
     {
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/assessments/{assessmentId}/submissions",
             studentId,
+            organisationId,
             TestJwt.StudentRole);
         request.Content = JsonContent.Create(new SubmitAssessmentRequest(responses));
 
@@ -309,9 +318,11 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             ?? throw new InvalidOperationException("Missing submission payload.");
     }
 
-    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role)
+    private async Task<T> SendAsAsync<T>(HttpMethod method, string url, string userId, string role, Guid? tenantId = null)
     {
-        using var request = TestJwt.Authorized(method, url, userId, role);
+        using var request = tenantId.HasValue
+            ? TestJwt.Authorized(method, url, userId, tenantId.Value, role)
+            : TestJwt.Authorized(method, url, userId, role);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>()

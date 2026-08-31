@@ -2,11 +2,14 @@ using System.Text.Json;
 using EiService.Application;
 using EiService.Domain;
 using EiService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace EiService.Infrastructure.Ai;
 
 public sealed class AiSummaryDraftService(
     EiDbContext db,
+    ITenantContext tenantContext,
     IAiGatewayClient aiGatewayClient,
     IClassInsightsProvider insightsProvider,
     IStudentEiDataClient studentEiDataClient,
@@ -120,8 +123,15 @@ public sealed class AiSummaryDraftService(
         string teacherEditedContent,
         CancellationToken cancellationToken = default)
     {
-        var auditLog = await db.AiSummaryAuditLogs.FindAsync([auditLogId], cancellationToken);
+        var auditLog = await db.AiSummaryAuditLogs
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.Id == auditLogId, cancellationToken);
         if (auditLog is null || auditLog.TeacherUserId != teacherUserId)
+        {
+            return null;
+        }
+
+        if (TenantAccess.ValidateEntityAccess(tenantContext, auditLog) is not null)
         {
             return null;
         }
@@ -160,6 +170,7 @@ public sealed class AiSummaryDraftService(
         var auditLog = new AiSummaryAuditLog
         {
             Id = Guid.CreateVersion7(),
+            TenantId = organisationId,
             SummaryType = summaryType,
             OrganisationId = organisationId,
             ClassId = classId,

@@ -1,9 +1,12 @@
 using InterventionService.Domain;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace InterventionService.Infrastructure.Data;
 
-public sealed class InterventionDbContext(DbContextOptions<InterventionDbContext> options) : DbContext(options)
+public sealed class InterventionDbContext(
+    DbContextOptions<InterventionDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<Intervention> Interventions => Set<Intervention>();
 
@@ -14,6 +17,7 @@ public sealed class InterventionDbContext(DbContextOptions<InterventionDbContext
             entity.ToTable("interventions");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.LearningGapId).HasColumnName("learning_gap_id");
@@ -32,5 +36,7 @@ public sealed class InterventionDbContext(DbContextOptions<InterventionDbContext
             entity.HasIndex(e => e.AssignedTeacherUserId);
             entity.HasIndex(e => e.OrganisationId);
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

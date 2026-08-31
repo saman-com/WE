@@ -1,9 +1,12 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using AssessmentService.Api;
+using AssessmentService.Domain;
 using AssessmentService.Infrastructure;
 using AssessmentService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +53,32 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AssessmentDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<Assessment>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<AssessmentSubmission>(s =>
+    {
+        var assessment = db.Assessments.IgnoreQueryFilters().FirstOrDefault(a => a.Id == s.AssessmentId);
+        return assessment?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<AssessmentLearningObjective>(l =>
+    {
+        var assessment = db.Assessments.IgnoreQueryFilters().FirstOrDefault(a => a.Id == l.AssessmentId);
+        return assessment?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<AssessmentMicroSkill>(m =>
+    {
+        var assessment = db.Assessments.IgnoreQueryFilters().FirstOrDefault(a => a.Id == m.AssessmentId);
+        return assessment?.OrganisationId ?? DefaultTenant.Id;
+    });
+    await db.BackfillTenantIdsAsync<AiFeedbackAuditLog>(a =>
+    {
+        var assessment = db.Assessments.IgnoreQueryFilters().FirstOrDefault(x => x.Id == a.AssessmentId);
+        return assessment?.OrganisationId ?? DefaultTenant.Id;
+    });
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using MasteryService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace MasteryService.Infrastructure.Data;
 
-public sealed class MasteryDbContext(DbContextOptions<MasteryDbContext> options) : DbContext(options)
+public sealed class MasteryDbContext(
+    DbContextOptions<MasteryDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<MasteryRecord> Records => Set<MasteryRecord>();
     public DbSet<MasteryEvidenceMark> EvidenceMarks => Set<MasteryEvidenceMark>();
@@ -15,6 +18,7 @@ public sealed class MasteryDbContext(DbContextOptions<MasteryDbContext> options)
             entity.ToTable("mastery_evidence_marks");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
@@ -32,6 +36,7 @@ public sealed class MasteryDbContext(DbContextOptions<MasteryDbContext> options)
             entity.ToTable("mastery_records");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
@@ -44,5 +49,7 @@ public sealed class MasteryDbContext(DbContextOptions<MasteryDbContext> options)
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.StudentUserId, e.MicroSkillId }).IsUnique();
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

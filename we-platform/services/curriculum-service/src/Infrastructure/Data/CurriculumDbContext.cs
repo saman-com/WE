@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using CurriculumService.Domain;
+using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace CurriculumService.Infrastructure.Data;
 
-public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> options) : DbContext(options)
+public sealed class CurriculumDbContext(
+    DbContextOptions<CurriculumDbContext> options,
+    ITenantContext tenantContext) : TenantAwareDbContext(options, tenantContext)
 {
     public DbSet<Curriculum> Curricula => Set<Curriculum>();
     public DbSet<Subject> Subjects => Set<Subject>();
@@ -19,6 +22,7 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("curricula");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.Version).HasColumnName("version").IsRequired();
@@ -34,6 +38,7 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("subjects");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.CurriculumId).HasColumnName("curriculum_id");
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.Code).HasColumnName("code").IsRequired();
@@ -48,6 +53,7 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("units");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.SubjectId).HasColumnName("subject_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
@@ -63,6 +69,7 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("learning_objectives");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.UnitId).HasColumnName("unit_id").IsRequired();
             entity.Property(e => e.Title).HasColumnName("title").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
@@ -77,6 +84,7 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("micro_skills");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.LearningObjectiveId).HasColumnName("learning_objective_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
@@ -88,10 +96,13 @@ public sealed class CurriculumDbContext(DbContextOptions<CurriculumDbContext> op
             entity.ToTable("topics");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.ConfigureTenantId();
             entity.Property(e => e.UnitId).HasColumnName("unit_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
             entity.HasIndex(e => e.UnitId);
         });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

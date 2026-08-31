@@ -30,6 +30,7 @@ public sealed class DiagnosticProcessor(
             db.Diagnostics.Add(new MicroSkillDiagnostic
             {
                 Id = Guid.CreateVersion7(),
+                TenantId = evidence.OrganisationId,
                 StudentUserId = evidence.StudentUserId,
                 OrganisationId = evidence.OrganisationId,
                 EvidenceId = item.EvidenceId,

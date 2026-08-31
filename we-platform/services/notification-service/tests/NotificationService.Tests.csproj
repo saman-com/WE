@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\src\Api\NotificationService.Api.csproj" />
     <ProjectReference Include="..\..\..\shared\events\WePlatform.Events.csproj" />
   </ItemGroup>

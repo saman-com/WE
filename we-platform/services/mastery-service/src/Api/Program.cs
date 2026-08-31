@@ -1,9 +1,11 @@
 using System.Text;
 using MasteryService.Api;
+using MasteryService.Domain;
 using MasteryService.Infrastructure;
 using MasteryService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,10 +52,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MasteryDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.BackfillTenantIdsAsync<MasteryRecord>(TenantBackfill.ResolveOrganisationTenant);
+    await db.BackfillTenantIdsAsync<MasteryEvidenceMark>(TenantBackfill.ResolveOrganisationTenant);
 }
 
 app.UseCors("WebPortal");
 app.UseAuthentication();
+app.UseWePlatformTenancy();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));

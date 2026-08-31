@@ -2,6 +2,7 @@ using IdentityService.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using WePlatform.Tenancy;
 
 namespace IdentityService.Infrastructure.Data;
 
@@ -73,7 +74,8 @@ public static class IdentityDataSeeder
             UserName = email,
             Email = email,
             DisplayName = displayName,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            TenantId = DefaultTenant.Id
         };
 
         var result = await userManager.CreateAsync(user, password);

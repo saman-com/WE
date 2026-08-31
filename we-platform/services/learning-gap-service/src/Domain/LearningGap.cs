@@ -1,8 +1,11 @@
 namespace LearningGapService.Domain;
 
-public sealed class LearningGap
+using WePlatform.Tenancy;
+
+public sealed class LearningGap : ITenantEntity, IOrganisationTenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string StudentUserId { get; set; } = string.Empty;
     public Guid OrganisationId { get; set; }
     public Guid EvidenceId { get; set; }

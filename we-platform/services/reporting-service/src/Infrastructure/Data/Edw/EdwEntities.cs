@@ -1,7 +1,10 @@
 namespace ReportingService.Infrastructure.Data.Edw;
 
-public sealed class EdwDimTime
+using WePlatform.Tenancy;
+
+public sealed class EdwDimTime : ITenantEntity
 {
+    public Guid TenantId { get; set; }
     public int DateKey { get; set; }
     public DateOnly CalendarDate { get; set; }
     public int Year { get; set; }
@@ -9,8 +12,9 @@ public sealed class EdwDimTime
     public int Day { get; set; }
 }
 
-public sealed class EdwEvidenceFact
+public sealed class EdwEvidenceFact : ITenantEntity, IOrganisationTenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EventId { get; set; }
     public Guid EvidenceId { get; set; }
     public Guid OrganisationId { get; set; }
@@ -31,8 +35,9 @@ public sealed class EdwEvidenceFact
     public DateTimeOffset IngestedAt { get; set; }
 }
 
-public sealed class EdwInterventionFact
+public sealed class EdwInterventionFact : ITenantEntity, IOrganisationTenantEntity
 {
+    public Guid TenantId { get; set; }
     public Guid EventId { get; set; }
     public Guid InterventionId { get; set; }
     public Guid OrganisationId { get; set; }

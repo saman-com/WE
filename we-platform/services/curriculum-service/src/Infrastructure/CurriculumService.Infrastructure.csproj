@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\tenancy\WePlatform.Tenancy.csproj" />
     <ProjectReference Include="..\Application\CurriculumService.Application.csproj" />
     <ProjectReference Include="..\Domain\CurriculumService.Domain.csproj" />
   </ItemGroup>

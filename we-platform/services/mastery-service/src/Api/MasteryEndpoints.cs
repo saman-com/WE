@@ -4,6 +4,7 @@ using MasteryService.Application;
 using MasteryService.Domain;
 using MasteryService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace MasteryService.Api;
 
@@ -22,11 +23,17 @@ public static class MasteryEndpoints
         ClaimsPrincipal principal,
         MasteryDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateAccessAsync(
@@ -39,10 +46,20 @@ public static class MasteryEndpoints
             return access;
         }
 
-        var records = await db.Records
+        var allRecords = await db.Records
+            .IgnoreQueryFilters()
             .Where(r => r.StudentUserId == studentUserId)
             .OrderBy(r => r.MicroSkillId)
             .ToListAsync();
+
+        if (allRecords.Count > 0 && allRecords.All(r => r.TenantId != tenantContext.TenantId))
+        {
+            return Results.Forbid();
+        }
+
+        var records = allRecords
+            .Where(r => r.TenantId == tenantContext.TenantId)
+            .ToList();
 
         return Results.Ok(new StudentMasteryResponse(
             studentUserId,
@@ -54,11 +71,17 @@ public static class MasteryEndpoints
         ClaimsPrincipal principal,
         MasteryDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         if (!principal.IsParent())
@@ -81,10 +104,20 @@ public static class MasteryEndpoints
             return Results.Forbid();
         }
 
-        var records = await db.Records
+        var allRecords = await db.Records
+            .IgnoreQueryFilters()
             .Where(r => r.StudentUserId == studentUserId)
             .OrderBy(r => r.MicroSkillId)
             .ToListAsync();
+
+        if (allRecords.Count > 0 && allRecords.All(r => r.TenantId != tenantContext.TenantId))
+        {
+            return Results.Forbid();
+        }
+
+        var records = allRecords
+            .Where(r => r.TenantId == tenantContext.TenantId)
+            .ToList();
 
         return Results.Ok(new ParentMasterySummaryResponse(
             studentUserId,

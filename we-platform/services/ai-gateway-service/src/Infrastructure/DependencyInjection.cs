@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using WePlatform.Tenancy;
 
 namespace AiGatewayService.Infrastructure;
 
@@ -20,6 +21,7 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("AiGatewayDb");
 
         services.AddDbContext<AiGatewayDbContext>(options =>

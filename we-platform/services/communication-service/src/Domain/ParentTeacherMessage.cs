@@ -1,8 +1,11 @@
 namespace CommunicationService.Domain;
 
-public sealed class ParentTeacherMessage
+using WePlatform.Tenancy;
+
+public sealed class ParentTeacherMessage : ITenantEntity
 {
     public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
     public string StudentUserId { get; set; } = string.Empty;
     public string ParentUserId { get; set; } = string.Empty;
     public string TeacherUserId { get; set; } = string.Empty;

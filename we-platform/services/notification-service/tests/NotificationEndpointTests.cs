@@ -5,6 +5,7 @@ using NotificationService.Domain;
 using NotificationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Tests;
 
@@ -101,6 +102,7 @@ public class NotificationEndpointTests : IClassFixture<NotificationWebApplicatio
         var notification = new Notification
         {
             Id = Guid.CreateVersion7(),
+            TenantId = DefaultTenant.Id,
             RecipientUserId = recipientUserId,
             Type = type,
             Title = title,

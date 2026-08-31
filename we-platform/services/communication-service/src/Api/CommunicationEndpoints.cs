@@ -5,6 +5,7 @@ using CommunicationService.Domain;
 using CommunicationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace CommunicationService.Api;
 
@@ -25,6 +26,7 @@ public static class CommunicationEndpoints
         CommunicationDbContext db,
         IOrganisationAccessChecker accessChecker,
         IDomainEventPublisher eventPublisher,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(request.StudentUserId)
@@ -32,6 +34,11 @@ public static class CommunicationEndpoints
             || string.IsNullOrWhiteSpace(request.Body))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
@@ -89,6 +96,7 @@ public static class CommunicationEndpoints
         var message = new ParentTeacherMessage
         {
             Id = Guid.CreateVersion7(),
+            TenantId = tenantContext.TenantId!.Value,
             StudentUserId = studentUserId,
             ParentUserId = parentUserId,
             TeacherUserId = teacherUserId,
@@ -123,11 +131,17 @@ public static class CommunicationEndpoints
         ClaimsPrincipal principal,
         CommunicationDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId) || string.IsNullOrWhiteSpace(participantUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
@@ -179,12 +193,26 @@ public static class CommunicationEndpoints
         }
 
         var messages = await db.Messages
+            .IgnoreQueryFilters()
             .Where(m =>
                 m.StudentUserId == studentId
                 && m.ParentUserId == parentUserId
                 && m.TeacherUserId == teacherUserId)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync();
+
+        if (messages.Count > 0)
+        {
+            var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, messages[0]);
+            if (tenantAccess is not null)
+            {
+                return tenantAccess;
+            }
+        }
+
+        messages = messages
+            .Where(m => m.TenantId == tenantContext.TenantId)
+            .ToList();
 
         return Results.Ok(new ConversationResponse(
             studentId,
@@ -197,9 +225,15 @@ public static class CommunicationEndpoints
         ClaimsPrincipal principal,
         CommunicationDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsTeacher() && !principal.IsParent())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
         {
             return Results.Forbid();
         }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WePlatform.Tenancy;
 
 namespace IdentityService.Infrastructure;
 
@@ -14,13 +15,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddWePlatformTenancy();
         var connectionString = configuration.GetConnectionString("IdentityDb");
 
         services.AddDbContext<IdentityDbContext>(options =>
         {
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                options.UseInMemoryDatabase("IdentityService");
+                var databaseName = configuration["InMemoryDatabaseName"] ?? "IdentityService";
+                options.UseInMemoryDatabase(databaseName);
                 return;
             }
 

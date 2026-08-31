@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using StudentLearningService.Application;
+using WePlatform.Tenancy;
 
 namespace StudentLearningService.Tests;
 
@@ -28,7 +29,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     {
         var adminId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.NewGuid();
+        var organisationId = DefaultTenant.Id;
         var classId = Guid.NewGuid();
 
         var profile = await SyncEnrollmentAsync(
@@ -50,7 +51,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     {
         var adminId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.NewGuid();
+        var organisationId = DefaultTenant.Id;
         var classId = Guid.NewGuid();
 
         await SyncEnrollmentAsync(adminId, studentId, organisationId, classId, "7A", "7A");
@@ -64,7 +65,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     {
         var adminId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        var organisationId = Guid.NewGuid();
+        var organisationId = DefaultTenant.Id;
         var classA = Guid.NewGuid();
         var classB = Guid.NewGuid();
 
@@ -79,7 +80,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
     {
         var adminId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
 
         var profile = await SendAsAsync<StudentProfileResponse>(
             HttpMethod.Get,
@@ -96,7 +97,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var adminId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
         var otherStudentId = Guid.NewGuid().ToString();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
@@ -114,7 +115,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var adminId = Guid.NewGuid().ToString();
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
         _accessChecker.Allow(teacherId, studentId);
 
         var profile = await SendAsAsync<StudentProfileResponse>(
@@ -132,7 +133,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var adminId = Guid.NewGuid().ToString();
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
@@ -153,7 +154,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var evidenceId = Guid.CreateVersion7();
         var assessmentId = Guid.CreateVersion7();
         var microSkillId = Guid.CreateVersion7();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
         _accessChecker.Allow(teacherId, studentId);
 
         using var request = TestJwt.Authorized(
@@ -192,7 +193,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var assessmentId = Guid.CreateVersion7();
         var microSkillId = Guid.CreateVersion7();
         var recordedAt = DateTimeOffset.UtcNow;
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
         _accessChecker.Allow(teacherId, studentId);
 
         using var recordRequest = TestJwt.Authorized(
@@ -225,7 +226,7 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         var adminId = Guid.NewGuid().ToString();
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
-        await SyncEnrollmentAsync(adminId, studentId, Guid.NewGuid(), Guid.NewGuid(), "7A", "7A");
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
