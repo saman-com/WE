@@ -24,6 +24,7 @@ services:
       - ./databases/communication/init.sql:/docker-entrypoint-initdb.d/13-create-we-communication.sql:ro
       - ./databases/reporting/init.sql:/docker-entrypoint-initdb.d/14-create-we-reporting.sql:ro
       - ./databases/edw/init.sql:/docker-entrypoint-initdb.d/15-create-we-edw.sql:ro
+      - ./databases/configuration/init.sql:/docker-entrypoint-initdb.d/16-create-we-configuration.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -425,6 +426,22 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
+
+  configuration-service:
+    build:
+      context: .
+      dockerfile: services/configuration-service/Dockerfile
+    ports:
+      - "8098:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__ConfigurationDb: Host=postgres;Port=5432;Database=we_configuration;Username=we;Password=we_dev
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

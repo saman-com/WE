@@ -106,6 +106,9 @@ export default function DashboardPage() {
             <Link href="/admin/ai-audit" className="text-sm underline block">
               AI audit logs
             </Link>
+            <Link href="/admin/regional-configuration" className="text-sm underline block">
+              Regional configuration
+            </Link>
           </>
         ) : null}
 
@@ -147,9 +150,14 @@ export default function DashboardPage() {
         ) : null}
 
         {profile.roles.includes("SchoolLeader") ? (
-          <Link href="/leadership" className="text-sm underline block">
-            Leadership dashboard
-          </Link>
+          <>
+            <Link href="/leadership" className="text-sm underline block">
+              Leadership dashboard
+            </Link>
+            <Link href="/admin/regional-configuration" className="text-sm underline block">
+              Regional configuration
+            </Link>
+          </>
         ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
