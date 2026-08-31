@@ -25,6 +25,7 @@ services:
       - ./databases/reporting/init.sql:/docker-entrypoint-initdb.d/14-create-we-reporting.sql:ro
       - ./databases/edw/init.sql:/docker-entrypoint-initdb.d/15-create-we-edw.sql:ro
       - ./databases/configuration/init.sql:/docker-entrypoint-initdb.d/16-create-we-configuration.sql:ro
+      - ./databases/federation/init.sql:/docker-entrypoint-initdb.d/17-create-we-federation.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
@@ -442,6 +443,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  federation-service:
+    build:
+      context: .
+      dockerfile: services/federation-service/Dockerfile
+    ports:
+      - "8099:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__FederationDb: Host=postgres;Port=5432;Database=we_federation;Username=we;Password=we_dev
+      ConfigurationService__BaseUrl: http://configuration-service:8080
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      configuration-service:
+        condition: service_started
 
 volumes:
   postgres_data:

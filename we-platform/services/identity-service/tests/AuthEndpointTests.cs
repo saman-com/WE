@@ -95,7 +95,7 @@ public class AuthEndpointTests : IClassFixture<IdentityWebApplicationFactory>
     }
 
     [Fact]
-    public async Task SeedData_ContainsFivePlatformRoles()
+    public async Task SeedData_ContainsAllPlatformRoles()
     {
         using var scope = _factory.Services.CreateScope();
         var roleManager = scope.ServiceProvider

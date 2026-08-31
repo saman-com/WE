@@ -98,6 +98,12 @@ export default function DashboardPage() {
           Notifications
         </Link>
 
+        {profile.roles.includes("FederationAdmin") ? (
+          <Link href="/admin/federation" className="text-sm underline block">
+            Federation administration
+          </Link>
+        ) : null}
+
         {profile.roles.includes("SystemAdministrator") ? (
           <>
             <Link href="/organisation" className="text-sm underline">
