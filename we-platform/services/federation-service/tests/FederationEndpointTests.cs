@@ -157,6 +157,92 @@ public class FederationEndpointTests : IClassFixture<FederationWebApplicationFac
     }
 
     [Fact]
+    public async Task FederationAdmin_FromDifferentFederation_CannotAssignSchoolAdmin()
+    {
+        var federationA = Guid.CreateVersion7();
+        var federationB = Guid.CreateVersion7();
+        var adminA = Guid.NewGuid().ToString();
+        var schoolAdminUserId = Guid.NewGuid().ToString();
+        var school = await SeedSchoolAsync(federationB, "Other Federation School", "OFS", 40, 55m);
+
+        using var assignRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Post,
+            $"/api/v1/federation/schools/{school.TenantId}/admins",
+            adminA,
+            federationA);
+        assignRequest.Content = JsonContent.Create(new AssignSchoolAdminRequest(schoolAdminUserId));
+
+        var assignResponse = await _client.SendAsync(assignRequest);
+
+        Assert.Equal(HttpStatusCode.NotFound, assignResponse.StatusCode);
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<FederationDbContext>();
+        Assert.DoesNotContain(
+            db.SchoolAdminAssignments,
+            item => item.SchoolTenantId == school.TenantId && item.UserId == schoolAdminUserId);
+    }
+
+    [Fact]
+    public async Task FederationAdmin_FromDifferentFederation_CannotSeeOtherFederationMetrics()
+    {
+        var federationA = Guid.CreateVersion7();
+        var federationB = Guid.CreateVersion7();
+        var adminA = Guid.NewGuid().ToString();
+
+        await SeedSchoolAsync(federationB, "Hidden School", "HID", 90, 72m);
+        await SeedSchoolAsync(federationB, "Hidden School Two", "HI2", 60, 68m);
+
+        using var request = TestJwt.FederationAuthorized(
+            HttpMethod.Get,
+            "/api/v1/federation/metrics",
+            adminA,
+            federationA);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var metrics = await response.Content.ReadFromJsonAsync<FederationMetricsResponse>();
+        Assert.NotNull(metrics);
+        Assert.Equal(0, metrics.TotalSchools);
+        Assert.Equal(0, metrics.TotalEnrollment);
+    }
+
+    [Fact]
+    public async Task FederationAdmin_ProvisioningMultipleSchools_CompletesWithoutDegradation()
+    {
+        var federationId = Guid.CreateVersion7();
+        var adminId = Guid.NewGuid().ToString();
+        _factory.Provisioner.ProvisionedTenantIds.Clear();
+
+        for (var index = 0; index < 5; index++)
+        {
+            using var createRequest = TestJwt.FederationAuthorized(
+                HttpMethod.Post,
+                "/api/v1/federation/schools",
+                adminId,
+                federationId);
+            createRequest.Content = JsonContent.Create(
+                new CreateFederationSchoolRequest($"School {index + 1}", UniqueCode($"S{index}")));
+
+            var createResponse = await _client.SendAsync(createRequest);
+            createResponse.EnsureSuccessStatusCode();
+        }
+
+        using var metricsRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Get,
+            "/api/v1/federation/metrics",
+            adminId,
+            federationId);
+        var metricsResponse = await _client.SendAsync(metricsRequest);
+        metricsResponse.EnsureSuccessStatusCode();
+
+        var metrics = await metricsResponse.Content.ReadFromJsonAsync<FederationMetricsResponse>();
+        Assert.NotNull(metrics);
+        Assert.Equal(5, metrics.TotalSchools);
+        Assert.Equal(5, _factory.Provisioner.ProvisionedTenantIds.Count);
+    }
+
+    [Fact]
     public async Task FederationAdmin_ManagesFederationPolicies()
     {
         var federationId = Guid.CreateVersion7();
