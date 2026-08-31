@@ -16,6 +16,12 @@ import {
   type YearLevelLeadershipDashboard,
 } from "@/lib/leadership-dashboard";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
+import {
+  downloadReportPdf,
+  generateSchoolSummaryReport,
+  type ReportResponse,
+  type SchoolSummaryReportContent,
+} from "@/lib/reports";
 
 function isSchoolLeader(profile: UserProfile): boolean {
   return profile.roles.includes("SchoolLeader");
@@ -74,6 +80,9 @@ export default function LeadershipDashboardPage() {
   const [interventions, setInterventions] = useState<LeadershipInterventionItem[]>([]);
   const [interventionFilters, setInterventionFilters] = useState<LeadershipInterventionFilters>({});
   const [error, setError] = useState<string | null>(null);
+  const [schoolReport, setSchoolReport] = useState<ReportResponse | null>(null);
+  const [reportMessage, setReportMessage] = useState<string | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -187,6 +196,54 @@ export default function LeadershipDashboardPage() {
     }
   }
 
+  async function handleGenerateSchoolSummaryReport() {
+    const token = localStorage.getItem("we_access_token");
+    if (!token || !selectedOrgId) {
+      return;
+    }
+
+    setReportBusy(true);
+    setReportMessage(null);
+    try {
+      const report = await generateSchoolSummaryReport(token, selectedOrgId);
+      setSchoolReport(report);
+      setReportMessage("School summary report generated on demand from leadership EI data.");
+    } catch {
+      setReportMessage("Unable to generate school summary report.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function handleDownloadSchoolReportPdf() {
+    const token = localStorage.getItem("we_access_token");
+    if (!token || !schoolReport) {
+      return;
+    }
+
+    setReportBusy(true);
+    setReportMessage(null);
+    try {
+      await downloadReportPdf(
+        token,
+        schoolReport.id,
+        `school-summary-${selectedOrgId}.pdf`
+      );
+      setReportMessage("PDF exported.");
+    } catch {
+      setReportMessage("Unable to export report as PDF.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  function schoolReportContent(): SchoolSummaryReportContent | null {
+    if (!schoolReport || "className" in schoolReport.content) {
+      return null;
+    }
+    return schoolReport.content;
+  }
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -255,6 +312,52 @@ export default function LeadershipDashboardPage() {
             label="Assessment completion"
             value={formatPercent(dashboard.kpis.assessmentCompletionRate)}
           />
+        </div>
+
+        <div className="rounded-lg border border-black/10 p-6 space-y-4">
+          <div>
+            <h2 className="font-medium">School summary report</h2>
+            <p className="text-sm text-black/60 mt-1">
+              Generate an on-demand whole-school report with achievement KPIs, year-level
+              summaries, and class comparisons sourced from Educational Intelligence.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleGenerateSchoolSummaryReport}
+              disabled={reportBusy || !selectedOrgId}
+              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Generate report
+            </button>
+            {schoolReport ? (
+              <button
+                type="button"
+                onClick={handleDownloadSchoolReportPdf}
+                disabled={reportBusy}
+                className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
+              >
+                Export PDF
+              </button>
+            ) : null}
+          </div>
+          {schoolReportContent() ? (
+            <div className="space-y-2 text-sm">
+              <p>
+                {schoolReportContent()!.organisationName} · Generated{" "}
+                {new Date(schoolReport!.generatedAt).toLocaleString()}
+              </p>
+              <p>
+                {schoolReportContent()!.kpis.totalStudents} students ·{" "}
+                {schoolReportContent()!.yearLevels.length} year levels ·{" "}
+                {schoolReportContent()!.classComparisons.length} classes
+              </p>
+            </div>
+          ) : null}
+          {reportMessage ? (
+            <p className="text-sm text-black/70">{reportMessage}</p>
+          ) : null}
         </div>
 
         {Object.keys(dashboard.kpis.masteryLevelCounts).length > 0 ? (

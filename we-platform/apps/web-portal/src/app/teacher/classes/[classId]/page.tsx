@@ -18,6 +18,12 @@ import {
   finalizeAiSummaryAudit,
   requestLessonSummaryDraft,
 } from "@/lib/ei-summaries";
+import {
+  downloadReportPdf,
+  generateClassProgressReport,
+  isClassProgressReport,
+  type ReportResponse,
+} from "@/lib/reports";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -64,6 +70,9 @@ export default function TeacherClassDetailPage() {
   const [lessonApproved, setLessonApproved] = useState(false);
   const [summaryMessage, setSummaryMessage] = useState<string | null>(null);
   const [summaryBusy, setSummaryBusy] = useState(false);
+  const [classReport, setClassReport] = useState<ReportResponse | null>(null);
+  const [reportMessage, setReportMessage] = useState<string | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -158,6 +167,45 @@ export default function TeacherClassDetailPage() {
       setSummaryMessage("Unable to approve lesson summary.");
     } finally {
       setSummaryBusy(false);
+    }
+  }
+
+  async function handleGenerateClassProgressReport() {
+    if (!token || !organisationId) {
+      return;
+    }
+
+    setReportBusy(true);
+    setReportMessage(null);
+    try {
+      const report = await generateClassProgressReport(token, organisationId, classId);
+      setClassReport(report);
+      setReportMessage("Class progress report generated on demand from EI and assessment data.");
+    } catch {
+      setReportMessage("Unable to generate class progress report.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function handleDownloadClassReportPdf() {
+    if (!token || !classReport) {
+      return;
+    }
+
+    setReportBusy(true);
+    setReportMessage(null);
+    try {
+      await downloadReportPdf(
+        token,
+        classReport.id,
+        `class-progress-${classId}.pdf`
+      );
+      setReportMessage("PDF exported.");
+    } catch {
+      setReportMessage("Unable to export report as PDF.");
+    } finally {
+      setReportBusy(false);
     }
   }
 
@@ -353,6 +401,52 @@ export default function TeacherClassDetailPage() {
             </div>
           </div>
         ) : null}
+
+        <div className="rounded-lg border border-black/10 p-6 space-y-4">
+          <div>
+            <h2 className="font-medium">Class progress report</h2>
+            <p className="text-sm text-black/60 mt-1">
+              Generate an on-demand report with mastery distribution, active learning gaps,
+              and assessment summary sourced from Educational Intelligence services.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleGenerateClassProgressReport}
+              disabled={reportBusy}
+              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Generate report
+            </button>
+            {classReport ? (
+              <button
+                type="button"
+                onClick={handleDownloadClassReportPdf}
+                disabled={reportBusy}
+                className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
+              >
+                Export PDF
+              </button>
+            ) : null}
+          </div>
+          {classReport && isClassProgressReport(classReport.content) ? (
+            <div className="space-y-2 text-sm">
+              <p>
+                {classReport.content.className} · Generated{" "}
+                {new Date(classReport.generatedAt).toLocaleString()}
+              </p>
+              <p>
+                Mastery areas: {classReport.content.masteryDistribution.length} · Active gaps:{" "}
+                {classReport.content.activeLearningGaps.length} · Assessments:{" "}
+                {classReport.content.assessmentSummary.length}
+              </p>
+            </div>
+          ) : null}
+          {reportMessage ? (
+            <p className="text-sm text-black/70">{reportMessage}</p>
+          ) : null}
+        </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
           <div>
