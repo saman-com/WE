@@ -53,6 +53,28 @@ public sealed record ClassLeadershipSummaryResponse(
     int ActiveInterventions,
     ClassEiInsightsData? EiInsights);
 
+public sealed record LeadershipInterventionItem(
+    Guid InterventionId,
+    string StudentUserId,
+    Guid LearningGapId,
+    string AssignedTeacherUserId,
+    string PlannedActions,
+    string? Outcome,
+    string Status,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
+    DateTimeOffset? ReviewAt,
+    DateTimeOffset CreatedAt,
+    Guid ClassId,
+    string ClassName,
+    Guid YearLevelId,
+    string YearLevelName,
+    string? GapSeverity);
+
+public sealed record LeadershipInterventionMonitoringResponse(
+    Guid OrganisationId,
+    IReadOnlyList<LeadershipInterventionItem> Interventions);
+
 public sealed record ClassMasteryDistributionData(
     Guid MicroSkillId,
     IReadOnlyDictionary<string, int> LevelCounts,

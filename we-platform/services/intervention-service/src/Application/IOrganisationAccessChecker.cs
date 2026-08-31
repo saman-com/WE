@@ -19,4 +19,10 @@ public interface IOrganisationAccessChecker
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default);
+
+    Task<bool> SchoolLeaderCanViewOrganisationAsync(
+        string schoolLeaderUserId,
+        Guid organisationId,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
 }

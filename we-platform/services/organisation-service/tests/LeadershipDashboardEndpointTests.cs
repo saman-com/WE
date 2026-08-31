@@ -218,6 +218,154 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         Assert.Single(classes);
     }
 
+    [Fact]
+    public async Task SchoolLeader_CanListLeadershipInterventionsWithAggregation()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var learningGapId = Guid.CreateVersion7();
+        var interventionId = Guid.CreateVersion7();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Pine School", UniqueCode("PIN"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 7", 7);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "7B", UniqueCode("7B"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await AssignSchoolLeaderAsync(adminId, org.Id, leaderId);
+
+        _interventionClient.OrganisationInterventions[(org.Id, null)] =
+        [
+            new InterventionDetailData(
+                interventionId,
+                org.Id,
+                studentId,
+                learningGapId,
+                teacherId,
+                "Guided reading support.",
+                null,
+                "Active",
+                DateTimeOffset.UtcNow.AddDays(-2),
+                DateTimeOffset.UtcNow.AddDays(14),
+                null,
+                DateTimeOffset.UtcNow.AddDays(-2),
+                DateTimeOffset.UtcNow)
+        ];
+        _eiClient.InsightsByClass[(org.Id, schoolClass.Id)] = new ClassEiInsightsData(
+            org.Id,
+            schoolClass.Id,
+            [],
+            [
+                new ClassActiveGapData(
+                    learningGapId,
+                    Guid.CreateVersion7(),
+                    "High",
+                    "Medium",
+                    studentId,
+                    "Gap detected.",
+                    Guid.CreateVersion7())
+            ],
+            [],
+            []);
+
+        var monitoring = await SendAsAsync<LeadershipInterventionMonitoringResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/interventions",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(org.Id, monitoring.OrganisationId);
+        var item = Assert.Single(monitoring.Interventions);
+        Assert.Equal(interventionId, item.InterventionId);
+        Assert.Equal(studentId, item.StudentUserId);
+        Assert.Equal(learningGapId, item.LearningGapId);
+        Assert.Equal(teacherId, item.AssignedTeacherUserId);
+        Assert.Equal("Active", item.Status);
+        Assert.Equal(schoolClass.Id, item.ClassId);
+        Assert.Equal("7B", item.ClassName);
+        Assert.Equal(year.Id, item.YearLevelId);
+        Assert.Equal("Year 7", item.YearLevelName);
+        Assert.Equal("High", item.GapSeverity);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_CanFilterLeadershipInterventionsByClassAndSeverity()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var student7 = Guid.NewGuid().ToString();
+        var student8 = Guid.NewGuid().ToString();
+        var gap7 = Guid.CreateVersion7();
+        var gap8 = Guid.CreateVersion7();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Oak School", UniqueCode("OAK"));
+        var year7 = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 7", 7);
+        var year8 = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 8", 8);
+        var class7A = await CreateClassAsAdminAsync(adminId, org.Id, year7.Id, "7A", UniqueCode("7A"));
+        var class8A = await CreateClassAsAdminAsync(adminId, org.Id, year8.Id, "8A", UniqueCode("8A"));
+        await EnrollStudentAsync(adminId, org.Id, class7A.Id, student7);
+        await EnrollStudentAsync(adminId, org.Id, class8A.Id, student8);
+        await AssignSchoolLeaderAsync(adminId, org.Id, leaderId);
+
+        _interventionClient.OrganisationInterventions[(org.Id, null)] =
+        [
+            new InterventionDetailData(
+                Guid.CreateVersion7(), org.Id, student7, gap7, Guid.NewGuid().ToString(),
+                "Year 7 support.", null, "Active", null, null, null,
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+            new InterventionDetailData(
+                Guid.CreateVersion7(), org.Id, student8, gap8, Guid.NewGuid().ToString(),
+                "Year 8 support.", null, "Planned", null, null, null,
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        ];
+        _eiClient.InsightsByClass[(org.Id, class7A.Id)] = new ClassEiInsightsData(
+            org.Id, class7A.Id, [], [new ClassActiveGapData(gap7, Guid.CreateVersion7(), "High", "Medium", student7, "", Guid.CreateVersion7())], [], []);
+        _eiClient.InsightsByClass[(org.Id, class8A.Id)] = new ClassEiInsightsData(
+            org.Id, class8A.Id, [], [new ClassActiveGapData(gap8, Guid.CreateVersion7(), "Low", "Low", student8, "", Guid.CreateVersion7())], [], []);
+
+        var classFiltered = await SendAsAsync<LeadershipInterventionMonitoringResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/interventions?classId={class7A.Id}",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+        Assert.Single(classFiltered.Interventions);
+        Assert.Equal(student7, classFiltered.Interventions[0].StudentUserId);
+
+        var severityFiltered = await SendAsAsync<LeadershipInterventionMonitoringResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/interventions?severity=High",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+        Assert.Single(severityFiltered.Interventions);
+        Assert.Equal("High", severityFiltered.Interventions[0].GapSeverity);
+
+        var yearFiltered = await SendAsAsync<LeadershipInterventionMonitoringResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/interventions?yearLevelId={year8.Id}",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+        Assert.Single(yearFiltered.Interventions);
+        Assert.Equal(student8, yearFiltered.Interventions[0].StudentUserId);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotListLeadershipInterventions()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Elm School", UniqueCode("ELM"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 6", 6);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "6A", UniqueCode("6A"));
+        await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/interventions",
+            teacherId,
+            TestJwt.TeacherRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
+    }
+
     private static ClassEiInsightsData EmptyInsights(Guid organisationId, Guid classId) =>
         new(organisationId, classId, [], [], [], []);
 

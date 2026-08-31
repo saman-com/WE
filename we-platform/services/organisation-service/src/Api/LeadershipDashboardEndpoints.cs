@@ -18,6 +18,7 @@ public static class LeadershipDashboardEndpoints
         api.MapGet("/{organisationId:guid}/leadership/dashboard", GetSchoolLeadershipDashboard);
         api.MapGet("/{organisationId:guid}/year-levels/{yearLevelId:guid}/leadership/dashboard", GetYearLevelLeadershipDashboard);
         api.MapGet("/{organisationId:guid}/classes/{classId:guid}/leadership/summary", GetClassLeadershipSummary);
+        api.MapGet("/{organisationId:guid}/leadership/interventions", GetLeadershipInterventionMonitoring);
     }
 
     private static async Task<IResult> AssignSchoolLeader(
@@ -230,6 +231,134 @@ public static class LeadershipDashboardEndpoints
             recentAssessments,
             activeInterventions,
             eiInsights));
+    }
+
+    private static async Task<IResult> GetLeadershipInterventionMonitoring(
+        Guid organisationId,
+        Guid? yearLevelId,
+        Guid? classId,
+        string? severity,
+        string? status,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        IInterventionDashboardClient interventionClient,
+        IEiInsightsClient eiClient,
+        HttpContext httpContext)
+    {
+        var access = await EvaluateLeadershipAccessAsync(principal, organisationId, db);
+        if (access is not null)
+        {
+            return access;
+        }
+
+        if (await db.Organisations.FindAsync(organisationId) is null)
+        {
+            return Results.NotFound();
+        }
+
+        var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+        if (bearerToken is null)
+        {
+            return Results.Forbid();
+        }
+
+        var classes = await LoadClassesWithYearLevelsAsync(db, organisationId, yearLevelId);
+        if (classId.HasValue)
+        {
+            classes = classes.Where(c => c.Id == classId.Value).ToList();
+        }
+
+        var studentClassLookup = BuildStudentClassLookup(classes);
+        var gapSeverityLookup = await BuildGapSeverityLookupAsync(classes, eiClient, bearerToken);
+
+        var interventions = await interventionClient.ListOrganisationInterventionsAsync(
+            organisationId,
+            status,
+            bearerToken);
+
+        var items = new List<LeadershipInterventionItem>();
+        foreach (var intervention in interventions)
+        {
+            if (!studentClassLookup.TryGetValue(intervention.StudentUserId, out var classInfo))
+            {
+                continue;
+            }
+
+            gapSeverityLookup.TryGetValue(intervention.LearningGapId, out var gapSeverity);
+
+            if (!string.IsNullOrWhiteSpace(severity)
+                && !string.Equals(gapSeverity, severity.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            items.Add(new LeadershipInterventionItem(
+                intervention.Id,
+                intervention.StudentUserId,
+                intervention.LearningGapId,
+                intervention.AssignedTeacherUserId,
+                intervention.PlannedActions,
+                intervention.Outcome,
+                intervention.Status,
+                intervention.PlannedStartAt,
+                intervention.PlannedEndAt,
+                intervention.ReviewAt,
+                intervention.CreatedAt,
+                classInfo.ClassId,
+                classInfo.ClassName,
+                classInfo.YearLevelId,
+                classInfo.YearLevelName,
+                gapSeverity));
+        }
+
+        return Results.Ok(new LeadershipInterventionMonitoringResponse(
+            organisationId,
+            items.OrderByDescending(i => i.CreatedAt).ToList()));
+    }
+
+    private static Dictionary<string, (Guid ClassId, string ClassName, Guid YearLevelId, string YearLevelName)>
+        BuildStudentClassLookup(IReadOnlyList<SchoolClass> classes)
+    {
+        var lookup = new Dictionary<string, (Guid, string, Guid, string)>();
+        foreach (var schoolClass in classes)
+        {
+            foreach (var enrollment in schoolClass.Enrollments)
+            {
+                lookup[enrollment.StudentUserId] = (
+                    schoolClass.Id,
+                    schoolClass.Name,
+                    schoolClass.YearLevelId,
+                    schoolClass.YearLevel.Name);
+            }
+        }
+
+        return lookup;
+    }
+
+    private static async Task<Dictionary<Guid, string>> BuildGapSeverityLookupAsync(
+        IReadOnlyList<SchoolClass> classes,
+        IEiInsightsClient eiClient,
+        string bearerToken)
+    {
+        var lookup = new Dictionary<Guid, string>();
+        foreach (var schoolClass in classes)
+        {
+            var insights = await eiClient.GetClassInsightsAsync(
+                schoolClass.OrganisationId,
+                schoolClass.Id,
+                bearerToken);
+            if (insights is null)
+            {
+                continue;
+            }
+
+            foreach (var gap in insights.ActiveLearningGaps)
+            {
+                lookup[gap.GapId] = gap.Severity;
+            }
+        }
+
+        return lookup;
     }
 
     private static async Task<IResult?> EvaluateLeadershipAccessAsync(

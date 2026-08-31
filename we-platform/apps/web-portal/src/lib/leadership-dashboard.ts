@@ -75,6 +75,37 @@ export type ClassLeadershipSummary = {
   } | null;
 };
 
+export type LeadershipInterventionItem = {
+  interventionId: string;
+  studentUserId: string;
+  learningGapId: string;
+  assignedTeacherUserId: string;
+  plannedActions: string;
+  outcome: string | null;
+  status: string;
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  reviewAt: string | null;
+  createdAt: string;
+  classId: string;
+  className: string;
+  yearLevelId: string;
+  yearLevelName: string;
+  gapSeverity: string | null;
+};
+
+export type LeadershipInterventionMonitoring = {
+  organisationId: string;
+  interventions: LeadershipInterventionItem[];
+};
+
+export type LeadershipInterventionFilters = {
+  yearLevelId?: string;
+  classId?: string;
+  severity?: string;
+  status?: string;
+};
+
 async function leadershipRequest<T>(token: string, path: string): Promise<T> {
   const response = await fetch(`${organisationApiUrl}${path}`, {
     headers: {
@@ -118,5 +149,34 @@ export function fetchClassLeadershipSummary(
   return leadershipRequest<ClassLeadershipSummary>(
     token,
     `/api/v1/organisations/${organisationId}/classes/${classId}/leadership/summary`
+  );
+}
+
+function buildInterventionQuery(filters: LeadershipInterventionFilters): string {
+  const params = new URLSearchParams();
+  if (filters.yearLevelId) {
+    params.set("yearLevelId", filters.yearLevelId);
+  }
+  if (filters.classId) {
+    params.set("classId", filters.classId);
+  }
+  if (filters.severity) {
+    params.set("severity", filters.severity);
+  }
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export function fetchLeadershipInterventions(
+  token: string,
+  organisationId: string,
+  filters: LeadershipInterventionFilters = {}
+): Promise<LeadershipInterventionMonitoring> {
+  return leadershipRequest<LeadershipInterventionMonitoring>(
+    token,
+    `/api/v1/organisations/${organisationId}/leadership/interventions${buildInterventionQuery(filters)}`
   );
 }

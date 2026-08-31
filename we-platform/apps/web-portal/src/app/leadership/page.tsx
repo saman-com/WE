@@ -7,9 +7,12 @@ import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchClassLeadershipSummary,
   fetchLeadershipDashboard,
+  fetchLeadershipInterventions,
   fetchYearLevelLeadershipDashboard,
   type ClassComparisonSummary,
   type LeadershipDashboard,
+  type LeadershipInterventionFilters,
+  type LeadershipInterventionItem,
   type YearLevelLeadershipDashboard,
 } from "@/lib/leadership-dashboard";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
@@ -20,6 +23,39 @@ function isSchoolLeader(profile: UserProfile): boolean {
 
 function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`;
+}
+
+const interventionStatusOrder = ["Planned", "Active", "Completed", "Closed"] as const;
+const severityOptions = ["High", "Medium", "Low"] as const;
+
+function interventionStatusBadgeClass(status: string): string {
+  switch (status) {
+    case "Planned":
+      return "bg-blue-100 text-blue-800";
+    case "Active":
+      return "bg-amber-100 text-amber-800";
+    case "Completed":
+      return "bg-green-100 text-green-800";
+    case "Closed":
+      return "bg-black/10 text-black/70";
+    default:
+      return "bg-black/10 text-black/70";
+  }
+}
+
+function formatTimeline(item: LeadershipInterventionItem): string {
+  const start = item.plannedStartAt ? new Date(item.plannedStartAt).toLocaleDateString() : null;
+  const end = item.plannedEndAt ? new Date(item.plannedEndAt).toLocaleDateString() : null;
+  if (start && end) {
+    return `${start} – ${end}`;
+  }
+  if (start) {
+    return `From ${start}`;
+  }
+  if (end) {
+    return `Until ${end}`;
+  }
+  return "No timeline set";
 }
 
 export default function LeadershipDashboardPage() {
@@ -35,6 +71,8 @@ export default function LeadershipDashboardPage() {
   const [classSummary, setClassSummary] = useState<Awaited<
     ReturnType<typeof fetchClassLeadershipSummary>
   > | null>(null);
+  const [interventions, setInterventions] = useState<LeadershipInterventionItem[]>([]);
+  const [interventionFilters, setInterventionFilters] = useState<LeadershipInterventionFilters>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,6 +96,8 @@ export default function LeadershipDashboardPage() {
           setSelectedOrgId(firstOrg);
           const data = await fetchLeadershipDashboard(token, firstOrg);
           setDashboard(data);
+          const monitoring = await fetchLeadershipInterventions(token, firstOrg);
+          setInterventions(monitoring.interventions);
         }
       })
       .catch(() => {
@@ -78,10 +118,14 @@ export default function LeadershipDashboardPage() {
     setYearLevelDashboard(null);
     setClassSummary(null);
     setDashboard(null);
+    setInterventions([]);
+    setInterventionFilters({});
 
     try {
       const data = await fetchLeadershipDashboard(token, organisationId);
       setDashboard(data);
+      const monitoring = await fetchLeadershipInterventions(token, organisationId);
+      setInterventions(monitoring.interventions);
     } catch {
       setError("Unable to load leadership dashboard.");
     }
@@ -124,6 +168,22 @@ export default function LeadershipDashboardPage() {
       setClassSummary(summary);
     } catch {
       setError("Unable to load class summary.");
+    }
+  }
+
+  async function handleInterventionFilterChange(filters: LeadershipInterventionFilters) {
+    const token = localStorage.getItem("we_access_token");
+    if (!token || !selectedOrgId) {
+      return;
+    }
+
+    setInterventionFilters(filters);
+
+    try {
+      const monitoring = await fetchLeadershipInterventions(token, selectedOrgId, filters);
+      setInterventions(monitoring.interventions);
+    } catch {
+      setError("Unable to load intervention monitoring data.");
     }
   }
 
@@ -257,6 +317,157 @@ export default function LeadershipDashboardPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-black/10 p-6 space-y-4">
+          <div>
+            <h2 className="font-medium">Intervention monitoring</h2>
+            <p className="text-sm text-black/60 mt-1">
+              School-wide oversight of active interventions. Read-only view for leadership.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-sm">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-black/60">Department (year level)</span>
+              <select
+                className="rounded border border-black/20 p-2"
+                value={interventionFilters.yearLevelId ?? ""}
+                onChange={(event) =>
+                  handleInterventionFilterChange({
+                    ...interventionFilters,
+                    yearLevelId: event.target.value || undefined,
+                    classId: undefined,
+                  })
+                }
+              >
+                <option value="">All year levels</option>
+                {dashboard.yearLevels.map((yearLevel) => (
+                  <option key={yearLevel.yearLevelId} value={yearLevel.yearLevelId}>
+                    {yearLevel.yearLevelName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-black/60">Class</span>
+              <select
+                className="rounded border border-black/20 p-2"
+                value={interventionFilters.classId ?? ""}
+                onChange={(event) =>
+                  handleInterventionFilterChange({
+                    ...interventionFilters,
+                    classId: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">All classes</option>
+                {classComparisons
+                  .filter(
+                    (schoolClass) =>
+                      !interventionFilters.yearLevelId ||
+                      schoolClass.yearLevelId === interventionFilters.yearLevelId
+                  )
+                  .map((schoolClass) => (
+                    <option key={schoolClass.classId} value={schoolClass.classId}>
+                      {schoolClass.className} ({schoolClass.yearLevelName})
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-black/60">Severity</span>
+              <select
+                className="rounded border border-black/20 p-2"
+                value={interventionFilters.severity ?? ""}
+                onChange={(event) =>
+                  handleInterventionFilterChange({
+                    ...interventionFilters,
+                    severity: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">All severities</option>
+                {severityOptions.map((severity) => (
+                  <option key={severity} value={severity}>
+                    {severity}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-black/60">Status</span>
+              <select
+                className="rounded border border-black/20 p-2"
+                value={interventionFilters.status ?? ""}
+                onChange={(event) =>
+                  handleInterventionFilterChange({
+                    ...interventionFilters,
+                    status: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">Active (Planned + Active)</option>
+                {interventionStatusOrder.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {interventions.length === 0 ? (
+            <p className="text-sm text-black/60">No interventions match the current filters.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-black/60 border-b border-black/10">
+                    <th className="py-2 pr-4">Student</th>
+                    <th className="py-2 pr-4">Gap</th>
+                    <th className="py-2 pr-4">Teacher</th>
+                    <th className="py-2 pr-4">Class</th>
+                    <th className="py-2 pr-4">Severity</th>
+                    <th className="py-2 pr-4">Status</th>
+                    <th className="py-2">Timeline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {interventions.map((item) => (
+                    <tr key={item.interventionId} className="border-b border-black/5">
+                      <td className="py-3 pr-4">
+                        <Link
+                          href={`/students/${item.studentUserId}/profile`}
+                          className="underline"
+                        >
+                          {item.studentUserId}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-xs">{item.learningGapId}</td>
+                      <td className="py-3 pr-4">{item.assignedTeacherUserId}</td>
+                      <td className="py-3 pr-4">
+                        {item.className}
+                        <span className="text-black/50"> ({item.yearLevelName})</span>
+                      </td>
+                      <td className="py-3 pr-4">{item.gapSeverity ?? "—"}</td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className={`text-xs rounded px-2 py-0.5 ${interventionStatusBadgeClass(item.status)}`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-3">{formatTimeline(item)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

@@ -49,3 +49,7 @@ public sealed record ParentInterventionSummaryResponse(
 public sealed record ParentInterventionsResponse(
     string StudentUserId,
     IReadOnlyList<ParentInterventionSummaryResponse> Interventions);
+
+public sealed record OrganisationInterventionsResponse(
+    Guid OrganisationId,
+    IReadOnlyList<InterventionResponse> Interventions);

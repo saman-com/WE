@@ -178,7 +178,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     }
 
     [Fact]
-    public async Task SchoolLeader_CanModifyInterventionForStudentInSchool()
+    public async Task SchoolLeader_CannotModifyIntervention()
     {
         var teacherId = Guid.NewGuid().ToString();
         var leaderId = Guid.NewGuid().ToString();
@@ -188,14 +188,126 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
 
         var created = await CreateSampleInterventionAsync(teacherId, studentId);
 
-        var updated = await SendAsAsync<InterventionResponse>(
+        using var request = TestJwt.Authorized(
             HttpMethod.Patch,
             $"/api/v1/interventions/{created.Id}",
             leaderId,
-            TestJwt.SchoolLeaderRole,
+            TestJwt.SchoolLeaderRole);
+        request.Content = JsonContent.Create(
             new PatchInterventionRequest(null, "School leader review notes.", null, null, null, null, null));
 
-        Assert.Equal("School leader review notes.", updated.Notes);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_CanListOrganisationInterventions()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+        var learningGapId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+        _accessChecker.AllowSchoolLeaderForOrganisation(leaderId, organisationId);
+
+        await SendAsAsync<InterventionResponse>(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole,
+            new CreateInterventionRequest(
+                organisationId,
+                studentId,
+                learningGapId,
+                "Guided practice for target gap.",
+                null,
+                DateTimeOffset.UtcNow.AddDays(1),
+                DateTimeOffset.UtcNow.AddDays(14),
+                null));
+
+        var response = await SendAsAsync<OrganisationInterventionsResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{organisationId}/interventions",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(organisationId, response.OrganisationId);
+        var intervention = Assert.Single(response.Interventions);
+        Assert.Equal(studentId, intervention.StudentUserId);
+        Assert.Equal(learningGapId, intervention.LearningGapId);
+        Assert.Equal(teacherId, intervention.AssignedTeacherUserId);
+        Assert.Equal(InterventionStatuses.Planned, intervention.Status);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_CanFilterOrganisationInterventionsByStatus()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+        _accessChecker.AllowSchoolLeaderForOrganisation(leaderId, organisationId);
+
+        var planned = await SendAsAsync<InterventionResponse>(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole,
+            new CreateInterventionRequest(
+                organisationId,
+                studentId,
+                Guid.CreateVersion7(),
+                "Planned intervention.",
+                null,
+                null,
+                null,
+                null));
+
+        await PatchStatusAsync(planned.Id, teacherId, InterventionStatuses.Active);
+
+        var activeOnly = await SendAsAsync<OrganisationInterventionsResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{organisationId}/interventions?status=Active",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+
+        var active = Assert.Single(activeOnly.Interventions);
+        Assert.Equal(InterventionStatuses.Active, active.Status);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_CannotListOrganisationInterventionsForUnassignedOrganisation()
+    {
+        var leaderId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{organisationId}/interventions",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotListOrganisationInterventions()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{organisationId}/interventions",
+            teacherId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]

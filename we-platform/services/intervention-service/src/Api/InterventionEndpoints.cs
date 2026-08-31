@@ -18,6 +18,9 @@ public static class InterventionEndpoints
         api.MapGet("/parent-summary", ListParentInterventionSummaries);
         api.MapGet("/{interventionId:guid}", GetIntervention);
         api.MapPatch("/{interventionId:guid}", PatchIntervention);
+
+        var orgApi = app.MapGroup("/api/v1/organisations").RequireAuthorization();
+        orgApi.MapGet("/{organisationId:guid}/interventions", ListOrganisationInterventions);
     }
 
     private static async Task<IResult> CreateIntervention(
@@ -154,6 +157,64 @@ public static class InterventionEndpoints
             interventions.Select(ToParentSummary).ToList()));
     }
 
+    private static async Task<IResult> ListOrganisationInterventions(
+        Guid organisationId,
+        string? status,
+        ClaimsPrincipal principal,
+        InterventionDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        HttpContext httpContext)
+    {
+        if (!principal.IsAdmin() && !principal.IsSchoolLeader())
+        {
+            return Results.Forbid();
+        }
+
+        if (!principal.IsAdmin())
+        {
+            var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+            if (bearerToken is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await accessChecker.SchoolLeaderCanViewOrganisationAsync(
+                principal.UserId(),
+                organisationId,
+                bearerToken);
+            if (!allowed)
+            {
+                return Results.Forbid();
+            }
+        }
+
+        var query = db.Interventions.Where(i => i.OrganisationId == organisationId);
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusFilter = status.Trim();
+            if (!InterventionStatuses.IsValid(statusFilter))
+            {
+                return Results.BadRequest();
+            }
+
+            query = query.Where(i => i.Status == statusFilter);
+        }
+        else
+        {
+            query = query.Where(i =>
+                i.Status == InterventionStatuses.Planned || i.Status == InterventionStatuses.Active);
+        }
+
+        var interventions = await query
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        return Results.Ok(new OrganisationInterventionsResponse(
+            organisationId,
+            interventions.Select(ToResponse).ToList()));
+    }
+
     private static async Task<IResult> GetIntervention(
         Guid interventionId,
         ClaimsPrincipal principal,
@@ -184,9 +245,7 @@ public static class InterventionEndpoints
         Guid interventionId,
         PatchInterventionRequest request,
         ClaimsPrincipal principal,
-        InterventionDbContext db,
-        IOrganisationAccessChecker accessChecker,
-        HttpContext httpContext)
+        InterventionDbContext db)
     {
         var intervention = await db.Interventions.FindAsync(interventionId);
         if (intervention is null)
@@ -194,11 +253,7 @@ public static class InterventionEndpoints
             return Results.NotFound();
         }
 
-        var modifyAccess = await EvaluateModifyAccessAsync(
-            principal,
-            intervention,
-            accessChecker,
-            httpContext.Request.Headers.Authorization.ToString());
+        var modifyAccess = await EvaluateModifyAccessAsync(principal, intervention);
         if (modifyAccess is not null)
         {
             return modifyAccess;
@@ -304,38 +359,21 @@ public static class InterventionEndpoints
         return Results.Forbid();
     }
 
-    private static async Task<IResult?> EvaluateModifyAccessAsync(
+    private static Task<IResult?> EvaluateModifyAccessAsync(
         ClaimsPrincipal principal,
-        Intervention intervention,
-        IOrganisationAccessChecker accessChecker,
-        string authorizationHeader)
+        Intervention intervention)
     {
         if (principal.IsAdmin())
         {
-            return null;
-        }
-
-        var bearerToken = ExtractBearerToken(authorizationHeader);
-        if (bearerToken is null)
-        {
-            return Results.Forbid();
+            return Task.FromResult<IResult?>(null);
         }
 
         if (principal.IsTeacher() && principal.UserId() == intervention.AssignedTeacherUserId)
         {
-            return null;
+            return Task.FromResult<IResult?>(null);
         }
 
-        if (principal.IsSchoolLeader())
-        {
-            var allowed = await accessChecker.SchoolLeaderCanViewStudentAsync(
-                principal.UserId(),
-                intervention.StudentUserId,
-                bearerToken);
-            return allowed ? null : Results.Forbid();
-        }
-
-        return Results.Forbid();
+        return Task.FromResult<IResult?>(Results.Forbid());
     }
 
     private static InterventionResponse ToResponse(Intervention intervention) =>

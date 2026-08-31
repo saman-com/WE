@@ -30,6 +30,7 @@ public sealed class InterventionDbContext(DbContextOptions<InterventionDbContext
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => e.LearningGapId);
             entity.HasIndex(e => e.AssignedTeacherUserId);
+            entity.HasIndex(e => e.OrganisationId);
         });
     }
 }
