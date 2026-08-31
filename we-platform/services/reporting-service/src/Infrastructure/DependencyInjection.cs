@@ -8,7 +8,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReportingService.Application;
 using ReportingService.Domain;
+using ReportingService.Infrastructure.Analytics;
 using ReportingService.Infrastructure.Data;
+using ReportingService.Infrastructure.Data.Edw;
 using ReportingService.Infrastructure.Ei;
 using ReportingService.Infrastructure.Export;
 using ReportingService.Infrastructure.Organisation;
@@ -23,6 +25,7 @@ public static class DependencyInjection
         IHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("ReportingDb");
+        var edwConnectionString = configuration.GetConnectionString("EdwDb");
 
         services.AddDbContext<ReportingDbContext>(options =>
         {
@@ -35,12 +38,24 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
 
+        services.AddDbContext<EdwAnalyticsDbContext>(options =>
+        {
+            if (environment.IsEnvironment("Testing") || string.IsNullOrWhiteSpace(edwConnectionString))
+            {
+                options.UseInMemoryDatabase("EdwAnalytics");
+                return;
+            }
+
+            options.UseNpgsql(edwConnectionString);
+        });
+
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
         services.AddHttpClient<IEiInsightsClient, HttpEiInsightsClient>();
         services.AddHttpClient<IClassDashboardClient, HttpClassDashboardClient>();
         services.AddHttpClient<ISchoolSummaryClient, HttpSchoolSummaryClient>();
         services.AddSingleton<IReportPdfExporter, QuestPdfReportExporter>();
         services.AddScoped<IReportGenerator, ReportGenerator>();
+        services.AddScoped<ILongitudinalAnalyticsQuery, LongitudinalAnalyticsQuery>();
 
         return services;
     }

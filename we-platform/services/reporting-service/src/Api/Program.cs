@@ -2,6 +2,7 @@ using System.Text;
 using ReportingService.Api;
 using ReportingService.Infrastructure;
 using ReportingService.Infrastructure.Data;
+using ReportingService.Infrastructure.Data.Edw;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -50,6 +51,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ReportingDbContext>();
     await db.Database.EnsureCreatedAsync();
+
+    var edwDb = scope.ServiceProvider.GetRequiredService<EdwAnalyticsDbContext>();
+    await edwDb.Database.EnsureCreatedAsync();
 }
 
 app.UseCors("WebPortal");
@@ -58,6 +62,7 @@ app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapReportEndpoints();
+app.MapLongitudinalAnalyticsEndpoints();
 
 app.Run();
 

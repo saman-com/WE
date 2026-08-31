@@ -22,6 +22,11 @@ import {
   type ReportResponse,
   type SchoolSummaryReportContent,
 } from "@/lib/reports";
+import {
+  fetchOrganisationLongitudinal,
+  type OrganisationLongitudinalResponse,
+} from "@/lib/longitudinal-analytics";
+import { MasteryTrendChart } from "@/components/longitudinal-charts";
 
 function isSchoolLeader(profile: UserProfile): boolean {
   return profile.roles.includes("SchoolLeader");
@@ -81,6 +86,7 @@ export default function LeadershipDashboardPage() {
   const [interventionFilters, setInterventionFilters] = useState<LeadershipInterventionFilters>({});
   const [error, setError] = useState<string | null>(null);
   const [schoolReport, setSchoolReport] = useState<ReportResponse | null>(null);
+  const [orgLongitudinal, setOrgLongitudinal] = useState<OrganisationLongitudinalResponse | null>(null);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
 
@@ -107,6 +113,12 @@ export default function LeadershipDashboardPage() {
           setDashboard(data);
           const monitoring = await fetchLeadershipInterventions(token, firstOrg);
           setInterventions(monitoring.interventions);
+          try {
+            const longitudinal = await fetchOrganisationLongitudinal(token, firstOrg);
+            setOrgLongitudinal(longitudinal);
+          } catch {
+            setOrgLongitudinal(null);
+          }
         }
       })
       .catch(() => {
@@ -129,12 +141,19 @@ export default function LeadershipDashboardPage() {
     setDashboard(null);
     setInterventions([]);
     setInterventionFilters({});
+    setOrgLongitudinal(null);
 
     try {
       const data = await fetchLeadershipDashboard(token, organisationId);
       setDashboard(data);
       const monitoring = await fetchLeadershipInterventions(token, organisationId);
       setInterventions(monitoring.interventions);
+      try {
+        const longitudinal = await fetchOrganisationLongitudinal(token, organisationId);
+        setOrgLongitudinal(longitudinal);
+      } catch {
+        setOrgLongitudinal(null);
+      }
     } catch {
       setError("Unable to load leadership dashboard.");
     }
@@ -359,6 +378,52 @@ export default function LeadershipDashboardPage() {
             <p className="text-sm text-black/70">{reportMessage}</p>
           ) : null}
         </div>
+
+        {orgLongitudinal ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-6">
+            <div>
+              <h2 className="font-medium">Longitudinal learning analysis</h2>
+              <p className="text-sm text-black/60 mt-1">
+                School-wide mastery trends and per-student summaries from the analytics warehouse (EDW).
+              </p>
+            </div>
+            <MasteryTrendChart
+              points={orgLongitudinal.schoolMasteryTrend}
+              title="School mastery trend"
+            />
+            {orgLongitudinal.studentSummaries.length > 0 ? (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Student summaries</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-black/60 border-b border-black/10">
+                        <th className="py-2 pr-4">Student</th>
+                        <th className="py-2 pr-4">Cumulative micro-skills</th>
+                        <th className="py-2 pr-4">Interventions</th>
+                        <th className="py-2">Gap events</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orgLongitudinal.studentSummaries.map((summary) => (
+                        <tr key={summary.studentUserId} className="border-b border-black/5">
+                          <td className="py-2 pr-4 font-mono text-xs">
+                            {summary.studentUserId}
+                          </td>
+                          <td className="py-2 pr-4">{summary.cumulativeMicroSkills}</td>
+                          <td className="py-2 pr-4">{summary.interventionCount}</td>
+                          <td className="py-2">{summary.gapEventCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-black/60">No student analytics data in EDW yet.</p>
+            )}
+          </div>
+        ) : null}
 
         {Object.keys(dashboard.kpis.masteryLevelCounts).length > 0 ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">

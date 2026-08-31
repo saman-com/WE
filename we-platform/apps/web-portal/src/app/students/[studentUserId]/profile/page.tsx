@@ -13,6 +13,15 @@ import {
   finalizeAiSummaryAudit,
   requestProgressReportDraft,
 } from "@/lib/ei-summaries";
+import {
+  fetchStudentLongitudinal,
+  type StudentLongitudinalResponse,
+} from "@/lib/longitudinal-analytics";
+import {
+  GapHistoryTimeline,
+  InterventionOutcomesTimeline,
+  MasteryTrendChart,
+} from "@/components/longitudinal-charts";
 
 export default function StudentProfilePage() {
   const router = useRouter();
@@ -25,6 +34,7 @@ export default function StudentProfilePage() {
   const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
   const [interventions, setInterventions] = useState<StudentInterventions | null>(null);
   const [mastery, setMastery] = useState<StudentMastery | null>(null);
+  const [longitudinal, setLongitudinal] = useState<StudentLongitudinalResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [reportDraft, setReportDraft] = useState("");
@@ -80,6 +90,19 @@ export default function StudentProfilePage() {
             setMastery(studentMastery);
           } catch {
             setMastery({ studentUserId, records: [] });
+          }
+
+          if (studentProfile.enrollments.length > 0) {
+            try {
+              const analytics = await fetchStudentLongitudinal(
+                stored,
+                studentProfile.enrollments[0].organisationId,
+                studentUserId
+              );
+              setLongitudinal(analytics);
+            } catch {
+              setLongitudinal(null);
+            }
           }
         }
 
@@ -297,6 +320,20 @@ export default function StudentProfilePage() {
                 ))}
               </ul>
             )}
+          </div>
+        ) : null}
+
+        {isTeacherViewer && longitudinal ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-6">
+            <div>
+              <h2 className="font-medium">Learning over time</h2>
+              <p className="text-sm text-black/60 mt-1">
+                Longitudinal analysis from the analytics warehouse — mastery trends, gap history, and intervention outcomes across terms.
+              </p>
+            </div>
+            <MasteryTrendChart points={longitudinal.masteryTrend} />
+            <GapHistoryTimeline events={longitudinal.gapHistory} />
+            <InterventionOutcomesTimeline outcomes={longitudinal.interventionOutcomes} />
           </div>
         ) : null}
 

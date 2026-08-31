@@ -394,6 +394,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__ReportingDb: Host=postgres;Port=5432;Database=we_reporting;Username=we;Password=we_dev
+      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
       Ei__BaseUrl: http://ei-service:8080
       Jwt__Issuer: we-platform-identity
