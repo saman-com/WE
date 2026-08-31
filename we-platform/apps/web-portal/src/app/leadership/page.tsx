@@ -26,7 +26,15 @@ import {
   fetchOrganisationLongitudinal,
   type OrganisationLongitudinalResponse,
 } from "@/lib/longitudinal-analytics";
+import {
+  fetchOrganisationEffectiveness,
+  type OrganisationEffectivenessResponse,
+} from "@/lib/effectiveness-analytics";
 import { MasteryTrendChart } from "@/components/longitudinal-charts";
+import {
+  CurriculumEffectivenessTable,
+  InterventionEffectivenessTable,
+} from "@/components/effectiveness-charts";
 
 function isSchoolLeader(profile: UserProfile): boolean {
   return profile.roles.includes("SchoolLeader");
@@ -87,6 +95,7 @@ export default function LeadershipDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [schoolReport, setSchoolReport] = useState<ReportResponse | null>(null);
   const [orgLongitudinal, setOrgLongitudinal] = useState<OrganisationLongitudinalResponse | null>(null);
+  const [orgEffectiveness, setOrgEffectiveness] = useState<OrganisationEffectivenessResponse | null>(null);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
 
@@ -119,6 +128,12 @@ export default function LeadershipDashboardPage() {
           } catch {
             setOrgLongitudinal(null);
           }
+          try {
+            const effectiveness = await fetchOrganisationEffectiveness(token, firstOrg);
+            setOrgEffectiveness(effectiveness);
+          } catch {
+            setOrgEffectiveness(null);
+          }
         }
       })
       .catch(() => {
@@ -142,6 +157,7 @@ export default function LeadershipDashboardPage() {
     setInterventions([]);
     setInterventionFilters({});
     setOrgLongitudinal(null);
+    setOrgEffectiveness(null);
 
     try {
       const data = await fetchLeadershipDashboard(token, organisationId);
@@ -153,6 +169,12 @@ export default function LeadershipDashboardPage() {
         setOrgLongitudinal(longitudinal);
       } catch {
         setOrgLongitudinal(null);
+      }
+      try {
+        const effectiveness = await fetchOrganisationEffectiveness(token, organisationId);
+        setOrgEffectiveness(effectiveness);
+      } catch {
+        setOrgEffectiveness(null);
       }
     } catch {
       setError("Unable to load leadership dashboard.");
@@ -422,6 +444,35 @@ export default function LeadershipDashboardPage() {
             ) : (
               <p className="text-sm text-black/60">No student analytics data in EDW yet.</p>
             )}
+          </div>
+        ) : null}
+
+        {orgEffectiveness ? (
+          <div className="rounded-lg border border-black/10 p-6 space-y-6">
+            <div>
+              <h2 className="font-medium">Curriculum &amp; intervention effectiveness</h2>
+              <p className="text-sm text-black/60 mt-1">
+                Mastery rates by subject and unit, plus intervention outcomes by type — aggregated
+                from the EDW analytics store.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium">Curriculum effectiveness</h3>
+              <p className="text-sm text-black/60">
+                Units below the school-wide average mastery rate are flagged as underperforming.
+              </p>
+              <CurriculumEffectivenessTable
+                items={orgEffectiveness.curriculumEffectiveness}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium">Intervention effectiveness</h3>
+              <InterventionEffectivenessTable
+                items={orgEffectiveness.interventionEffectiveness}
+              />
+            </div>
           </div>
         ) : null}
 

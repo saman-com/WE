@@ -36,8 +36,16 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
             entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
             entity.Property(e => e.TimeKey).HasColumnName("time_key");
             entity.Property(e => e.MicroSkillCount).HasColumnName("micro_skill_count");
+            entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+            entity.Property(e => e.SubjectName).HasColumnName("subject_name");
+            entity.Property(e => e.UnitId).HasColumnName("unit_id");
+            entity.Property(e => e.UnitName).HasColumnName("unit_name");
+            entity.Property(e => e.MasteredMicroSkillCount).HasColumnName("mastered_micro_skill_count");
+            entity.Property(e => e.TotalMicroSkillCount).HasColumnName("total_micro_skill_count");
             entity.Property(e => e.IngestedAt).HasColumnName("ingested_at");
             entity.HasIndex(e => e.OrganisationId);
+            entity.HasIndex(e => e.SubjectId);
+            entity.HasIndex(e => e.UnitId);
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => e.TimeKey);
         });
@@ -52,6 +60,7 @@ public sealed class EdwAnalyticsDbContext(DbContextOptions<EdwAnalyticsDbContext
             entity.Property(e => e.StudentUserId).HasColumnName("student_user_id").IsRequired();
             entity.Property(e => e.LearningGapId).HasColumnName("learning_gap_id");
             entity.Property(e => e.AssignedTeacherUserId).HasColumnName("assigned_teacher_user_id").IsRequired();
+            entity.Property(e => e.InterventionType).HasColumnName("intervention_type");
             entity.Property(e => e.Status).HasColumnName("status").IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.TimeKey).HasColumnName("time_key");

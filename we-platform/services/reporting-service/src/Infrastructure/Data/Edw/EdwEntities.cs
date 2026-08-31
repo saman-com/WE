@@ -22,6 +22,12 @@ public sealed class EdwEvidenceFact
     public DateTimeOffset ApprovedAt { get; set; }
     public int TimeKey { get; set; }
     public int MicroSkillCount { get; set; }
+    public Guid? SubjectId { get; set; }
+    public string? SubjectName { get; set; }
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public int MasteredMicroSkillCount { get; set; }
+    public int TotalMicroSkillCount { get; set; }
     public DateTimeOffset IngestedAt { get; set; }
 }
 
@@ -33,6 +39,7 @@ public sealed class EdwInterventionFact
     public string StudentUserId { get; set; } = string.Empty;
     public Guid LearningGapId { get; set; }
     public string AssignedTeacherUserId { get; set; } = string.Empty;
+    public string? InterventionType { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public int TimeKey { get; set; }

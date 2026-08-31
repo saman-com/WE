@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddSingleton<IReportPdfExporter, QuestPdfReportExporter>();
         services.AddScoped<IReportGenerator, ReportGenerator>();
         services.AddScoped<ILongitudinalAnalyticsQuery, LongitudinalAnalyticsQuery>();
+        services.AddScoped<IEffectivenessAnalyticsQuery, EffectivenessAnalyticsQuery>();
 
         return services;
     }
