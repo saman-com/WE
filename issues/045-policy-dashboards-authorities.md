@@ -14,12 +14,12 @@ Includes: authority portal pages, national aggregation API, role-based access fo
 
 ## Acceptance criteria
 
-- [ ] Education authority dashboard shows national/regional aggregated trends
-- [ ] Equity analysis: mastery distribution across demographics/regions
-- [ ] Curriculum effectiveness comparison across regions
-- [ ] Only Education Authority Officer role can access policy dashboards
-- [ ] All data aggregated and anonymized (no individual student records)
-- [ ] Tests verify role access and aggregation correctness
+- [x] Education authority dashboard shows national/regional aggregated trends
+- [x] Equity analysis: mastery distribution across demographics/regions
+- [x] Curriculum effectiveness comparison across regions
+- [x] Only Education Authority Officer role can access policy dashboards
+- [x] All data aggregated and anonymized (no individual student records)
+- [x] Tests verify role access and aggregation correctness
 
 ## Blocked by
 

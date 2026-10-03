@@ -8,6 +8,7 @@ public static class PlatformRoles
     public const string SchoolLeader = "SchoolLeader";
     public const string SystemAdministrator = "SystemAdministrator";
     public const string FederationAdmin = "FederationAdmin";
+    public const string EducationAuthorityOfficer = "EducationAuthorityOfficer";
 
     public static readonly string[] All =
     [
@@ -16,6 +17,7 @@ public static class PlatformRoles
         Parent,
         SchoolLeader,
         SystemAdministrator,
-        FederationAdmin
+        FederationAdmin,
+        EducationAuthorityOfficer
     ];
 }

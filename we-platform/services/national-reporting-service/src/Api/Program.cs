@@ -1,6 +1,9 @@
+using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 using NationalReportingService.Api;
 using NationalReportingService.Api.Auth;
 using NationalReportingService.Infrastructure;
@@ -11,14 +14,40 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddNationalReportingInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddOpenApi();
 
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var signingKey = jwtSection["Key"]
+    ?? throw new InvalidOperationException("JWT signing key is not configured.");
+
 builder.Services
-    .AddAuthentication(ApiKeyAuthenticationOptions.DefaultScheme)
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = ApiKeyAuthenticationOptions.DefaultScheme;
+        options.DefaultChallengeScheme = ApiKeyAuthenticationOptions.DefaultScheme;
+    })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
         ApiKeyAuthenticationOptions.DefaultScheme,
-        _ => { });
+        _ => { })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSection["Issuer"],
+            ValidAudience = jwtSection["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+        };
+    });
 
 builder.Services.AddSingleton<IAuthorizationHandler, ScopeAuthorizationHandler>();
-builder.Services.AddAuthorization(options => options.AddNationalScopePolicies());
+builder.Services.AddAuthorization(options =>
+{
+    options.AddNationalScopePolicies();
+    options.AddEducationAuthorityOfficerPolicy();
+});
 
 var rateLimitPermitLimit = builder.Configuration.GetValue("NationalReporting:RateLimitPermitLimit", 60);
 var rateLimitWindowSeconds = builder.Configuration.GetValue("NationalReporting:RateLimitWindowSeconds", 60);
@@ -70,6 +99,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapOpenApi("/api/v1/docs");
 app.MapNationalReportingEndpoints();
+app.MapPolicyDashboardEndpoints();
 
 app.Run();
 

@@ -475,6 +475,9 @@ services:
       ConnectionStrings__NationalReportingDb: Host=postgres;Port=5432;Database=we_national_reporting;Username=we;Password=we_dev
       NationalReporting__RateLimitPermitLimit: 60
       NationalReporting__RateLimitWindowSeconds: 60
+      Jwt__Issuer: we-platform-identity
+      Jwt__Audience: we-platform
+      Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
     depends_on:
       postgres:
         condition: service_healthy

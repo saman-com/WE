@@ -171,6 +171,12 @@ export default function DashboardPage() {
           </>
         ) : null}
 
+        {profile.roles.includes("EducationAuthorityOfficer") ? (
+          <Link href="/authority" className="text-sm underline block">
+            {t("dashboard.nav.policyDashboards")}
+          </Link>
+        ) : null}
+
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <h2 className="font-medium">{t("dashboard.classes.title")}</h2>
           {classes.length === 0 ? (

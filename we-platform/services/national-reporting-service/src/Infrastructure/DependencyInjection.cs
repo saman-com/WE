@@ -17,11 +17,14 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("NationalReportingDb");
 
+        var testingDatabaseName = configuration["Testing:DatabaseName"]
+            ?? $"NationalReportingService-{Guid.NewGuid():N}";
+
         services.AddDbContext<NationalReportingDbContext>(options =>
         {
             if (environment.IsEnvironment("Testing") || string.IsNullOrWhiteSpace(connectionString))
             {
-                options.UseInMemoryDatabase("NationalReportingService");
+                options.UseInMemoryDatabase(testingDatabaseName);
                 return;
             }
 
@@ -29,6 +32,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<INationalReportQuery, NationalReportQuery>();
+        services.AddScoped<IPolicyDashboardQuery, PolicyDashboardQuery>();
         return services;
     }
 }
