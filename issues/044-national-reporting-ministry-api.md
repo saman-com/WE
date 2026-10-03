@@ -14,12 +14,12 @@ Includes: Open API endpoints for national reporting, API key authentication for 
 
 ## Acceptance criteria
 
-- [ ] National reporting API exposes aggregated metrics (enrollment, mastery benchmarks, coverage)
-- [ ] No individual student PII in national API responses
-- [ ] Ministry clients authenticate via API keys with scoped permissions
-- [ ] OpenAPI documentation published at `/api/v1/docs`
-- [ ] Rate limiting on national API endpoints
-- [ ] Tests verify aggregation correctness and PII exclusion
+- [x] National reporting API exposes aggregated metrics (enrollment, mastery benchmarks, coverage)
+- [x] No individual student PII in national API responses
+- [x] Ministry clients authenticate via API keys with scoped permissions
+- [x] OpenAPI documentation published at `/api/v1/docs`
+- [x] Rate limiting on national API endpoints
+- [x] Tests verify aggregation correctness and PII exclusion
 
 ## Blocked by
 
