@@ -35,6 +35,7 @@ import {
   CurriculumEffectivenessTable,
   InterventionEffectivenessTable,
 } from "@/components/effectiveness-charts";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isSchoolLeader(profile: UserProfile): boolean {
   return profile.roles.includes("SchoolLeader");
@@ -62,23 +63,26 @@ function interventionStatusBadgeClass(status: string): string {
   }
 }
 
-function formatTimeline(item: LeadershipInterventionItem): string {
+type Translate = ReturnType<typeof useI18n>["t"];
+
+function formatTimeline(item: LeadershipInterventionItem, t: Translate): string {
   const start = item.plannedStartAt ? new Date(item.plannedStartAt).toLocaleDateString() : null;
   const end = item.plannedEndAt ? new Date(item.plannedEndAt).toLocaleDateString() : null;
   if (start && end) {
     return `${start} – ${end}`;
   }
   if (start) {
-    return `From ${start}`;
+    return t("leadership.timeline.from", { date: start });
   }
   if (end) {
-    return `Until ${end}`;
+    return t("leadership.timeline.until", { date: end });
   }
-  return "No timeline set";
+  return t("leadership.timeline.none");
 }
 
 export default function LeadershipDashboardPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -138,9 +142,9 @@ export default function LeadershipDashboardPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   async function handleSelectOrganisation(organisationId: string) {
     const token = localStorage.getItem("we_access_token");
@@ -177,7 +181,7 @@ export default function LeadershipDashboardPage() {
         setOrgEffectiveness(null);
       }
     } catch {
-      setError("Unable to load leadership dashboard.");
+      setError(t("leadership.loadDashboardError"));
     }
   }
 
@@ -196,7 +200,7 @@ export default function LeadershipDashboardPage() {
       const data = await fetchYearLevelLeadershipDashboard(token, selectedOrgId, yearLevelId);
       setYearLevelDashboard(data);
     } catch {
-      setError("Unable to load year level dashboard.");
+      setError(t("leadership.loadYearLevelError"));
     }
   }
 
@@ -217,7 +221,7 @@ export default function LeadershipDashboardPage() {
       );
       setClassSummary(summary);
     } catch {
-      setError("Unable to load class summary.");
+      setError(t("leadership.loadClassSummaryError"));
     }
   }
 
@@ -233,7 +237,7 @@ export default function LeadershipDashboardPage() {
       const monitoring = await fetchLeadershipInterventions(token, selectedOrgId, filters);
       setInterventions(monitoring.interventions);
     } catch {
-      setError("Unable to load intervention monitoring data.");
+      setError(t("leadership.loadInterventionsError"));
     }
   }
 
@@ -248,9 +252,9 @@ export default function LeadershipDashboardPage() {
     try {
       const report = await generateSchoolSummaryReport(token, selectedOrgId);
       setSchoolReport(report);
-      setReportMessage("School summary report generated on demand from leadership EI data.");
+      setReportMessage(t("leadership.report.generated"));
     } catch {
-      setReportMessage("Unable to generate school summary report.");
+      setReportMessage(t("leadership.report.generateError"));
     } finally {
       setReportBusy(false);
     }
@@ -270,9 +274,9 @@ export default function LeadershipDashboardPage() {
         schoolReport.id,
         `school-summary-${selectedOrgId}.pdf`
       );
-      setReportMessage("PDF exported.");
+      setReportMessage(t("teacher.class.report.pdfExported"));
     } catch {
-      setReportMessage("Unable to export report as PDF.");
+      setReportMessage(t("teacher.class.report.pdfError"));
     } finally {
       setReportBusy(false);
     }
@@ -291,7 +295,7 @@ export default function LeadershipDashboardPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -301,7 +305,7 @@ export default function LeadershipDashboardPage() {
   if (!profile || !dashboard) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading leadership dashboard...</p>
+        <p>{t("leadership.loading")}</p>
       </div>
     );
   }
@@ -312,16 +316,16 @@ export default function LeadershipDashboardPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">School Leadership Dashboard</h1>
+          <h1 className="text-2xl font-semibold">{t("leadership.title")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Back to hub
+            {t("leadership.backToHub")}
           </Link>
         </div>
 
         {organisations.length > 1 ? (
           <div className="rounded-lg border border-black/10 p-4">
             <label className="text-sm font-medium" htmlFor="organisation-select">
-              School
+              {t("leadership.schoolLabel")}
             </label>
             <select
               id="organisation-select"
@@ -341,26 +345,25 @@ export default function LeadershipDashboardPage() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <KpiCard label="Students" value={dashboard.kpis.totalStudents} />
-          <KpiCard label="Classes" value={dashboard.kpis.totalClasses} />
-          <KpiCard label="Active interventions" value={dashboard.kpis.activeInterventions} />
-          <KpiCard label="Active learning gaps" value={dashboard.kpis.activeLearningGaps} />
+          <KpiCard label={t("leadership.kpi.students")} value={dashboard.kpis.totalStudents} />
+          <KpiCard label={t("leadership.kpi.classes")} value={dashboard.kpis.totalClasses} />
+          <KpiCard label={t("leadership.kpi.activeInterventions")} value={dashboard.kpis.activeInterventions} />
+          <KpiCard label={t("leadership.kpi.activeLearningGaps")} value={dashboard.kpis.activeLearningGaps} />
           <KpiCard
-            label="Students needing attention"
+            label={t("leadership.kpi.studentsNeedingAttention")}
             value={dashboard.kpis.studentsNeedingAttention}
           />
           <KpiCard
-            label="Assessment completion"
+            label={t("leadership.kpi.assessmentCompletion")}
             value={formatPercent(dashboard.kpis.assessmentCompletionRate)}
           />
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
           <div>
-            <h2 className="font-medium">School summary report</h2>
+            <h2 className="font-medium">{t("leadership.report.title")}</h2>
             <p className="text-sm text-black/60 mt-1">
-              Generate an on-demand whole-school report with achievement KPIs, year-level
-              summaries, and class comparisons sourced from Educational Intelligence.
+              {t("leadership.report.subtitle")}
             </p>
           </div>
           <div className="flex gap-3">
@@ -370,7 +373,7 @@ export default function LeadershipDashboardPage() {
               disabled={reportBusy || !selectedOrgId}
               className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
             >
-              Generate report
+              {t("teacher.class.report.generate")}
             </button>
             {schoolReport ? (
               <button
@@ -379,20 +382,24 @@ export default function LeadershipDashboardPage() {
                 disabled={reportBusy}
                 className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
               >
-                Export PDF
+                {t("teacher.class.report.exportPdf")}
               </button>
             ) : null}
           </div>
           {schoolReportContent() ? (
             <div className="space-y-2 text-sm">
               <p>
-                {schoolReportContent()!.organisationName} · Generated{" "}
-                {new Date(schoolReport!.generatedAt).toLocaleString()}
+                {t("leadership.report.generatedLine", {
+                  name: schoolReportContent()!.organisationName,
+                  date: new Date(schoolReport!.generatedAt).toLocaleString(),
+                })}
               </p>
               <p>
-                {schoolReportContent()!.kpis.totalStudents} students ·{" "}
-                {schoolReportContent()!.yearLevels.length} year levels ·{" "}
-                {schoolReportContent()!.classComparisons.length} classes
+                {t("leadership.report.counts", {
+                  students: schoolReportContent()!.kpis.totalStudents,
+                  yearLevels: schoolReportContent()!.yearLevels.length,
+                  classes: schoolReportContent()!.classComparisons.length,
+                })}
               </p>
             </div>
           ) : null}
@@ -404,26 +411,26 @@ export default function LeadershipDashboardPage() {
         {orgLongitudinal ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-6">
             <div>
-              <h2 className="font-medium">Longitudinal learning analysis</h2>
+              <h2 className="font-medium">{t("leadership.longitudinal.title")}</h2>
               <p className="text-sm text-black/60 mt-1">
-                School-wide mastery trends and per-student summaries from the analytics warehouse (EDW).
+                {t("leadership.longitudinal.subtitle")}
               </p>
             </div>
             <MasteryTrendChart
               points={orgLongitudinal.schoolMasteryTrend}
-              title="School mastery trend"
+              title={t("leadership.longitudinal.trendTitle")}
             />
             {orgLongitudinal.studentSummaries.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">Student summaries</h3>
+                <h3 className="text-sm font-medium">{t("leadership.longitudinal.summariesTitle")}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-black/60 border-b border-black/10">
-                        <th className="py-2 pr-4">Student</th>
-                        <th className="py-2 pr-4">Cumulative micro-skills</th>
-                        <th className="py-2 pr-4">Interventions</th>
-                        <th className="py-2">Gap events</th>
+                        <th className="py-2 pr-4">{t("teacher.class.roster.student")}</th>
+                        <th className="py-2 pr-4">{t("leadership.longitudinal.cumulativeMicroSkills")}</th>
+                        <th className="py-2 pr-4">{t("teacher.workspace.nav.interventions")}</th>
+                        <th className="py-2">{t("leadership.longitudinal.gapEvents")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -442,7 +449,7 @@ export default function LeadershipDashboardPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-black/60">No student analytics data in EDW yet.</p>
+              <p className="text-sm text-black/60">{t("leadership.longitudinal.empty")}</p>
             )}
           </div>
         ) : null}
@@ -450,17 +457,16 @@ export default function LeadershipDashboardPage() {
         {orgEffectiveness ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-6">
             <div>
-              <h2 className="font-medium">Curriculum &amp; intervention effectiveness</h2>
+              <h2 className="font-medium">{t("leadership.effectiveness.title")}</h2>
               <p className="text-sm text-black/60 mt-1">
-                Mastery rates by subject and unit, plus intervention outcomes by type — aggregated
-                from the EDW analytics store.
+                {t("leadership.effectiveness.subtitle")}
               </p>
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-sm font-medium">Curriculum effectiveness</h3>
+              <h3 className="text-sm font-medium">{t("leadership.effectiveness.curriculumTitle")}</h3>
               <p className="text-sm text-black/60">
-                Units below the school-wide average mastery rate are flagged as underperforming.
+                {t("leadership.effectiveness.curriculumHint")}
               </p>
               <CurriculumEffectivenessTable
                 items={orgEffectiveness.curriculumEffectiveness}
@@ -468,7 +474,7 @@ export default function LeadershipDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-sm font-medium">Intervention effectiveness</h3>
+              <h3 className="text-sm font-medium">{t("leadership.effectiveness.interventionTitle")}</h3>
               <InterventionEffectivenessTable
                 items={orgEffectiveness.interventionEffectiveness}
               />
@@ -478,7 +484,7 @@ export default function LeadershipDashboardPage() {
 
         {Object.keys(dashboard.kpis.masteryLevelCounts).length > 0 ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">
-            <h2 className="font-medium">Mastery distribution</h2>
+            <h2 className="font-medium">{t("teacher.class.ei.masteryTitle")}</h2>
             <ul className="space-y-1 text-sm">
               {Object.entries(dashboard.kpis.masteryLevelCounts).map(([level, count]) => (
                 <li key={level}>
@@ -490,9 +496,9 @@ export default function LeadershipDashboardPage() {
         ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Drill-down: year levels</h2>
+          <h2 className="font-medium">{t("leadership.yearLevels.title")}</h2>
           {dashboard.yearLevels.length === 0 ? (
-            <p className="text-sm text-black/60">No year levels configured.</p>
+            <p className="text-sm text-black/60">{t("leadership.yearLevels.empty")}</p>
           ) : (
             <ul className="space-y-2">
               {dashboard.yearLevels.map((yearLevel) => (
@@ -502,8 +508,11 @@ export default function LeadershipDashboardPage() {
                     className={`text-sm underline ${selectedYearLevelId === yearLevel.yearLevelId ? "font-semibold" : ""}`}
                     onClick={() => handleSelectYearLevel(yearLevel.yearLevelId)}
                   >
-                    {yearLevel.yearLevelName} — {yearLevel.classCount} classes,{" "}
-                    {yearLevel.studentCount} students
+                    {t("leadership.yearLevels.line", {
+                      name: yearLevel.yearLevelName,
+                      classes: yearLevel.classCount,
+                      students: yearLevel.studentCount,
+                    })}
                   </button>
                 </li>
               ))}
@@ -513,10 +522,12 @@ export default function LeadershipDashboardPage() {
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
           <h2 className="font-medium">
-            {yearLevelDashboard ? `${yearLevelDashboard.yearLevelName} classes` : "Class comparisons"}
+            {yearLevelDashboard
+              ? t("leadership.classes.yearLevelTitle", { name: yearLevelDashboard.yearLevelName })
+              : t("leadership.classes.comparisonsTitle")}
           </h2>
           {classComparisons.length === 0 ? (
-            <p className="text-sm text-black/60">No classes in scope.</p>
+            <p className="text-sm text-black/60">{t("leadership.classes.empty")}</p>
           ) : (
             <ul className="space-y-3">
               {classComparisons.map((schoolClass) => (
@@ -529,9 +540,12 @@ export default function LeadershipDashboardPage() {
                     {schoolClass.className} ({schoolClass.yearLevelName})
                   </button>
                   <p className="text-black/60 mt-1">
-                    {schoolClass.studentCount} students · {schoolClass.activeInterventions}{" "}
-                    interventions · {schoolClass.activeLearningGaps} gaps ·{" "}
-                    {formatPercent(schoolClass.assessmentCompletionRate)} assessments complete
+                    {t("leadership.classes.line", {
+                      students: schoolClass.studentCount,
+                      interventions: schoolClass.activeInterventions,
+                      gaps: schoolClass.activeLearningGaps,
+                      completion: formatPercent(schoolClass.assessmentCompletionRate),
+                    })}
                   </p>
                 </li>
               ))}
@@ -541,15 +555,15 @@ export default function LeadershipDashboardPage() {
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
           <div>
-            <h2 className="font-medium">Intervention monitoring</h2>
+            <h2 className="font-medium">{t("leadership.monitoring.title")}</h2>
             <p className="text-sm text-black/60 mt-1">
-              School-wide oversight of active interventions. Read-only view for leadership.
+              {t("leadership.monitoring.subtitle")}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3 text-sm">
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-black/60">Department (year level)</span>
+              <span className="text-xs text-black/60">{t("leadership.monitoring.department")}</span>
               <select
                 className="rounded border border-black/20 p-2"
                 value={interventionFilters.yearLevelId ?? ""}
@@ -561,7 +575,7 @@ export default function LeadershipDashboardPage() {
                   })
                 }
               >
-                <option value="">All year levels</option>
+                <option value="">{t("leadership.monitoring.allYearLevels")}</option>
                 {dashboard.yearLevels.map((yearLevel) => (
                   <option key={yearLevel.yearLevelId} value={yearLevel.yearLevelId}>
                     {yearLevel.yearLevelName}
@@ -571,7 +585,7 @@ export default function LeadershipDashboardPage() {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-black/60">Class</span>
+              <span className="text-xs text-black/60">{t("assessments.scope.classLabel")}</span>
               <select
                 className="rounded border border-black/20 p-2"
                 value={interventionFilters.classId ?? ""}
@@ -582,7 +596,7 @@ export default function LeadershipDashboardPage() {
                   })
                 }
               >
-                <option value="">All classes</option>
+                <option value="">{t("leadership.monitoring.allClasses")}</option>
                 {classComparisons
                   .filter(
                     (schoolClass) =>
@@ -598,7 +612,7 @@ export default function LeadershipDashboardPage() {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-black/60">Severity</span>
+              <span className="text-xs text-black/60">{t("leadership.monitoring.severity")}</span>
               <select
                 className="rounded border border-black/20 p-2"
                 value={interventionFilters.severity ?? ""}
@@ -609,7 +623,7 @@ export default function LeadershipDashboardPage() {
                   })
                 }
               >
-                <option value="">All severities</option>
+                <option value="">{t("leadership.monitoring.allSeverities")}</option>
                 {severityOptions.map((severity) => (
                   <option key={severity} value={severity}>
                     {severity}
@@ -619,7 +633,7 @@ export default function LeadershipDashboardPage() {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-black/60">Status</span>
+              <span className="text-xs text-black/60">{t("charts.curriculum.status")}</span>
               <select
                 className="rounded border border-black/20 p-2"
                 value={interventionFilters.status ?? ""}
@@ -630,7 +644,7 @@ export default function LeadershipDashboardPage() {
                   })
                 }
               >
-                <option value="">Active (Planned + Active)</option>
+                <option value="">{t("leadership.monitoring.defaultStatus")}</option>
                 {interventionStatusOrder.map((status) => (
                   <option key={status} value={status}>
                     {status}
@@ -641,19 +655,19 @@ export default function LeadershipDashboardPage() {
           </div>
 
           {interventions.length === 0 ? (
-            <p className="text-sm text-black/60">No interventions match the current filters.</p>
+            <p className="text-sm text-black/60">{t("leadership.monitoring.empty")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-black/60 border-b border-black/10">
-                    <th className="py-2 pr-4">Student</th>
-                    <th className="py-2 pr-4">Gap</th>
-                    <th className="py-2 pr-4">Teacher</th>
-                    <th className="py-2 pr-4">Class</th>
-                    <th className="py-2 pr-4">Severity</th>
-                    <th className="py-2 pr-4">Status</th>
-                    <th className="py-2">Timeline</th>
+                    <th className="py-2 pr-4">{t("teacher.class.roster.student")}</th>
+                    <th className="py-2 pr-4">{t("leadership.monitoring.col.gap")}</th>
+                    <th className="py-2 pr-4">{t("leadership.monitoring.col.teacher")}</th>
+                    <th className="py-2 pr-4">{t("assessments.scope.classLabel")}</th>
+                    <th className="py-2 pr-4">{t("leadership.monitoring.severity")}</th>
+                    <th className="py-2 pr-4">{t("charts.curriculum.status")}</th>
+                    <th className="py-2">{t("leadership.monitoring.col.timeline")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -681,7 +695,7 @@ export default function LeadershipDashboardPage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="py-3">{formatTimeline(item)}</td>
+                      <td className="py-3">{formatTimeline(item, t)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -692,26 +706,33 @@ export default function LeadershipDashboardPage() {
 
         {classSummary ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-3">
-            <h2 className="font-medium">Class: {classSummary.class.name}</h2>
+            <h2 className="font-medium">
+              {t("leadership.classSummary.title", { name: classSummary.class.name })}
+            </h2>
             <p className="text-sm">
-              Active interventions: {classSummary.activeInterventions}
+              {t("leadership.classSummary.activeInterventions", {
+                count: classSummary.activeInterventions,
+              })}
             </p>
             {classSummary.recentAssessments.length > 0 ? (
               <div>
-                <h3 className="text-sm font-medium">Recent assessments</h3>
+                <h3 className="text-sm font-medium">{t("teacher.class.assessments.title")}</h3>
                 <ul className="list-disc pl-5 text-sm mt-1">
                   {classSummary.recentAssessments.map((assessment) => (
                     <li key={assessment.id}>
-                      {assessment.title} — {assessment.submissionCount} submissions
+                      {t("leadership.classSummary.assessmentLine", {
+                        title: assessment.title,
+                        count: assessment.submissionCount,
+                      })}
                     </li>
                   ))}
                 </ul>
               </div>
             ) : null}
             <div>
-              <h3 className="text-sm font-medium">Students</h3>
+              <h3 className="text-sm font-medium">{t("leadership.kpi.students")}</h3>
               {classSummary.students.length === 0 ? (
-                <p className="text-sm text-black/60">No students enrolled.</p>
+                <p className="text-sm text-black/60">{t("common.noStudentsEnrolled")}</p>
               ) : (
                 <ul className="list-disc pl-5 text-sm mt-1">
                   {classSummary.students.map((student) => (
@@ -720,7 +741,7 @@ export default function LeadershipDashboardPage() {
                         href={`/students/${student.userId}/profile`}
                         className="underline"
                       >
-                        View profile — {student.userId}
+                        {t("dashboard.classes.viewProfile", { studentUserId: student.userId })}
                       </Link>
                     </li>
                   ))}

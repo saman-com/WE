@@ -8,6 +8,7 @@ import {
   fetchStudentWorkspace,
   type StudentWorkspace,
 } from "@/lib/student-workspace";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isStudent(profile: UserProfile): boolean {
   return profile.roles.includes("Student");
@@ -15,6 +16,7 @@ function isStudent(profile: UserProfile): boolean {
 
 export default function StudentWorkspacePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [workspace, setWorkspace] = useState<StudentWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +40,9 @@ export default function StudentWorkspacePage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   if (error) {
     return (
@@ -48,7 +50,7 @@ export default function StudentWorkspacePage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -58,7 +60,7 @@ export default function StudentWorkspacePage() {
   if (!profile || !workspace) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading your learning progress...</p>
+        <p>{t("student.home.loading")}</p>
       </div>
     );
   }
@@ -71,32 +73,32 @@ export default function StudentWorkspacePage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">My learning</h1>
+            <h1 className="text-2xl font-semibold">{t("student.myLearning")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Welcome back, {profile.name}. Here is your progress at a glance.
+              {t("student.home.welcome", { name: profile.name })}
             </p>
           </div>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
         </div>
 
         <div className="flex flex-wrap gap-4 text-sm">
           <Link href="/student/assessments" className="underline">
-            All assessments
+            {t("student.home.nav.allAssessments")}
           </Link>
           <Link href="/student/feedback" className="underline">
-            Teacher feedback
+            {t("student.feedback.title")}
           </Link>
           <Link href="/student/progress" className="underline">
-            Progress timeline
+            {t("student.progress.title")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Pending assessments</h2>
+          <h2 className="font-medium">{t("student.home.pendingTitle")}</h2>
           {pending.length === 0 ? (
-            <p className="text-sm text-black/60">You are up to date — no pending work.</p>
+            <p className="text-sm text-black/60">{t("student.home.pendingEmpty")}</p>
           ) : (
             <ul className="space-y-3">
               {pending.map((assessment) => (
@@ -105,12 +107,14 @@ export default function StudentWorkspacePage() {
                   <p className="text-sm text-black/60">{assessment.className}</p>
                   {assessment.dueAt ? (
                     <p className="text-sm">
-                      Due: {new Date(assessment.dueAt).toLocaleString()}
+                      {t("assessments.list.duePrefix")} {new Date(assessment.dueAt).toLocaleString()}
                     </p>
                   ) : null}
                   {assessment.learningObjectiveIds.length > 0 ? (
                     <p className="text-sm text-black/70 mt-1">
-                      Learning objectives: {assessment.learningObjectiveIds.join(", ")}
+                      {t("student.home.learningObjectives", {
+                        list: assessment.learningObjectiveIds.join(", "),
+                      })}
                     </p>
                   ) : null}
                 </li>
@@ -120,9 +124,9 @@ export default function StudentWorkspacePage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Completed assessments</h2>
+          <h2 className="font-medium">{t("student.home.completedTitle")}</h2>
           {completed.length === 0 ? (
-            <p className="text-sm text-black/60">No submitted work yet.</p>
+            <p className="text-sm text-black/60">{t("student.home.completedEmpty")}</p>
           ) : (
             <ul className="space-y-3">
               {completed.map((assessment) => (
@@ -131,7 +135,9 @@ export default function StudentWorkspacePage() {
                   <p className="text-sm text-black/60">{assessment.className}</p>
                   {assessment.submittedAt ? (
                     <p className="text-sm text-green-700">
-                      Submitted: {new Date(assessment.submittedAt).toLocaleString()}
+                      {t("student.home.submitted", {
+                        date: new Date(assessment.submittedAt).toLocaleString(),
+                      })}
                     </p>
                   ) : null}
                 </li>
@@ -141,10 +147,10 @@ export default function StudentWorkspacePage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Recent teacher feedback</h2>
+          <h2 className="font-medium">{t("student.home.recentFeedbackTitle")}</h2>
           {workspace.feedback.length === 0 ? (
             <p className="text-sm text-black/60">
-              No feedback yet. It will appear here after your teacher reviews your work.
+              {t("student.home.recentFeedbackEmpty")}
             </p>
           ) : (
             <ul className="space-y-3">
@@ -163,16 +169,16 @@ export default function StudentWorkspacePage() {
           )}
           {workspace.feedback.length > 0 ? (
             <Link href="/student/feedback" className="text-sm underline">
-              View all feedback
+              {t("student.home.viewAllFeedback")}
             </Link>
           ) : null}
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Learning progress</h2>
+          <h2 className="font-medium">{t("student.home.progressTitle")}</h2>
           {workspace.timeline.length === 0 ? (
             <p className="text-sm text-black/60">
-              Your learning timeline will grow as evidence is approved.
+              {t("student.home.progressEmpty")}
             </p>
           ) : (
             <ul className="list-disc pl-5 space-y-1">
@@ -185,7 +191,7 @@ export default function StudentWorkspacePage() {
           )}
           {workspace.timeline.length > 0 ? (
             <Link href="/student/progress" className="text-sm underline">
-              View full timeline
+              {t("student.home.viewFullTimeline")}
             </Link>
           ) : null}
         </div>

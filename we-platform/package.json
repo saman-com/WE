@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter web-portal dev",
     "build": "pnpm --filter web-portal build",
-    "lint": "pnpm --filter web-portal lint"
+    "lint": "pnpm --filter web-portal lint",
+    "test": "pnpm --filter web-portal test"
   }
 }

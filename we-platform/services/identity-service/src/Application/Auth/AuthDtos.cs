@@ -9,3 +9,5 @@ public sealed record UserProfileResponse(
     string Email,
     string Name,
     IReadOnlyList<string> Roles);
+
+public sealed record ApiErrorResponse(string Code);

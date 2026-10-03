@@ -24,6 +24,7 @@ import {
   isClassProgressReport,
   type ReportResponse,
 } from "@/lib/reports";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -54,6 +55,7 @@ function createInterventionHref(
 
 export default function TeacherClassDetailPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useParams<{ classId: string }>();
   const searchParams = useSearchParams();
   const organisationId = searchParams.get("organisationId");
@@ -84,7 +86,7 @@ export default function TeacherClassDetailPage() {
     setToken(stored);
 
     if (!organisationId) {
-      setError("Missing organisation context for this class.");
+      setError(t("teacher.class.missingOrganisation"));
       return;
     }
 
@@ -121,9 +123,9 @@ export default function TeacherClassDetailPage() {
         }
       })
       .catch(() => {
-        setError("Unable to load class dashboard.");
+        setError(t("teacher.class.loadError"));
       });
-  }, [router, organisationId, classId]);
+  }, [router, organisationId, classId, t]);
 
   async function handleRequestLessonSummary() {
     if (!token || !organisationId || !lessonUnitId.trim()) {
@@ -142,11 +144,9 @@ export default function TeacherClassDetailPage() {
       );
       setLessonDraft(draft.draftContent);
       setLessonAuditLogId(draft.auditLogId);
-      setSummaryMessage(
-        "AI-assisted draft ready. Edit below and approve before sharing."
-      );
+      setSummaryMessage(t("teacher.class.lesson.draftReady"));
     } catch {
-      setSummaryMessage("Unable to generate lesson summary draft.");
+      setSummaryMessage(t("teacher.class.lesson.draftError"));
     } finally {
       setSummaryBusy(false);
     }
@@ -162,9 +162,9 @@ export default function TeacherClassDetailPage() {
     try {
       await finalizeAiSummaryAudit(token, lessonAuditLogId, lessonDraft.trim());
       setLessonApproved(true);
-      setSummaryMessage("Lesson summary approved. Ready for export or sharing.");
+      setSummaryMessage(t("teacher.class.lesson.approved"));
     } catch {
-      setSummaryMessage("Unable to approve lesson summary.");
+      setSummaryMessage(t("teacher.class.lesson.approveError"));
     } finally {
       setSummaryBusy(false);
     }
@@ -180,9 +180,9 @@ export default function TeacherClassDetailPage() {
     try {
       const report = await generateClassProgressReport(token, organisationId, classId);
       setClassReport(report);
-      setReportMessage("Class progress report generated on demand from EI and assessment data.");
+      setReportMessage(t("teacher.class.report.generated"));
     } catch {
-      setReportMessage("Unable to generate class progress report.");
+      setReportMessage(t("teacher.class.report.generateError"));
     } finally {
       setReportBusy(false);
     }
@@ -201,9 +201,9 @@ export default function TeacherClassDetailPage() {
         classReport.id,
         `class-progress-${classId}.pdf`
       );
-      setReportMessage("PDF exported.");
+      setReportMessage(t("teacher.class.report.pdfExported"));
     } catch {
-      setReportMessage("Unable to export report as PDF.");
+      setReportMessage(t("teacher.class.report.pdfError"));
     } finally {
       setReportBusy(false);
     }
@@ -215,7 +215,7 @@ export default function TeacherClassDetailPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/teacher" className="underline">
-            Back to teacher workspace
+            {t("teacher.interventions.backToWorkspace")}
           </Link>
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function TeacherClassDetailPage() {
   if (!profile || !dashboard) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading class dashboard...</p>
+        <p>{t("teacher.class.loading")}</p>
       </div>
     );
   }
@@ -235,7 +235,7 @@ export default function TeacherClassDetailPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="space-y-2">
           <Link href="/teacher" className="text-sm underline">
-            Back to my classes
+            {t("teacher.class.backToMyClasses")}
           </Link>
           <h1 className="text-2xl font-semibold">
             {dashboard.class.name} ({dashboard.class.code})
@@ -243,17 +243,17 @@ export default function TeacherClassDetailPage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Class roster</h2>
+          <h2 className="font-medium">{t("teacher.class.roster.title")}</h2>
           {dashboard.roster.length === 0 ? (
-            <p className="text-sm text-black/60">No students enrolled.</p>
+            <p className="text-sm text-black/60">{t("common.noStudentsEnrolled")}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-black/10">
-                  <th className="py-2">Student</th>
-                  <th className="py-2">Evidence</th>
-                  <th className="py-2">Latest activity</th>
-                  <th className="py-2">SLP</th>
+                  <th className="py-2">{t("teacher.class.roster.student")}</th>
+                  <th className="py-2">{t("teacher.class.roster.evidence")}</th>
+                  <th className="py-2">{t("teacher.class.roster.latestActivity")}</th>
+                  <th className="py-2">{t("teacher.class.roster.slp")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,7 +267,7 @@ export default function TeacherClassDetailPage() {
                         href={`/students/${student.studentUserId}/profile`}
                         className="underline"
                       >
-                        View SLP summary
+                        {t("teacher.class.roster.viewSlp")}
                       </Link>
                     </td>
                   </tr>
@@ -280,33 +280,38 @@ export default function TeacherClassDetailPage() {
         {insights ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-4">
             <div>
-              <h2 className="font-medium">Educational Intelligence</h2>
+              <h2 className="font-medium">{t("teacher.class.ei.title")}</h2>
               <p className="text-sm text-black/60 mt-1">
-                Class-level mastery, gaps, and diagnostic trends with linked evidence.
+                {t("teacher.class.ei.subtitle")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Mastery distribution</h3>
+              <h3 className="text-sm font-medium">{t("teacher.class.ei.masteryTitle")}</h3>
               {insights.masteryDistribution.length === 0 ? (
                 <p className="text-sm text-black/60">
-                  No mastery data yet. Insights appear after approved evidence is analysed.
+                  {t("teacher.class.ei.masteryEmpty")}
                 </p>
               ) : (
                 <ul className="space-y-3">
                   {insights.masteryDistribution.map((item) => (
                     <li key={item.microSkillId} className="rounded border border-black/5 p-3 space-y-1">
-                      <p className="text-sm font-medium">Micro-skill: {item.microSkillId}</p>
+                      <p className="text-sm font-medium">{t("teacher.class.ei.microSkill", { id: item.microSkillId })}</p>
                       <p className="text-xs text-black/60">
-                        Mastered {item.levelCounts.Mastered ?? 0} · Proficient{" "}
-                        {item.levelCounts.Proficient ?? 0} · Developing{" "}
-                        {item.levelCounts.Developing ?? 0} · Not started{" "}
-                        {item.levelCounts.NotStarted ?? 0} · {item.totalStudents} students
+                        {t("teacher.class.ei.levelSummary", {
+                          mastered: item.levelCounts.Mastered ?? 0,
+                          proficient: item.levelCounts.Proficient ?? 0,
+                          developing: item.levelCounts.Developing ?? 0,
+                          notStarted: item.levelCounts.NotStarted ?? 0,
+                          total: item.totalStudents,
+                        })}
                       </p>
                       <p className="text-sm">{item.explanation}</p>
                       {item.linkedEvidenceIds.length > 0 ? (
                         <p className="text-xs text-black/60">
-                          Linked evidence: {item.linkedEvidenceIds.join(", ")}
+                          {t("teacher.class.ei.linkedEvidence", {
+                            ids: item.linkedEvidenceIds.join(", "),
+                          })}
                         </p>
                       ) : null}
                     </li>
@@ -316,28 +321,36 @@ export default function TeacherClassDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Active learning gaps</h3>
+              <h3 className="text-sm font-medium">{t("teacher.class.ei.gapsTitle")}</h3>
               {insights.activeLearningGaps.length === 0 ? (
-                <p className="text-sm text-black/60">No active learning gaps identified.</p>
+                <p className="text-sm text-black/60">{t("teacher.class.ei.gapsEmpty")}</p>
               ) : (
                 <ul className="space-y-3">
                   {insights.activeLearningGaps.map((gap) => (
                     <li key={gap.gapId} className="rounded border border-black/5 p-3 space-y-2">
                       <p className="text-sm font-medium">
-                        {gap.severity} severity · {gap.urgency} urgency ·{" "}
+                        {t("teacher.class.ei.gapSeverityUrgency", {
+                          severity: gap.severity,
+                          urgency: gap.urgency,
+                        })}{" "}
+                        ·{" "}
                         <Link href={`/students/${gap.studentUserId}/profile`} className="underline">
                           {gap.studentUserId}
                         </Link>
                       </p>
-                      <p className="text-xs text-black/60">Micro-skill: {gap.microSkillId}</p>
+                      <p className="text-xs text-black/60">
+                        {t("teacher.class.ei.microSkill", { id: gap.microSkillId })}
+                      </p>
                       <p className="text-sm">{gap.explanation}</p>
-                      <p className="text-xs text-black/60">Evidence: {gap.evidenceId}</p>
+                      <p className="text-xs text-black/60">
+                        {t("teacher.class.ei.evidence", { id: gap.evidenceId })}
+                      </p>
                       {organisationId ? (
                         <Link
                           href={createInterventionHref(gap, organisationId, classId)}
                           className="inline-block text-sm underline"
                         >
-                          Create intervention
+                          {t("teacher.interventions.new.title")}
                         </Link>
                       ) : null}
                     </li>
@@ -347,9 +360,9 @@ export default function TeacherClassDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Recent diagnostic trends</h3>
+              <h3 className="text-sm font-medium">{t("teacher.class.ei.trendsTitle")}</h3>
               {insights.recentDiagnosticTrends.length === 0 ? (
-                <p className="text-sm text-black/60">No recent diagnostic trends.</p>
+                <p className="text-sm text-black/60">{t("teacher.class.ei.trendsEmpty")}</p>
               ) : (
                 <ul className="space-y-3">
                   {insights.recentDiagnosticTrends.map((trend) => (
@@ -358,15 +371,23 @@ export default function TeacherClassDetailPage() {
                       className="rounded border border-black/5 p-3 space-y-1"
                     >
                       <p className="text-sm font-medium">
-                        {trend.status} · {trend.occurrenceCount} occurrence
-                        {trend.occurrenceCount === 1 ? "" : "s"}
+                        {t(
+                          trend.occurrenceCount === 1
+                            ? "teacher.class.ei.occurrenceOne"
+                            : "teacher.class.ei.occurrenceOther",
+                          { status: trend.status, count: trend.occurrenceCount }
+                        )}
                       </p>
                       <p className="text-xs text-black/60">
-                        Micro-skill: {trend.microSkillId} · Latest:{" "}
-                        {new Date(trend.latestAt).toLocaleDateString()}
+                        {t("teacher.class.ei.trendMeta", {
+                          id: trend.microSkillId,
+                          date: new Date(trend.latestAt).toLocaleDateString(),
+                        })}
                       </p>
                       <p className="text-sm">{trend.explanation}</p>
-                      <p className="text-xs text-black/60">Evidence: {trend.evidenceId}</p>
+                      <p className="text-xs text-black/60">
+                        {t("teacher.class.ei.evidence", { id: trend.evidenceId })}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -374,9 +395,9 @@ export default function TeacherClassDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Students needing attention</h3>
+              <h3 className="text-sm font-medium">{t("teacher.class.ei.attentionTitle")}</h3>
               {insights.studentsNeedingAttention.length === 0 ? (
-                <p className="text-sm text-black/60">No students flagged for attention.</p>
+                <p className="text-sm text-black/60">{t("teacher.class.ei.attentionEmpty")}</p>
               ) : (
                 <ul className="space-y-3">
                   {insights.studentsNeedingAttention.map((student) => (
@@ -392,7 +413,9 @@ export default function TeacherClassDetailPage() {
                       </p>
                       <p className="text-sm">{student.explanation}</p>
                       {student.evidenceId ? (
-                        <p className="text-xs text-black/60">Evidence: {student.evidenceId}</p>
+                        <p className="text-xs text-black/60">
+                          {t("teacher.class.ei.evidence", { id: student.evidenceId })}
+                        </p>
                       ) : null}
                     </li>
                   ))}
@@ -404,10 +427,9 @@ export default function TeacherClassDetailPage() {
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
           <div>
-            <h2 className="font-medium">Class progress report</h2>
+            <h2 className="font-medium">{t("teacher.class.report.title")}</h2>
             <p className="text-sm text-black/60 mt-1">
-              Generate an on-demand report with mastery distribution, active learning gaps,
-              and assessment summary sourced from Educational Intelligence services.
+              {t("teacher.class.report.subtitle")}
             </p>
           </div>
           <div className="flex gap-3">
@@ -417,7 +439,7 @@ export default function TeacherClassDetailPage() {
               disabled={reportBusy}
               className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
             >
-              Generate report
+              {t("teacher.class.report.generate")}
             </button>
             {classReport ? (
               <button
@@ -426,20 +448,24 @@ export default function TeacherClassDetailPage() {
                 disabled={reportBusy}
                 className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
               >
-                Export PDF
+                {t("teacher.class.report.exportPdf")}
               </button>
             ) : null}
           </div>
           {classReport && isClassProgressReport(classReport.content) ? (
             <div className="space-y-2 text-sm">
               <p>
-                {classReport.content.className} · Generated{" "}
-                {new Date(classReport.generatedAt).toLocaleString()}
+                {t("teacher.class.report.generatedLine", {
+                  className: classReport.content.className,
+                  date: new Date(classReport.generatedAt).toLocaleString(),
+                })}
               </p>
               <p>
-                Mastery areas: {classReport.content.masteryDistribution.length} · Active gaps:{" "}
-                {classReport.content.activeLearningGaps.length} · Assessments:{" "}
-                {classReport.content.assessmentSummary.length}
+                {t("teacher.class.report.counts", {
+                  mastery: classReport.content.masteryDistribution.length,
+                  gaps: classReport.content.activeLearningGaps.length,
+                  assessments: classReport.content.assessmentSummary.length,
+                })}
               </p>
             </div>
           ) : null}
@@ -450,19 +476,18 @@ export default function TeacherClassDetailPage() {
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
           <div>
-            <h2 className="font-medium">AI lesson summary</h2>
+            <h2 className="font-medium">{t("teacher.class.lesson.title")}</h2>
             <p className="text-sm text-black/60 mt-1">
-              Request a draft summary for a class unit. Summaries use Educational
-              Intelligence and evidence context only — edit and approve before sharing.
+              {t("teacher.class.lesson.subtitle")}
             </p>
           </div>
           <label className="block text-sm space-y-1">
-            <span>Unit id</span>
+            <span>{t("teacher.class.lesson.unitId")}</span>
             <input
               type="text"
               value={lessonUnitId}
               onChange={(event) => setLessonUnitId(event.target.value)}
-              placeholder="Curriculum unit identifier"
+              placeholder={t("teacher.class.lesson.unitIdPlaceholder")}
               className="w-full border border-black/20 rounded px-3 py-2 text-sm"
             />
           </label>
@@ -473,15 +498,15 @@ export default function TeacherClassDetailPage() {
               disabled={summaryBusy || !lessonUnitId.trim()}
               className="text-sm underline disabled:opacity-50"
             >
-              Request AI draft
+              {t("teacher.class.lesson.requestDraft")}
             </button>
           </div>
           {lessonDraft ? (
             <div className="space-y-2">
               <p className="text-xs font-medium text-amber-700">
                 {lessonApproved
-                  ? "Approved summary"
-                  : "AI-assisted draft — requires your approval"}
+                  ? t("teacher.class.lesson.approvedLabel")
+                  : t("teacher.class.lesson.draftLabel")}
               </p>
               <textarea
                 value={lessonDraft}
@@ -497,7 +522,7 @@ export default function TeacherClassDetailPage() {
                   disabled={summaryBusy || !lessonDraft.trim()}
                   className="text-sm underline disabled:opacity-50"
                 >
-                  Approve for export/share
+                  {t("teacher.class.lesson.approve")}
                 </button>
               ) : null}
             </div>
@@ -508,9 +533,9 @@ export default function TeacherClassDetailPage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Recent assessments</h2>
+          <h2 className="font-medium">{t("teacher.class.assessments.title")}</h2>
           {dashboard.recentAssessments.length === 0 ? (
-            <p className="text-sm text-black/60">No assessments for this class yet.</p>
+            <p className="text-sm text-black/60">{t("teacher.class.assessments.empty")}</p>
           ) : (
             <ul className="space-y-3">
               {dashboard.recentAssessments.map((assessment) => (
@@ -519,20 +544,27 @@ export default function TeacherClassDetailPage() {
                     <div>
                       <p className="font-medium">{assessment.title}</p>
                       <p className="text-sm text-black/60">
-                        Status: {assessment.status} · Due: {formatDate(assessment.dueAt)}
+                        {t("teacher.class.assessments.statusDue", {
+                          status: assessment.status,
+                          due: formatDate(assessment.dueAt),
+                        })}
                       </p>
                       <p className="text-sm text-black/60">
-                        {assessment.submissionCount} submitted ·{" "}
-                        {assessment.reviewedCount} reviewed ·{" "}
-                        {Math.max(assessment.submissionCount - assessment.reviewedCount, 0)}{" "}
-                        pending review
+                        {t("teacher.class.assessments.counts", {
+                          submitted: assessment.submissionCount,
+                          reviewed: assessment.reviewedCount,
+                          pending: Math.max(
+                            assessment.submissionCount - assessment.reviewedCount,
+                            0
+                          ),
+                        })}
                       </p>
                     </div>
                     <Link
                       href={`/assessments/${assessment.id}/review`}
                       className="text-sm underline shrink-0"
                     >
-                      Review submissions
+                      {t("assessments.list.reviewSubmissions")}
                     </Link>
                   </div>
                 </li>

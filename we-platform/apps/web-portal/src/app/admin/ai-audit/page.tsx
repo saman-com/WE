@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { searchAiAuditLogs, type AiAuditLogEntry } from "@/lib/ai-gateway";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function AiAuditAdminPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [logs, setLogs] = useState<AiAuditLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,10 @@ export default function AiAuditAdminPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       })
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, t]);
 
   async function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,7 +62,7 @@ export default function AiAuditAdminPage() {
       });
       setLogs(entries);
     } catch {
-      setError("Unable to load AI audit logs.");
+      setError(t("admin.aiAudit.loadError"));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ export default function AiAuditAdminPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -82,7 +84,7 @@ export default function AiAuditAdminPage() {
   if (loading && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading AI audit logs...</p>
+        <p>{t("admin.aiAudit.loading")}</p>
       </div>
     );
   }
@@ -92,19 +94,19 @@ export default function AiAuditAdminPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">AI Audit Logs</h1>
+            <h1 className="text-2xl font-semibold">{t("dashboard.nav.aiAuditLogs")}</h1>
             <p className="text-sm text-black/70">
-              Review AI gateway interactions, outcomes, and safety blocks.
+              {t("admin.aiAudit.subtitle")}
             </p>
           </div>
           <Link href="/dashboard" className="text-sm underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
 
         <form onSubmit={handleSearch} className="rounded-lg border border-black/10 p-4 grid gap-3 md:grid-cols-4">
           <label className="text-sm space-y-1">
-            <span>Prompt id</span>
+            <span>{t("admin.aiAudit.promptId")}</span>
             <input
               className="w-full border border-black/20 rounded px-2 py-1"
               value={promptId}
@@ -113,32 +115,32 @@ export default function AiAuditAdminPage() {
             />
           </label>
           <label className="text-sm space-y-1">
-            <span>Outcome</span>
+            <span>{t("admin.aiAudit.outcome")}</span>
             <select
               className="w-full border border-black/20 rounded px-2 py-1"
               value={outcome}
               onChange={(event) => setOutcome(event.target.value)}
             >
-              <option value="">All</option>
+              <option value="">{t("admin.aiAudit.all")}</option>
               <option value="success">success</option>
               <option value="blocked">blocked</option>
               <option value="validation_failed">validation_failed</option>
             </select>
           </label>
           <label className="text-sm space-y-1 md:col-span-2">
-            <span>Search</span>
+            <span>{t("admin.aiAudit.search")}</span>
             <input
               className="w-full border border-black/20 rounded px-2 py-1"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Prompt, scope, or block reason"
+              placeholder={t("admin.aiAudit.searchPlaceholder")}
             />
           </label>
           <button
             type="submit"
             className="md:col-span-4 justify-self-start rounded border border-black/20 px-3 py-1 text-sm"
           >
-            Apply filters
+            {t("admin.aiAudit.applyFilters")}
           </button>
         </form>
 
@@ -146,19 +148,19 @@ export default function AiAuditAdminPage() {
           <table className="w-full text-sm">
             <thead className="bg-black/5 text-left">
               <tr>
-                <th className="p-3">Timestamp</th>
-                <th className="p-3">Caller</th>
-                <th className="p-3">Prompt</th>
-                <th className="p-3">Outcome</th>
-                <th className="p-3">Provider</th>
-                <th className="p-3">Block reason</th>
+                <th className="p-3">{t("admin.aiAudit.col.timestamp")}</th>
+                <th className="p-3">{t("admin.aiAudit.col.caller")}</th>
+                <th className="p-3">{t("admin.aiAudit.col.prompt")}</th>
+                <th className="p-3">{t("admin.aiAudit.outcome")}</th>
+                <th className="p-3">{t("admin.aiAudit.col.provider")}</th>
+                <th className="p-3">{t("admin.aiAudit.col.blockReason")}</th>
               </tr>
             </thead>
             <tbody>
               {logs.length === 0 ? (
                 <tr>
                   <td className="p-3 text-black/60" colSpan={6}>
-                    No audit log entries found.
+                    {t("admin.aiAudit.noEntries")}
                   </td>
                 </tr>
               ) : (

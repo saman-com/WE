@@ -10,6 +10,7 @@ import {
   type Intervention,
   type InterventionStatus,
 } from "@/lib/interventions";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const nextStatus: Partial<Record<InterventionStatus, InterventionStatus>> = {
   Planned: "Active",
@@ -19,6 +20,7 @@ const nextStatus: Partial<Record<InterventionStatus, InterventionStatus>> = {
 
 export default function InterventionDetailPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useParams<{ interventionId: string }>();
   const interventionId = params.interventionId;
 
@@ -44,7 +46,7 @@ export default function InterventionDetailPage() {
           (profile.roles.includes("Teacher") && profile.id === loaded.assignedTeacherUserId);
 
         if (!canManage && !profile.roles.includes("Teacher")) {
-          setError("You do not have access to this intervention.");
+          setError(t("teacher.interventions.detail.noAccess"));
           return;
         }
 
@@ -54,9 +56,9 @@ export default function InterventionDetailPage() {
         setOutcome(loaded.outcome ?? "");
       })
       .catch(() => {
-        setError("Unable to load intervention.");
+        setError(t("teacher.interventions.detail.loadError"));
       });
-  }, [router, interventionId]);
+  }, [router, interventionId, t]);
 
   async function handleSaveNotes() {
     const token = localStorage.getItem("we_access_token");
@@ -69,7 +71,7 @@ export default function InterventionDetailPage() {
       const updated = await patchIntervention(token, intervention.id, { notes });
       setIntervention(updated);
     } catch {
-      setError("Unable to save notes.");
+      setError(t("teacher.interventions.detail.saveNotesError"));
     } finally {
       setSaving(false);
     }
@@ -95,7 +97,7 @@ export default function InterventionDetailPage() {
       const updated = await patchIntervention(token, intervention.id, payload);
       setIntervention(updated);
     } catch {
-      setError("Unable to update status.");
+      setError(t("teacher.interventions.detail.updateStatusError"));
     } finally {
       setSaving(false);
     }
@@ -107,7 +109,7 @@ export default function InterventionDetailPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/teacher/interventions" className="underline">
-            Back to interventions
+            {t("teacher.interventions.detail.backToInterventions")}
           </Link>
         </div>
       </div>
@@ -117,7 +119,7 @@ export default function InterventionDetailPage() {
   if (!viewer || !intervention) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading intervention...</p>
+        <p>{t("teacher.interventions.detail.loading")}</p>
       </div>
     );
   }
@@ -131,34 +133,36 @@ export default function InterventionDetailPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Intervention detail</h1>
+          <h1 className="text-2xl font-semibold">{t("teacher.interventions.detail.title")}</h1>
           <Link href="/teacher/interventions" className="text-sm underline">
-            All interventions
+            {t("teacher.interventions.detail.allInterventions")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
           <p>
-            <span className="font-medium">Status:</span> {intervention.status}
+            <span className="font-medium">{t("teacher.interventions.detail.status")}</span> {intervention.status}
           </p>
           <p>
-            <span className="font-medium">Student:</span>{" "}
+            <span className="font-medium">{t("teacher.interventions.studentLabel")}</span>{" "}
             <Link href={`/students/${intervention.studentUserId}/profile`} className="underline">
               {intervention.studentUserId}
             </Link>
           </p>
           <p>
-            <span className="font-medium">Learning gap:</span> {intervention.learningGapId}
+            <span className="font-medium">{t("teacher.interventions.detail.learningGap")}</span> {intervention.learningGapId}
           </p>
           <p>
-            <span className="font-medium">Assigned teacher:</span> {intervention.assignedTeacherUserId}
+            <span className="font-medium">{t("teacher.interventions.detail.assignedTeacher")}</span> {intervention.assignedTeacherUserId}
           </p>
           <p>
-            <span className="font-medium">Planned actions:</span> {intervention.plannedActions}
+            <span className="font-medium">{t("teacher.interventions.detail.plannedActions")}</span> {intervention.plannedActions}
           </p>
           {intervention.plannedStartAt ? (
             <p className="text-sm text-black/60">
-              Timeline: {new Date(intervention.plannedStartAt).toLocaleDateString()}
+              {t("teacher.interventions.detail.timeline", {
+                start: new Date(intervention.plannedStartAt).toLocaleDateString(),
+              })}
               {intervention.plannedEndAt
                 ? ` – ${new Date(intervention.plannedEndAt).toLocaleDateString()}`
                 : null}
@@ -166,13 +170,13 @@ export default function InterventionDetailPage() {
           ) : null}
           {intervention.outcome ? (
             <p>
-              <span className="font-medium">Outcome:</span> {intervention.outcome}
+              <span className="font-medium">{t("teacher.interventions.detail.outcome")}</span> {intervention.outcome}
             </p>
           ) : null}
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Notes</h2>
+          <h2 className="font-medium">{t("teacher.interventions.detail.notes")}</h2>
           {canModify ? (
             <>
               <textarea
@@ -186,21 +190,21 @@ export default function InterventionDetailPage() {
                 disabled={saving}
                 onClick={handleSaveNotes}
               >
-                Save notes
+                {t("teacher.interventions.detail.saveNotes")}
               </button>
             </>
           ) : (
-            <p className="text-sm">{intervention.notes || "No notes recorded."}</p>
+            <p className="text-sm">{intervention.notes || t("teacher.interventions.detail.noNotesRecorded")}</p>
           )}
         </div>
 
         {canModify && nextStatus[intervention.status] ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-3">
-            <h2 className="font-medium">Status workflow</h2>
+            <h2 className="font-medium">{t("teacher.interventions.detail.statusWorkflow")}</h2>
             {intervention.status === "Active" ? (
               <textarea
                 className="w-full min-h-20 border border-black/20 rounded p-3 text-sm"
-                placeholder="Outcome summary when marking complete..."
+                placeholder={t("teacher.interventions.detail.outcomePlaceholder")}
                 value={outcome}
                 onChange={(event) => setOutcome(event.target.value)}
               />
@@ -211,7 +215,9 @@ export default function InterventionDetailPage() {
               disabled={saving}
               onClick={handleAdvanceStatus}
             >
-              Mark as {nextStatus[intervention.status]}
+              {t("teacher.interventions.detail.markAs", {
+                status: nextStatus[intervention.status] ?? "",
+              })}
             </button>
           </div>
         ) : null}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type ClassWithOrganisation = SchoolClass & {
   organisationName: string;
@@ -16,6 +17,7 @@ function isTeacher(profile: UserProfile): boolean {
 
 export default function TeacherWorkspacePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<ClassWithOrganisation[]>([]);
@@ -48,9 +50,9 @@ export default function TeacherWorkspacePage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   function handleLogout() {
     localStorage.removeItem("we_access_token");
@@ -63,7 +65,7 @@ export default function TeacherWorkspacePage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -73,7 +75,7 @@ export default function TeacherWorkspacePage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading teacher workspace...</p>
+        <p>{t("teacher.workspace.loading")}</p>
       </div>
     );
   }
@@ -83,9 +85,9 @@ export default function TeacherWorkspacePage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Teacher Workspace</h1>
+            <h1 className="text-2xl font-semibold">{t("teacher.workspace.title")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Your assigned classes and day-to-day teaching tools.
+              {t("teacher.workspace.subtitle")}
             </p>
           </div>
           <button
@@ -93,29 +95,29 @@ export default function TeacherWorkspacePage() {
             className="text-sm underline"
             type="button"
           >
-            Sign out
+            {t("common.signOut")}
           </button>
         </div>
 
         <div className="flex gap-4 text-sm">
           <Link href="/assessments" className="underline">
-            Assessments
+            {t("dashboard.nav.assessments")}
           </Link>
           <Link href="/curriculum" className="underline">
-            Curriculum
+            {t("dashboard.nav.curriculum")}
           </Link>
           <Link href="/teacher/interventions" className="underline">
-            Interventions
+            {t("teacher.workspace.nav.interventions")}
           </Link>
           <Link href="/teacher/messages" className="underline">
-            Parent messages
+            {t("teacher.workspace.nav.parentMessages")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">My classes</h2>
+          <h2 className="font-medium">{t("teacher.workspace.myClasses")}</h2>
           {classes.length === 0 ? (
-            <p className="text-sm text-black/60">No classes assigned to you.</p>
+            <p className="text-sm text-black/60">{t("teacher.workspace.noClasses")}</p>
           ) : (
             <ul className="space-y-3">
               {classes.map((schoolClass) => (
@@ -130,7 +132,9 @@ export default function TeacherWorkspacePage() {
                     {schoolClass.organisationName}
                   </p>
                   <p className="text-sm text-black/60">
-                    {schoolClass.studentUserIds?.length ?? 0} students enrolled
+                    {t("teacher.workspace.studentsEnrolled", {
+                      count: schoolClass.studentUserIds?.length ?? 0,
+                    })}
                   </p>
                 </li>
               ))}

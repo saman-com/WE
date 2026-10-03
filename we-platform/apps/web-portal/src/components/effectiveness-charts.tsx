@@ -1,18 +1,22 @@
+"use client";
+
 import type {
   CurriculumEffectivenessItem,
   InterventionEffectivenessItem,
 } from "@/lib/effectiveness-analytics";
 import { formatInterventionType, formatRate } from "@/lib/effectiveness-analytics";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type CurriculumEffectivenessTableProps = {
   items: CurriculumEffectivenessItem[];
 };
 
 export function CurriculumEffectivenessTable({ items }: CurriculumEffectivenessTableProps) {
+  const { t } = useI18n();
   if (items.length === 0) {
     return (
       <p className="text-sm text-black/60">
-        No curriculum mastery data in the analytics warehouse yet.
+        {t("charts.curriculum.empty")}
       </p>
     );
   }
@@ -22,11 +26,11 @@ export function CurriculumEffectivenessTable({ items }: CurriculumEffectivenessT
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-black/60 border-b border-black/10">
-            <th className="py-2 pr-4">Subject</th>
-            <th className="py-2 pr-4">Unit</th>
-            <th className="py-2 pr-4">Mastery rate</th>
-            <th className="py-2 pr-4">Mastered / Total</th>
-            <th className="py-2">Status</th>
+            <th className="py-2 pr-4">{t("charts.curriculum.subject")}</th>
+            <th className="py-2 pr-4">{t("charts.curriculum.unit")}</th>
+            <th className="py-2 pr-4">{t("charts.curriculum.masteryRate")}</th>
+            <th className="py-2 pr-4">{t("charts.curriculum.masteredTotal")}</th>
+            <th className="py-2">{t("charts.curriculum.status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -41,11 +45,11 @@ export function CurriculumEffectivenessTable({ items }: CurriculumEffectivenessT
               <td className="py-2">
                 {item.isUnderperforming ? (
                   <span className="text-xs rounded px-2 py-0.5 bg-red-100 text-red-800">
-                    Underperforming
+                    {t("charts.curriculum.underperforming")}
                   </span>
                 ) : (
                   <span className="text-xs rounded px-2 py-0.5 bg-green-100 text-green-800">
-                    On track
+                    {t("charts.curriculum.onTrack")}
                   </span>
                 )}
               </td>
@@ -62,10 +66,11 @@ type InterventionEffectivenessTableProps = {
 };
 
 export function InterventionEffectivenessTable({ items }: InterventionEffectivenessTableProps) {
+  const { t } = useI18n();
   if (items.length === 0) {
     return (
       <p className="text-sm text-black/60">
-        No intervention effectiveness data in the analytics warehouse yet.
+        {t("charts.intervention.empty")}
       </p>
     );
   }
@@ -93,7 +98,7 @@ export function InterventionEffectivenessTable({ items }: InterventionEffectiven
         ))}
       </div>
       <p className="text-xs text-black/50">
-        Success rate based on closed or completed interventions (EDW analytics).
+        {t("charts.intervention.footnote")}
       </p>
     </div>
   );

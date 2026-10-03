@@ -77,7 +77,9 @@ app.MapPost("/api/v1/auth/login", async (
     var user = await userManager.FindByEmailAsync(request.Email);
     if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
     {
-        return Results.Unauthorized();
+        return Results.Json(
+            new ApiErrorResponse("auth.invalid_credentials"),
+            statusCode: StatusCodes.Status401Unauthorized);
     }
 
     var (token, expiresInSeconds) = await tokenService.CreateAccessTokenAsync(user);

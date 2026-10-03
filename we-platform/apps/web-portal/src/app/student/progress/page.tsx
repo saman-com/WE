@@ -8,6 +8,7 @@ import {
   fetchStudentWorkspace,
   type StudentWorkspaceTimelineEntry,
 } from "@/lib/student-workspace";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isStudent(profile: UserProfile): boolean {
   return profile.roles.includes("Student");
@@ -15,6 +16,7 @@ function isStudent(profile: UserProfile): boolean {
 
 export default function StudentProgressPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [timeline, setTimeline] = useState<StudentWorkspaceTimelineEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +39,9 @@ export default function StudentProgressPage() {
         setTimeline(workspace.timeline);
       })
       .catch(() => {
-        setError("Unable to load your progress timeline.");
+        setError(t("student.progress.loadError"));
       });
-  }, [router]);
+  }, [router, t]);
 
   if (error) {
     return (
@@ -47,7 +49,7 @@ export default function StudentProgressPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/student" className="underline">
-            Back to my learning
+            {t("student.backToMyLearning")}
           </Link>
         </div>
       </div>
@@ -57,7 +59,7 @@ export default function StudentProgressPage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading progress timeline...</p>
+        <p>{t("student.progress.loading")}</p>
       </div>
     );
   }
@@ -67,19 +69,19 @@ export default function StudentProgressPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Progress timeline</h1>
+            <h1 className="text-2xl font-semibold">{t("student.progress.title")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Your Student Learning Profile — evidence of growth over time.
+              {t("student.progress.subtitle")}
             </p>
           </div>
           <Link href="/student" className="text-sm underline">
-            My learning
+            {t("student.myLearning")}
           </Link>
         </div>
 
         {timeline.length === 0 ? (
           <p className="text-sm text-black/60">
-            Your timeline is empty. Approved evidence from assessments will appear here as you learn.
+            {t("student.progress.empty")}
           </p>
         ) : (
           <ol className="relative border-l border-black/20 ml-3 space-y-6">

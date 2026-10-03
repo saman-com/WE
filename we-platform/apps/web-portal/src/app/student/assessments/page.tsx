@@ -17,6 +17,7 @@ import {
   type Assessment,
   type AssessmentSubmission,
 } from "@/lib/assessment";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type ClassScope = {
   organisationId: string;
@@ -29,6 +30,7 @@ function isStudent(profile: UserProfile): boolean {
 
 export default function StudentAssessmentsPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function StudentAssessmentsPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
-          setError("This page is for students only.");
+          setError(t("student.assessments.studentsOnly"));
           return;
         }
         setProfile(loaded);
@@ -88,7 +90,7 @@ export default function StudentAssessmentsPage() {
         localStorage.removeItem("we_access_token");
         router.replace("/login");
       });
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (!token || !selectedScope) {
@@ -143,11 +145,11 @@ export default function StudentAssessmentsPage() {
       setSubmission(created);
       setMessage(
         created.isLate
-          ? "Assessment submitted (marked as late). Your teacher will review it."
-          : "Assessment submitted. Your teacher will review it."
+          ? t("student.assessments.submittedLate")
+          : t("student.assessments.submittedOk")
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed.");
+      setError(err instanceof Error ? err.message : t("student.assessments.submissionFailed"));
     } finally {
       setBusy(false);
     }
@@ -159,7 +161,7 @@ export default function StudentAssessmentsPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/dashboard" className="underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -169,7 +171,7 @@ export default function StudentAssessmentsPage() {
   if (!profile || !token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading...</p>
+        <p>{t("common.loading")}</p>
       </div>
     );
   }
@@ -178,9 +180,9 @@ export default function StudentAssessmentsPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">My assessments</h1>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.myAssessments")}</h1>
           <Link href="/student" className="text-sm underline">
-            My learning
+            {t("student.myLearning")}
           </Link>
         </div>
 
@@ -188,9 +190,9 @@ export default function StudentAssessmentsPage() {
         {message ? <p className="text-green-700">{message}</p> : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Class</h2>
+          <h2 className="font-medium">{t("assessments.scope.classLabel")}</h2>
           {classScopes.length === 0 ? (
-            <p className="text-sm text-black/60">You are not enrolled in any classes.</p>
+            <p className="text-sm text-black/60">{t("student.assessments.notEnrolled")}</p>
           ) : (
             <select
               className="w-full border rounded px-3 py-2"
@@ -207,9 +209,9 @@ export default function StudentAssessmentsPage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Published assessments</h2>
+          <h2 className="font-medium">{t("student.assessments.publishedTitle")}</h2>
           {assessments.length === 0 ? (
-            <p className="text-sm text-black/60">No published assessments for this class.</p>
+            <p className="text-sm text-black/60">{t("student.assessments.noPublished")}</p>
           ) : (
             <ul className="space-y-3">
               {assessments.map((assessment) => (
@@ -224,7 +226,7 @@ export default function StudentAssessmentsPage() {
                     <p className="font-medium">{assessment.title}</p>
                     {assessment.dueAt ? (
                       <p className="text-sm text-black/70">
-                        Due: {new Date(assessment.dueAt).toLocaleString()}
+                        {t("assessments.list.duePrefix")} {new Date(assessment.dueAt).toLocaleString()}
                       </p>
                     ) : null}
                   </button>
@@ -242,18 +244,21 @@ export default function StudentAssessmentsPage() {
             ) : null}
             {selectedAssessment.dueAt ? (
               <p className="text-sm">
-                Due: {new Date(selectedAssessment.dueAt).toLocaleString()}
+                {t("assessments.list.duePrefix")} {new Date(selectedAssessment.dueAt).toLocaleString()}
               </p>
             ) : null}
 
             {submission ? (
               <div className="space-y-3">
                 <p className="text-sm text-green-700">
-                  Submitted on {new Date(submission.submittedAt).toLocaleString()}
-                  {submission.isLate ? " (late submission)" : ""}. Status: {submission.status}
+                  {t("student.assessments.submittedOn", {
+                    date: new Date(submission.submittedAt).toLocaleString(),
+                    late: submission.isLate ? t("student.assessments.lateSuffix") : "",
+                    status: submission.status,
+                  })}
                 </p>
                 <label className="block space-y-1">
-                  <span className="text-sm">Your responses</span>
+                  <span className="text-sm">{t("student.assessments.yourResponses")}</span>
                   <textarea
                     className="w-full border rounded px-3 py-2 bg-black/5"
                     rows={6}
@@ -262,19 +267,19 @@ export default function StudentAssessmentsPage() {
                   />
                 </label>
                 <p className="text-sm text-black/60">
-                  Submissions cannot be edited after submit.
+                  {t("student.assessments.cannotEdit")}
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 <label className="block space-y-1">
-                  <span className="text-sm">Your responses</span>
+                  <span className="text-sm">{t("student.assessments.yourResponses")}</span>
                   <textarea
                     className="w-full border rounded px-3 py-2"
                     rows={6}
                     value={responses}
                     onChange={(event) => setResponses(event.target.value)}
-                    placeholder="Enter your answers here..."
+                    placeholder={t("student.assessments.responsesPlaceholder")}
                   />
                 </label>
                 <button
@@ -283,7 +288,7 @@ export default function StudentAssessmentsPage() {
                   onClick={handleSubmit}
                   className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
                 >
-                  Submit assessment
+                  {t("student.assessments.submit")}
                 </button>
               </div>
             )}

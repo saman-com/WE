@@ -12,6 +12,7 @@ import {
   type MessageInboxThread,
 } from "@/lib/messaging";
 import { fetchLinkedChildren, type ParentChildLink } from "@/lib/parent-workspace";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isParent(profile: UserProfile): boolean {
   return profile.roles.includes("Parent");
@@ -19,6 +20,7 @@ function isParent(profile: UserProfile): boolean {
 
 export default function ParentMessagesPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
@@ -53,9 +55,9 @@ export default function ParentMessagesPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   async function openThread(thread: MessageInboxThread) {
     const token = localStorage.getItem("we_access_token");
@@ -73,7 +75,7 @@ export default function ParentMessagesPage() {
       );
       setConversation(loaded);
     } catch {
-      setError("Unable to load this conversation.");
+      setError(t("parent.messages.loadConversationError"));
     }
   }
 
@@ -87,7 +89,7 @@ export default function ParentMessagesPage() {
     const studentUserId = selectedThread?.studentUserId ?? newStudentId;
     const recipientUserId = selectedThread?.teacherUserId ?? newTeacherId;
     if (!studentUserId || !recipientUserId) {
-      setError("Select a child and enter the teacher user ID.");
+      setError(t("parent.messages.selectChildError"));
       return;
     }
 
@@ -105,7 +107,7 @@ export default function ParentMessagesPage() {
         await openThread(thread);
       }
     } catch {
-      setError("Unable to send message.");
+      setError(t("parent.messages.sendError"));
     }
   }
 
@@ -115,7 +117,7 @@ export default function ParentMessagesPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -125,7 +127,7 @@ export default function ParentMessagesPage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading messages...</p>
+        <p>{t("parent.messages.loading")}</p>
       </div>
     );
   }
@@ -135,20 +137,20 @@ export default function ParentMessagesPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">School messages</h1>
+            <h1 className="text-2xl font-semibold">{t("dashboard.nav.schoolMessages")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Communicate with your child&apos;s teachers in a student-specific context.
+              {t("parent.messages.subtitle")}
             </p>
           </div>
           <Link href="/parent" className="text-sm underline">
-            Parent workspace
+            {t("parent.home.title")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Conversations</h2>
+          <h2 className="font-medium">{t("parent.messages.conversations")}</h2>
           {threads.length === 0 ? (
-            <p className="text-sm text-black/60">No messages yet.</p>
+            <p className="text-sm text-black/60">{t("parent.messages.empty")}</p>
           ) : (
             <ul className="space-y-2">
               {threads.map((thread) => (
@@ -163,8 +165,10 @@ export default function ParentMessagesPage() {
                         : "border-black/20"
                     }`}
                   >
-                    Child {thread.studentUserId.slice(0, 8)} — Teacher{" "}
-                    {thread.teacherUserId.slice(0, 8)}
+                    {t("parent.messages.threadLabel", {
+                      child: thread.studentUserId.slice(0, 8),
+                      teacher: thread.teacherUserId.slice(0, 8),
+                    })}
                   </button>
                 </li>
               ))}
@@ -174,7 +178,7 @@ export default function ParentMessagesPage() {
 
         {conversation ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-3">
-            <h2 className="font-medium">Message history</h2>
+            <h2 className="font-medium">{t("parent.messages.history")}</h2>
             <ul className="space-y-3">
               {conversation.messages.map((message) => (
                 <li key={message.id} className="border border-black/10 rounded p-3">
@@ -190,12 +194,14 @@ export default function ParentMessagesPage() {
 
         <form onSubmit={handleSend} className="rounded-lg border border-black/10 p-6 space-y-3">
           <h2 className="font-medium">
-            {selectedThread ? "Reply" : "New message to teacher"}
+            {selectedThread
+              ? t("parent.messages.reply")
+              : t("parent.messages.newMessage")}
           </h2>
           {!selectedThread ? (
             <>
               <label className="block text-sm">
-                Child
+                {t("parent.messages.childLabel")}
                 <select
                   value={newStudentId}
                   onChange={(event) => setNewStudentId(event.target.value)}
@@ -203,24 +209,24 @@ export default function ParentMessagesPage() {
                 >
                   {children.map((child) => (
                     <option key={child.studentUserId} value={child.studentUserId}>
-                      Child {child.studentUserId.slice(0, 8)}
+                      {t("parent.home.childLabel", { id: child.studentUserId.slice(0, 8) })}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="block text-sm">
-                Teacher user ID
+                {t("parent.messages.teacherIdLabel")}
                 <input
                   value={newTeacherId}
                   onChange={(event) => setNewTeacherId(event.target.value)}
                   className="mt-1 block w-full rounded border border-black/20 px-3 py-2"
-                  placeholder="Teacher user ID from your school"
+                  placeholder={t("parent.messages.teacherIdPlaceholder")}
                 />
               </label>
             </>
           ) : null}
           <label className="block text-sm">
-            Message
+            {t("parent.messages.messageLabel")}
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -232,7 +238,7 @@ export default function ParentMessagesPage() {
             type="submit"
             className="rounded bg-black text-white px-4 py-2 text-sm"
           >
-            Send message
+            {t("parent.messages.send")}
           </button>
         </form>
       </div>

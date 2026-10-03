@@ -11,6 +11,7 @@ import {
   type Conversation,
   type MessageInboxThread,
 } from "@/lib/messaging";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -18,6 +19,7 @@ function isTeacher(profile: UserProfile): boolean {
 
 export default function TeacherMessagesPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageInboxThread | null>(null);
@@ -44,9 +46,9 @@ export default function TeacherMessagesPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   async function openThread(thread: MessageInboxThread) {
     const token = localStorage.getItem("we_access_token");
@@ -64,7 +66,7 @@ export default function TeacherMessagesPage() {
       );
       setConversation(loaded);
     } catch {
-      setError("Unable to load this conversation.");
+      setError(t("parent.messages.loadConversationError"));
     }
   }
 
@@ -93,7 +95,7 @@ export default function TeacherMessagesPage() {
         ) ?? selectedThread;
       await openThread(refreshed);
     } catch {
-      setError("Unable to send reply.");
+      setError(t("teacher.messages.sendError"));
     }
   }
 
@@ -103,7 +105,7 @@ export default function TeacherMessagesPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default function TeacherMessagesPage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading messages...</p>
+        <p>{t("parent.messages.loading")}</p>
       </div>
     );
   }
@@ -123,20 +125,20 @@ export default function TeacherMessagesPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Parent messages</h1>
+            <h1 className="text-2xl font-semibold">{t("teacher.workspace.nav.parentMessages")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Messages from parents of students in your classes.
+              {t("teacher.messages.subtitle")}
             </p>
           </div>
           <Link href="/teacher" className="text-sm underline">
-            Teacher workspace
+            {t("dashboard.nav.teacherWorkspace")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Inbox</h2>
+          <h2 className="font-medium">{t("teacher.messages.inbox")}</h2>
           {threads.length === 0 ? (
-            <p className="text-sm text-black/60">No parent messages yet.</p>
+            <p className="text-sm text-black/60">{t("teacher.messages.empty")}</p>
           ) : (
             <ul className="space-y-2">
               {threads.map((thread) => (
@@ -153,9 +155,16 @@ export default function TeacherMessagesPage() {
                   >
                     <span className="font-medium">{thread.latestMessage.body}</span>
                     <span className="block text-xs opacity-70 mt-1">
-                      Student {thread.studentUserId.slice(0, 8)} — Parent{" "}
-                      {thread.parentUserId.slice(0, 8)} — {thread.messageCount} message
-                      {thread.messageCount === 1 ? "" : "s"}
+                      {t(
+                        thread.messageCount === 1
+                          ? "teacher.messages.threadMetaOne"
+                          : "teacher.messages.threadMetaOther",
+                        {
+                          student: thread.studentUserId.slice(0, 8),
+                          parent: thread.parentUserId.slice(0, 8),
+                          count: thread.messageCount,
+                        }
+                      )}
                     </span>
                   </button>
                 </li>
@@ -167,7 +176,7 @@ export default function TeacherMessagesPage() {
         {conversation ? (
           <>
             <div className="rounded-lg border border-black/10 p-6 space-y-3">
-              <h2 className="font-medium">Conversation</h2>
+              <h2 className="font-medium">{t("teacher.messages.conversation")}</h2>
               <ul className="space-y-3">
                 {conversation.messages.map((message) => (
                   <li key={message.id} className="border border-black/10 rounded p-3">
@@ -181,7 +190,7 @@ export default function TeacherMessagesPage() {
             </div>
 
             <form onSubmit={handleReply} className="rounded-lg border border-black/10 p-6 space-y-3">
-              <h2 className="font-medium">Reply</h2>
+              <h2 className="font-medium">{t("parent.messages.reply")}</h2>
               <textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -192,7 +201,7 @@ export default function TeacherMessagesPage() {
                 type="submit"
                 className="rounded bg-black text-white px-4 py-2 text-sm"
               >
-                Send reply
+                {t("teacher.messages.sendReply")}
               </button>
             </form>
           </>

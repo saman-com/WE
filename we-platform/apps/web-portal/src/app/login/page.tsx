@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login, fetchProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, translateError } = useI18n();
   const [email, setEmail] = useState("teacher@school.local");
   const [password, setPassword] = useState("Password123!");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +28,12 @@ export default function LoginPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch {
-      setError("Login failed. Check your email and password.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(translateError(err.code, "login.errorFailed"));
+      } else {
+        setError(t("login.errorFailed"));
+      }
     } finally {
       setLoading(false);
     }
@@ -39,14 +46,12 @@ export default function LoginPage() {
         className="w-full max-w-md space-y-4 rounded-lg border border-black/10 p-8 shadow-sm"
       >
         <div>
-          <h1 className="text-2xl font-semibold">WE Platform Login</h1>
-          <p className="text-sm text-black/60 mt-1">
-            Sign in with your school account.
-          </p>
+          <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
+          <p className="text-sm text-black/60 mt-1">{t("login.subtitle")}</p>
         </div>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
+          <span className="text-sm font-medium">{t("login.emailLabel")}</span>
           <input
             type="email"
             value={email}
@@ -57,7 +62,7 @@ export default function LoginPage() {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium">Password</span>
+          <span className="text-sm font-medium">{t("login.passwordLabel")}</span>
           <input
             type="password"
             value={password}
@@ -74,7 +79,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded bg-black text-white py-2 font-medium disabled:opacity-60"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? t("login.submitLoading") : t("login.submit")}
         </button>
       </form>
     </div>

@@ -20,6 +20,7 @@ import {
   type Curriculum,
   type CurriculumTree,
 } from "@/lib/curriculum";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function canManageCurriculum(profile: UserProfile): boolean {
   return (
@@ -30,6 +31,7 @@ function canManageCurriculum(profile: UserProfile): boolean {
 
 export default function CurriculumPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export default function CurriculumPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!canManageCurriculum(loaded)) {
-          setError("You do not have curriculum-management permission.");
+          setError(t("curriculum.errorNoPermission"));
           return;
         }
         setProfile(loaded);
@@ -90,7 +92,7 @@ export default function CurriculumPage() {
         localStorage.removeItem("we_access_token");
         router.replace("/login");
       });
-  }, [router]);
+  }, [router, t]);
 
   async function refreshTree(accessToken: string, curriculumId: string) {
     const loaded = await getCurriculumTree(accessToken, curriculumId);
@@ -167,14 +169,14 @@ export default function CurriculumPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          setError("Unable to load curricula for this organisation.");
+          setError(t("curriculum.loadCurriculaError"));
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [token, organisationId, profile]);
+  }, [token, organisationId, profile, t]);
 
   async function run(action: () => Promise<void>) {
     if (!token) {
@@ -186,7 +188,7 @@ export default function CurriculumPage() {
     try {
       await action();
     } catch {
-      setError("Request failed. Check the form values and try again.");
+      setError(t("organisation.requestFailedCheckForm"));
     } finally {
       setBusy(false);
     }
@@ -206,7 +208,7 @@ export default function CurriculumPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/dashboard" className="underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -216,7 +218,7 @@ export default function CurriculumPage() {
   if (!profile || !token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading curriculum...</p>
+        <p>{t("curriculum.loading")}</p>
       </div>
     );
   }
@@ -244,23 +246,21 @@ export default function CurriculumPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Curriculum</h1>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.curriculum")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
         </div>
 
         <p className="text-sm text-black/60">
-          Define regional curriculum variants, inherit them into schools, and override
-          units or learning objectives. Tree: subject → units → topics, learning
-          objectives, and micro-skills.
+          {t("curriculum.intro")}
         </p>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         {message ? <p className="text-sm text-green-700">{message}</p> : null}
 
         <section className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Organisation</h2>
+          <h2 className="font-medium">{t("assessments.scope.organisationLabel")}</h2>
           {organisations.length > 0 ? (
             <select
               className="w-full rounded border border-black/20 px-3 py-2"
@@ -278,7 +278,7 @@ export default function CurriculumPage() {
               className="w-full rounded border border-black/20 px-3 py-2"
               value={organisationId}
               onChange={(event) => setOrganisationId(event.target.value)}
-              placeholder="Organisation id from organisation setup"
+              placeholder={t("curriculum.organisationIdPlaceholder")}
               required
             />
           )}
@@ -289,11 +289,11 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisationId) {
-              setError("Choose or enter an organisation id.");
+              setError(t("curriculum.chooseOrganisation"));
               return;
             }
             if (createAsRegional && !regionCode.trim()) {
-              setError("Regional variants require a region code.");
+              setError(t("curriculum.regionCodeRequired"));
               return;
             }
             void run(async () => {
@@ -308,8 +308,11 @@ export default function CurriculumPage() {
               );
               setMessage(
                 createAsRegional
-                  ? `Created regional variant ${created.name} (${created.regionCode}).`
-                  : `Created curriculum ${created.name}.`
+                  ? t("curriculum.createdRegional", {
+                      name: created.name,
+                      region: created.regionCode ?? "",
+                    })
+                  : t("curriculum.createdCurriculum", { name: created.name })
               );
               await loadCurricula(token, organisationId);
               setSelectedCurriculumId(created.id);
@@ -317,19 +320,19 @@ export default function CurriculumPage() {
             });
           }}
         >
-          <h2 className="font-medium">Create curriculum / regional variant</h2>
+          <h2 className="font-medium">{t("curriculum.createTitle")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={curriculumName}
             onChange={(event) => setCurriculumName(event.target.value)}
-            placeholder="Curriculum name"
+            placeholder={t("curriculum.namePlaceholder")}
             required
           />
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={curriculumVersion}
             onChange={(event) => setCurriculumVersion(event.target.value)}
-            placeholder="Version"
+            placeholder={t("curriculum.versionPlaceholder")}
             required
           />
           <label className="flex items-center gap-2 text-sm">
@@ -338,14 +341,14 @@ export default function CurriculumPage() {
               checked={createAsRegional}
               onChange={(event) => setCreateAsRegional(event.target.checked)}
             />
-            Define as regional / authority variant
+            {t("curriculum.defineRegional")}
           </label>
           {createAsRegional ? (
             <input
               className="w-full rounded border border-black/20 px-3 py-2"
               value={regionCode}
               onChange={(event) => setRegionCode(event.target.value)}
-              placeholder="Region code (e.g. NZ-NCEA)"
+              placeholder={t("curriculum.regionCodePlaceholder")}
               required
             />
           ) : null}
@@ -354,7 +357,9 @@ export default function CurriculumPage() {
             disabled={busy || !organisationId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            {createAsRegional ? "Create regional variant" : "Create curriculum"}
+            {createAsRegional
+              ? t("curriculum.createRegionalButton")
+              : t("curriculum.createButton")}
           </button>
         </form>
 
@@ -363,7 +368,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisationId || !parentCurriculumId.trim()) {
-              setError("Organisation and regional parent curriculum id are required to inherit.");
+              setError(t("curriculum.inheritRequired"));
               return;
             }
             void run(async () => {
@@ -373,7 +378,10 @@ export default function CurriculumPage() {
                 organisationId
               );
               setMessage(
-                `Inherited regional variant into school curriculum ${inherited.name} (${inherited.regionCode}).`
+                t("curriculum.inherited", {
+                  name: inherited.name,
+                  region: inherited.regionCode ?? "",
+                })
               );
               await loadCurricula(token, organisationId);
               setSelectedCurriculumId(inherited.id);
@@ -381,12 +389,12 @@ export default function CurriculumPage() {
             });
           }}
         >
-          <h2 className="font-medium">Inherit regional variant into school</h2>
+          <h2 className="font-medium">{t("curriculum.inheritTitle")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={parentCurriculumId}
             onChange={(event) => setParentCurriculumId(event.target.value)}
-            placeholder="Regional parent curriculum id"
+            placeholder={t("curriculum.parentIdPlaceholder")}
             required
           />
           <button
@@ -394,13 +402,13 @@ export default function CurriculumPage() {
             disabled={busy || !organisationId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Inherit into this organisation
+            {t("curriculum.inheritButton")}
           </button>
         </form>
 
         {curricula.length > 0 ? (
           <section className="rounded-lg border border-black/10 p-6 space-y-3">
-            <h2 className="font-medium">Select curriculum</h2>
+            <h2 className="font-medium">{t("curriculum.selectTitle")}</h2>
             <select
               className="w-full rounded border border-black/20 px-3 py-2"
               value={selectedCurriculumId}
@@ -409,7 +417,7 @@ export default function CurriculumPage() {
                 setSelectedCurriculumId(nextId);
                 if (token && nextId) {
                   void refreshTree(token, nextId).catch(() => {
-                    setError("Unable to load curriculum tree.");
+                    setError(t("curriculum.loadTreeError"));
                   });
                 }
               }}
@@ -423,10 +431,12 @@ export default function CurriculumPage() {
             </select>
             {tree ? (
               <p className="text-sm text-black/60">
-                Scope: {tree.scope}
-                {tree.regionCode ? ` · Region: ${tree.regionCode}` : ""}
+                {t("curriculum.scopeLine", { scope: tree.scope })}
+                {tree.regionCode
+                  ? ` · ${t("curriculum.regionLine", { region: tree.regionCode })}`
+                  : ""}
                 {tree.parentCurriculumId
-                  ? ` · Inherited from ${tree.parentCurriculumId}`
+                  ? ` · ${t("curriculum.inheritedFrom", { id: tree.parentCurriculumId })}`
                   : ""}
               </p>
             ) : null}
@@ -434,13 +444,13 @@ export default function CurriculumPage() {
         ) : null}
 
         <section className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">Curriculum tree</h2>
+          <h2 className="font-medium">{t("curriculum.treeTitle")}</h2>
           {!tree ? (
             <p className="text-sm text-black/60">
-              Create or select a curriculum to browse subjects and units.
+              {t("curriculum.treeEmpty")}
             </p>
           ) : tree.subjects.length === 0 ? (
-            <p className="text-sm text-black/60">No subjects yet.</p>
+            <p className="text-sm text-black/60">{t("curriculum.noSubjects")}</p>
           ) : (
             <ul className="space-y-2">
               {tree.subjects.map((subject) => {
@@ -457,13 +467,15 @@ export default function CurriculumPage() {
                     {expanded ? (
                       <ul className="ml-6 mt-1 list-disc space-y-1">
                         {subject.units.length === 0 ? (
-                          <li className="text-sm text-black/60">No units</li>
+                          <li className="text-sm text-black/60">{t("curriculum.noUnits")}</li>
                         ) : (
                           subject.units.map((unit) => (
                             <li key={unit.id}>
                               {unit.name}
                               {unit.isOverridden ? (
-                                <span className="ml-2 text-xs text-amber-700">(overridden)</span>
+                                <span className="ml-2 text-xs text-amber-700">
+                                  {t("curriculum.overridden")}
+                                </span>
                               ) : null}
                               {unit.topics.length > 0 ? (
                                 <ul className="ml-5 list-[circle]">
@@ -476,10 +488,10 @@ export default function CurriculumPage() {
                                 <ul className="ml-5 mt-1 space-y-1">
                                   {unit.learningObjectives.map((objective) => (
                                     <li key={objective.id}>
-                                      <span className="font-medium">LO:</span> {objective.title}
+                                      <span className="font-medium">{t("curriculum.loLabel")}</span> {objective.title}
                                       {objective.isOverridden ? (
                                         <span className="ml-2 text-xs text-amber-700">
-                                          (overridden)
+                                          {t("curriculum.overridden")}
                                         </span>
                                       ) : null}
                                       {objective.microSkills.length > 0 ? (
@@ -511,7 +523,7 @@ export default function CurriculumPage() {
             onSubmit={(event) => {
               event.preventDefault();
               if (!selectedCurriculumId || !overrideUnitName.trim()) {
-                setError("Enter an overridden unit name.");
+                setError(t("curriculum.overrideUnitNameRequired"));
                 return;
               }
               void run(async () => {
@@ -523,21 +535,21 @@ export default function CurriculumPage() {
                   overrideUnitName.trim(),
                   selectedUnit.sortOrder
                 );
-                setMessage(`Overrode unit ${selectedUnit.id}.`);
+                setMessage(t("curriculum.overrodeUnit", { id: selectedUnit.id }));
                 await refreshTree(token, selectedCurriculumId);
               });
             }}
           >
-            <h2 className="font-medium">Override unit (school variant)</h2>
+            <h2 className="font-medium">{t("curriculum.overrideUnitTitle")}</h2>
             <p className="text-sm text-black/60">
-              Selected unit: {selectedUnit.name}
-              {selectedUnit.isOverridden ? " (already overridden)" : ""}
+              {t("curriculum.selectedUnit", { name: selectedUnit.name })}
+              {selectedUnit.isOverridden ? ` ${t("curriculum.alreadyOverridden")}` : ""}
             </p>
             <input
               className="w-full rounded border border-black/20 px-3 py-2"
               value={overrideUnitName}
               onChange={(event) => setOverrideUnitName(event.target.value)}
-              placeholder="School-specific unit name"
+              placeholder={t("curriculum.schoolUnitNamePlaceholder")}
               required
             />
             <button
@@ -545,7 +557,7 @@ export default function CurriculumPage() {
               disabled={busy || !selectedCurriculumId}
               className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
             >
-              Override unit
+              {t("curriculum.overrideUnitButton")}
             </button>
           </form>
         ) : null}
@@ -556,7 +568,7 @@ export default function CurriculumPage() {
             onSubmit={(event) => {
               event.preventDefault();
               if (!selectedCurriculumId || !overrideObjectiveTitle.trim()) {
-                setError("Enter an overridden learning objective title.");
+                setError(t("curriculum.overrideObjectiveRequired"));
                 return;
               }
               void run(async () => {
@@ -569,21 +581,21 @@ export default function CurriculumPage() {
                   overrideObjectiveTitle.trim(),
                   selectedObjective.sortOrder
                 );
-                setMessage(`Overrode learning objective ${selectedObjective.id}.`);
+                setMessage(t("curriculum.overrodeObjective", { id: selectedObjective.id }));
                 await refreshTree(token, selectedCurriculumId);
               });
             }}
           >
-            <h2 className="font-medium">Override learning objective (school variant)</h2>
+            <h2 className="font-medium">{t("curriculum.overrideObjectiveTitle")}</h2>
             <p className="text-sm text-black/60">
-              Selected LO: {selectedObjective.title}
-              {selectedObjective.isOverridden ? " (already overridden)" : ""}
+              {t("curriculum.selectedObjective", { title: selectedObjective.title })}
+              {selectedObjective.isOverridden ? ` ${t("curriculum.alreadyOverridden")}` : ""}
             </p>
             <input
               className="w-full rounded border border-black/20 px-3 py-2"
               value={overrideObjectiveTitle}
               onChange={(event) => setOverrideObjectiveTitle(event.target.value)}
-              placeholder="School-specific learning objective"
+              placeholder={t("curriculum.schoolObjectivePlaceholder")}
               required
             />
             <button
@@ -591,7 +603,7 @@ export default function CurriculumPage() {
               disabled={busy || !selectedCurriculumId}
               className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
             >
-              Override learning objective
+              {t("curriculum.overrideObjectiveButton")}
             </button>
           </form>
         ) : null}
@@ -601,7 +613,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedCurriculumId) {
-              setError("Create a curriculum first.");
+              setError(t("curriculum.createCurriculumFirst"));
               return;
             }
             void run(async () => {
@@ -613,24 +625,24 @@ export default function CurriculumPage() {
                 (tree?.subjects.length ?? 0) + 1
               );
               setUnitSubjectId(created.id);
-              setMessage(`Added subject ${created.name}.`);
+              setMessage(t("curriculum.addedSubject", { name: created.name }));
               await refreshTree(token, selectedCurriculumId);
             });
           }}
         >
-          <h2 className="font-medium">Add subject</h2>
+          <h2 className="font-medium">{t("curriculum.addSubjectTitle")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={subjectName}
             onChange={(event) => setSubjectName(event.target.value)}
-            placeholder="Subject name"
+            placeholder={t("curriculum.subjectNamePlaceholder")}
             required
           />
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={subjectCode}
             onChange={(event) => setSubjectCode(event.target.value)}
-            placeholder="Subject code"
+            placeholder={t("curriculum.subjectCodePlaceholder")}
             required
           />
           <button
@@ -638,7 +650,7 @@ export default function CurriculumPage() {
             disabled={busy || !selectedCurriculumId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Add subject
+            {t("curriculum.addSubjectTitle")}
           </button>
         </form>
 
@@ -647,7 +659,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedCurriculumId || !unitSubjectId) {
-              setError("Add a subject first.");
+              setError(t("curriculum.addSubjectFirst"));
               return;
             }
             void run(async () => {
@@ -660,12 +672,12 @@ export default function CurriculumPage() {
               );
               setTopicUnitId(created.id);
               setObjectiveUnitId(created.id);
-              setMessage(`Added unit ${created.name}.`);
+              setMessage(t("curriculum.addedUnit", { name: created.name }));
               await refreshTree(token, selectedCurriculumId);
             });
           }}
         >
-          <h2 className="font-medium">Add unit</h2>
+          <h2 className="font-medium">{t("curriculum.addUnitTitle")}</h2>
           <select
             className="w-full rounded border border-black/20 px-3 py-2"
             value={unitSubjectId}
@@ -682,7 +694,7 @@ export default function CurriculumPage() {
             className="w-full rounded border border-black/20 px-3 py-2"
             value={unitName}
             onChange={(event) => setUnitName(event.target.value)}
-            placeholder="Unit name"
+            placeholder={t("curriculum.unitNamePlaceholder")}
             required
           />
           <button
@@ -690,7 +702,7 @@ export default function CurriculumPage() {
             disabled={busy || !unitSubjectId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Add unit
+            {t("curriculum.addUnitTitle")}
           </button>
         </form>
 
@@ -699,7 +711,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedCurriculumId || !selectedUnit) {
-              setError("Add a unit first.");
+              setError(t("curriculum.addUnitFirst"));
               return;
             }
             void run(async () => {
@@ -711,12 +723,12 @@ export default function CurriculumPage() {
                 topicName,
                 selectedUnit.topics.length + 1
               );
-              setMessage(`Added topic ${created.name}.`);
+              setMessage(t("curriculum.addedTopic", { name: created.name }));
               await refreshTree(token, selectedCurriculumId);
             });
           }}
         >
-          <h2 className="font-medium">Add topic</h2>
+          <h2 className="font-medium">{t("curriculum.addTopicTitle")}</h2>
           <select
             className="w-full rounded border border-black/20 px-3 py-2"
             value={topicUnitId}
@@ -735,7 +747,7 @@ export default function CurriculumPage() {
             className="w-full rounded border border-black/20 px-3 py-2"
             value={topicName}
             onChange={(event) => setTopicName(event.target.value)}
-            placeholder="Topic name"
+            placeholder={t("curriculum.topicNamePlaceholder")}
             required
           />
           <button
@@ -743,7 +755,7 @@ export default function CurriculumPage() {
             disabled={busy || !topicUnitId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Add topic
+            {t("curriculum.addTopicTitle")}
           </button>
         </form>
 
@@ -752,7 +764,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedCurriculumId || !selectedObjectiveUnit) {
-              setError("Add a unit first.");
+              setError(t("curriculum.addUnitFirst"));
               return;
             }
             void run(async () => {
@@ -765,12 +777,12 @@ export default function CurriculumPage() {
                 (selectedObjectiveUnit.learningObjectives?.length ?? 0) + 1
               );
               setMicroSkillObjectiveId(created.id);
-              setMessage(`Added learning objective ${created.title}.`);
+              setMessage(t("curriculum.addedObjective", { title: created.title }));
               await refreshTree(token, selectedCurriculumId);
             });
           }}
         >
-          <h2 className="font-medium">Add learning objective</h2>
+          <h2 className="font-medium">{t("curriculum.addObjectiveTitle")}</h2>
           <select
             className="w-full rounded border border-black/20 px-3 py-2"
             value={objectiveUnitId}
@@ -789,7 +801,7 @@ export default function CurriculumPage() {
             className="w-full rounded border border-black/20 px-3 py-2"
             value={objectiveTitle}
             onChange={(event) => setObjectiveTitle(event.target.value)}
-            placeholder="Learning objective title"
+            placeholder={t("curriculum.objectiveTitlePlaceholder")}
             required
           />
           <button
@@ -797,7 +809,7 @@ export default function CurriculumPage() {
             disabled={busy || !objectiveUnitId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Add learning objective
+            {t("curriculum.addObjectiveTitle")}
           </button>
         </form>
 
@@ -806,7 +818,7 @@ export default function CurriculumPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!selectedCurriculumId || !selectedObjective) {
-              setError("Add a learning objective first.");
+              setError(t("curriculum.addObjectiveFirst"));
               return;
             }
             void run(async () => {
@@ -819,12 +831,12 @@ export default function CurriculumPage() {
                 microSkillName,
                 selectedObjective.microSkills.length + 1
               );
-              setMessage(`Added micro-skill ${created.name} (id ${created.id}).`);
+              setMessage(t("curriculum.addedMicroSkill", { name: created.name, id: created.id }));
               await refreshTree(token, selectedCurriculumId);
             });
           }}
         >
-          <h2 className="font-medium">Add micro-skill</h2>
+          <h2 className="font-medium">{t("curriculum.addMicroSkillTitle")}</h2>
           <select
             className="w-full rounded border border-black/20 px-3 py-2"
             value={microSkillObjectiveId}
@@ -850,7 +862,7 @@ export default function CurriculumPage() {
             className="w-full rounded border border-black/20 px-3 py-2"
             value={microSkillName}
             onChange={(event) => setMicroSkillName(event.target.value)}
-            placeholder="Micro-skill name"
+            placeholder={t("curriculum.microSkillNamePlaceholder")}
             required
           />
           <button
@@ -858,7 +870,7 @@ export default function CurriculumPage() {
             disabled={busy || !microSkillObjectiveId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Add micro-skill
+            {t("curriculum.addMicroSkillTitle")}
           </button>
         </form>
       </div>

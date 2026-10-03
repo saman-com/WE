@@ -16,12 +16,12 @@ Includes: i18n framework setup in Next.js apps, translation files (`locales/en.j
 
 ## Acceptance criteria
 
-- [ ] All portal UI strings externalized to translation files
-- [ ] User can switch language via UI preference (persisted)
-- [ ] At least 2 languages fully translated for core flows (login, dashboard, assessment)
-- [ ] RTL layout works correctly for RTL languages
-- [ ] API error messages support i18n (or return error codes for client translation)
-- [ ] Tests verify language switching and RTL layout
+- [x] All portal UI strings externalized to translation files
+- [x] User can switch language via UI preference (persisted)
+- [x] At least 2 languages fully translated for core flows (login, dashboard, assessment)
+- [x] RTL layout works correctly for RTL languages
+- [x] API error messages support i18n (or return error codes for client translation)
+- [x] Tests verify language switching and RTL layout
 
 ## Blocked by
 

@@ -52,7 +52,7 @@ public static class AssessmentEndpoints
 
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new ApiErrorResponse("validation.invalid_request"));
         }
 
         var access = await EvaluateTeacherClassAccessAsync(
@@ -343,7 +343,7 @@ public static class AssessmentEndpoints
 
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new ApiErrorResponse("validation.invalid_request"));
         }
 
         assessment.Title = request.Title.Trim();

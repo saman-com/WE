@@ -1,17 +1,22 @@
+"use client";
+
 import type { MasteryTrendPoint } from "@/lib/longitudinal-analytics";
 import { formatPeriodKey } from "@/lib/longitudinal-analytics";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type MasteryTrendChartProps = {
   points: MasteryTrendPoint[];
   title?: string;
 };
 
-export function MasteryTrendChart({ points, title = "Mastery over time" }: MasteryTrendChartProps) {
+export function MasteryTrendChart({ points, title }: MasteryTrendChartProps) {
+  const { t } = useI18n();
+  const heading = title ?? t("charts.mastery.defaultTitle");
   if (points.length === 0) {
     return (
       <div className="space-y-2">
-        <h3 className="text-sm font-medium">{title}</h3>
-        <p className="text-sm text-black/60">No longitudinal mastery data yet.</p>
+        <h3 className="text-sm font-medium">{heading}</h3>
+        <p className="text-sm text-black/60">{t("charts.mastery.empty")}</p>
       </div>
     );
   }
@@ -21,7 +26,7 @@ export function MasteryTrendChart({ points, title = "Mastery over time" }: Maste
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium">{title}</h3>
+      <h3 className="text-sm font-medium">{heading}</h3>
       <div className="flex items-end gap-2 h-[140px] border-b border-black/10 pb-1">
         {points.map((point) => {
           const height = Math.max(4, (point.cumulativeMicroSkills / maxValue) * chartHeight);
@@ -31,7 +36,11 @@ export function MasteryTrendChart({ points, title = "Mastery over time" }: Maste
               <div
                 className="w-full max-w-10 bg-blue-600 rounded-t"
                 style={{ height: `${height}px` }}
-                title={`${formatPeriodKey(point.periodKey)}: ${point.cumulativeMicroSkills} cumulative (${point.microSkillsRecorded} this period)`}
+                title={t("charts.mastery.barTitle", {
+                  period: formatPeriodKey(point.periodKey),
+                  cumulative: point.cumulativeMicroSkills,
+                  recorded: point.microSkillsRecorded,
+                })}
               />
               <span className="text-[10px] text-black/50 truncate w-full text-center">
                 {formatPeriodKey(point.periodKey)}
@@ -41,7 +50,7 @@ export function MasteryTrendChart({ points, title = "Mastery over time" }: Maste
         })}
       </div>
       <p className="text-xs text-black/50">
-        Cumulative micro-skills recorded from approved evidence (EDW analytics).
+        {t("charts.mastery.footnote")}
       </p>
     </div>
   );
@@ -56,18 +65,19 @@ type GapHistoryTimelineProps = {
 };
 
 export function GapHistoryTimeline({ events }: GapHistoryTimelineProps) {
+  const { t } = useI18n();
   if (events.length === 0) {
     return (
       <div className="space-y-2">
-        <h3 className="text-sm font-medium">Gap history</h3>
-        <p className="text-sm text-black/60">No gap lifecycle events recorded yet.</p>
+        <h3 className="text-sm font-medium">{t("charts.gapHistory.title")}</h3>
+        <p className="text-sm text-black/60">{t("charts.gapHistory.empty")}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium">Gap history</h3>
+      <h3 className="text-sm font-medium">{t("charts.gapHistory.title")}</h3>
       <ol className="relative border-l border-black/20 ml-2 space-y-4">
         {events.map((event, index) => (
           <li key={`${event.learningGapId}-${event.eventType}-${index}`} className="ml-4">
@@ -77,7 +87,7 @@ export function GapHistoryTimeline({ events }: GapHistoryTimelineProps) {
               }`}
             />
             <p className="text-sm font-medium">
-              Gap {event.eventType.toLowerCase()}
+              {t("charts.gapHistory.event", { event: event.eventType.toLowerCase() })}
             </p>
             <p className="text-xs text-black/60">
               {event.learningGapId.slice(0, 8)}… ·{" "}
@@ -100,18 +110,19 @@ type InterventionOutcomesTimelineProps = {
 };
 
 export function InterventionOutcomesTimeline({ outcomes }: InterventionOutcomesTimelineProps) {
+  const { t } = useI18n();
   if (outcomes.length === 0) {
     return (
       <div className="space-y-2">
-        <h3 className="text-sm font-medium">Intervention outcomes</h3>
-        <p className="text-sm text-black/60">No intervention history in analytics store yet.</p>
+        <h3 className="text-sm font-medium">{t("charts.outcomes.title")}</h3>
+        <p className="text-sm text-black/60">{t("charts.outcomes.empty")}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium">Intervention outcomes</h3>
+      <h3 className="text-sm font-medium">{t("charts.outcomes.title")}</h3>
       <ul className="space-y-2">
         {outcomes.map((outcome) => (
           <li
@@ -119,7 +130,7 @@ export function InterventionOutcomesTimeline({ outcomes }: InterventionOutcomesT
             className="flex items-center justify-between rounded border border-black/5 px-3 py-2 text-sm"
           >
             <span>
-              Gap {outcome.learningGapId.slice(0, 8)}…
+              {t("charts.outcomes.gapLabel", { id: outcome.learningGapId.slice(0, 8) })}
             </span>
             <span className="text-xs rounded px-2 py-0.5 bg-black/5">
               {outcome.status}

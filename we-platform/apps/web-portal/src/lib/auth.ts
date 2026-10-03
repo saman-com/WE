@@ -1,3 +1,5 @@
+import { ApiError, readApiError } from "@/lib/api-error";
+
 const identityApiUrl =
   process.env.NEXT_PUBLIC_IDENTITY_API_URL ?? "http://localhost:8081";
 
@@ -24,7 +26,7 @@ export async function login(
   });
 
   if (!response.ok) {
-    throw new Error("Invalid email or password.");
+    throw await readApiError(response, "auth.invalid_credentials");
   }
 
   return response.json();
@@ -36,7 +38,7 @@ export async function fetchProfile(token: string): Promise<UserProfile> {
   });
 
   if (!response.ok) {
-    throw new Error("Unable to load profile.");
+    throw new ApiError("auth.unauthorized", response.status);
   }
 
   return response.json();

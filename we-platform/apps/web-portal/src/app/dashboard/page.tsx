@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -34,9 +36,9 @@ export default function DashboardPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   function handleLogout() {
     localStorage.removeItem("we_access_token");
@@ -49,7 +51,7 @@ export default function DashboardPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -59,7 +61,7 @@ export default function DashboardPage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading profile...</p>
+        <p>{t("common.loadingProfile")}</p>
       </div>
     );
   }
@@ -68,52 +70,55 @@ export default function DashboardPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold">{t("dashboard.title")}</h1>
           <button
             onClick={handleLogout}
             className="text-sm underline"
             type="button"
           >
-            Sign out
+            {t("dashboard.signOut")}
           </button>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <p>
-            <span className="font-medium">Name:</span> {profile.name}
+            <span className="font-medium">{t("dashboard.profile.nameLabel")}</span>{" "}
+            {profile.name}
           </p>
           <p>
-            <span className="font-medium">Email:</span> {profile.email}
+            <span className="font-medium">{t("dashboard.profile.emailLabel")}</span>{" "}
+            {profile.email}
           </p>
           <p>
-            <span className="font-medium">User id:</span> {profile.id}
+            <span className="font-medium">{t("dashboard.profile.userIdLabel")}</span>{" "}
+            {profile.id}
           </p>
           <p>
-            <span className="font-medium">Roles:</span>{" "}
+            <span className="font-medium">{t("dashboard.profile.rolesLabel")}</span>{" "}
             {profile.roles.join(", ")}
           </p>
         </div>
 
         <Link href="/notifications" className="text-sm underline block">
-          Notifications
+          {t("dashboard.nav.notifications")}
         </Link>
 
         {profile.roles.includes("FederationAdmin") ? (
           <Link href="/admin/federation" className="text-sm underline block">
-            Federation administration
+            {t("dashboard.nav.federationAdmin")}
           </Link>
         ) : null}
 
         {profile.roles.includes("SystemAdministrator") ? (
           <>
             <Link href="/organisation" className="text-sm underline">
-              Organisation setup
+              {t("dashboard.nav.organisationSetup")}
             </Link>
             <Link href="/admin/ai-audit" className="text-sm underline block">
-              AI audit logs
+              {t("dashboard.nav.aiAuditLogs")}
             </Link>
             <Link href="/admin/regional-configuration" className="text-sm underline block">
-              Regional configuration
+              {t("dashboard.nav.regionalConfiguration")}
             </Link>
           </>
         ) : null}
@@ -122,13 +127,13 @@ export default function DashboardPage() {
         profile.roles.includes("Teacher") ? (
           <>
             <Link href="/teacher" className="text-sm underline">
-              Teacher workspace
+              {t("dashboard.nav.teacherWorkspace")}
             </Link>
             <Link href="/curriculum" className="text-sm underline">
-              Curriculum
+              {t("dashboard.nav.curriculum")}
             </Link>
             <Link href="/assessments" className="text-sm underline">
-              Assessments
+              {t("dashboard.nav.assessments")}
             </Link>
           </>
         ) : null}
@@ -136,10 +141,10 @@ export default function DashboardPage() {
         {profile.roles.includes("Student") ? (
           <>
             <Link href="/student" className="text-sm underline">
-              Student workspace
+              {t("dashboard.nav.studentWorkspace")}
             </Link>
             <Link href="/student/assessments" className="text-sm underline">
-              My assessments
+              {t("dashboard.nav.myAssessments")}
             </Link>
           </>
         ) : null}
@@ -147,10 +152,10 @@ export default function DashboardPage() {
         {profile.roles.includes("Parent") ? (
           <>
             <Link href="/parent" className="text-sm underline">
-              Parent workspace
+              {t("dashboard.nav.parentWorkspace")}
             </Link>
             <Link href="/parent/messages" className="text-sm underline block">
-              School messages
+              {t("dashboard.nav.schoolMessages")}
             </Link>
           </>
         ) : null}
@@ -158,18 +163,18 @@ export default function DashboardPage() {
         {profile.roles.includes("SchoolLeader") ? (
           <>
             <Link href="/leadership" className="text-sm underline block">
-              Leadership dashboard
+              {t("dashboard.nav.leadershipDashboard")}
             </Link>
             <Link href="/admin/regional-configuration" className="text-sm underline block">
-              Regional configuration
+              {t("dashboard.nav.regionalConfiguration")}
             </Link>
           </>
         ) : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
-          <h2 className="font-medium">Classes</h2>
+          <h2 className="font-medium">{t("dashboard.classes.title")}</h2>
           {classes.length === 0 ? (
-            <p className="text-sm text-black/60">No classes in your scope.</p>
+            <p className="text-sm text-black/60">{t("dashboard.classes.empty")}</p>
           ) : (
             <ul className="space-y-3">
               {classes.map((schoolClass) => (
@@ -185,7 +190,7 @@ export default function DashboardPage() {
                             href={`/students/${studentUserId}/profile`}
                             className="text-sm underline"
                           >
-                            View profile — {studentUserId}
+                            {t("dashboard.classes.viewProfile", { studentUserId })}
                           </Link>
                         </li>
                       ))}
@@ -195,10 +200,12 @@ export default function DashboardPage() {
                       href={`/students/${profile.id}/profile`}
                       className="text-sm underline"
                     >
-                      View my learning profile
+                      {t("dashboard.classes.viewMyLearningProfile")}
                     </Link>
                   ) : (
-                    <p className="text-sm text-black/60">No students enrolled.</p>
+                    <p className="text-sm text-black/60">
+                      {t("dashboard.classes.noStudentsEnrolled")}
+                    </p>
                   )}
                 </li>
               ))}
@@ -207,7 +214,7 @@ export default function DashboardPage() {
         </div>
 
         <Link href="/" className="text-sm underline">
-          Back to home
+          {t("dashboard.backToHome")}
         </Link>
       </div>
     </div>

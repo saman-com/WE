@@ -10,6 +10,7 @@ import {
   type InterventionStatus,
 } from "@/lib/interventions";
 import { listClasses, listOrganisations } from "@/lib/organisation";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const statusOrder: InterventionStatus[] = ["Planned", "Active", "Completed", "Closed"];
 
@@ -28,6 +29,7 @@ function statusBadgeClass(status: InterventionStatus): string {
 
 export default function TeacherInterventionsPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -80,9 +82,9 @@ export default function TeacherInterventionsPage() {
         ));
       })
       .catch(() => {
-        setError("Unable to load interventions.");
+        setError(t("teacher.interventions.loadError"));
       });
-  }, [router]);
+  }, [router, t]);
 
   const filtered =
     statusFilter === "All"
@@ -95,7 +97,7 @@ export default function TeacherInterventionsPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/teacher" className="underline">
-            Back to teacher workspace
+            {t("teacher.interventions.backToWorkspace")}
           </Link>
         </div>
       </div>
@@ -105,7 +107,7 @@ export default function TeacherInterventionsPage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading interventions...</p>
+        <p>{t("teacher.interventions.loading")}</p>
       </div>
     );
   }
@@ -115,13 +117,13 @@ export default function TeacherInterventionsPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Interventions</h1>
+            <h1 className="text-2xl font-semibold">{t("teacher.workspace.nav.interventions")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Track planned and active support for students in your classes.
+              {t("teacher.interventions.subtitle")}
             </p>
           </div>
           <Link href="/teacher" className="text-sm underline">
-            Teacher workspace
+            {t("dashboard.nav.teacherWorkspace")}
           </Link>
         </div>
 
@@ -131,7 +133,7 @@ export default function TeacherInterventionsPage() {
             className={`rounded px-3 py-1 border ${statusFilter === "All" ? "border-black" : "border-black/20"}`}
             onClick={() => setStatusFilter("All")}
           >
-            All
+            {t("teacher.interventions.filterAll")}
           </button>
           {statusOrder.map((status) => (
             <button
@@ -148,7 +150,7 @@ export default function TeacherInterventionsPage() {
         {filtered.length === 0 ? (
           <div className="rounded-lg border border-black/10 p-6">
             <p className="text-sm text-black/60">
-              No interventions yet. Create one from a student learning profile when a learning gap is identified.
+              {t("teacher.interventions.empty")}
             </p>
           </div>
         ) : (
@@ -164,15 +166,18 @@ export default function TeacherInterventionsPage() {
                   </span>
                 </div>
                 <p className="text-xs text-black/60">
-                  Student:{" "}
+                  {t("teacher.interventions.studentLabel")}{" "}
                   <Link href={`/students/${item.studentUserId}/profile`} className="underline">
                     {item.studentUserId}
                   </Link>
-                  {" · "}Gap: {item.learningGapId}
+                  {" · "}
+                  {t("teacher.interventions.gapLabel", { id: item.learningGapId })}
                 </p>
-                <p className="text-sm text-black/70 line-clamp-2">{item.notes || "No notes yet."}</p>
+                <p className="text-sm text-black/70 line-clamp-2">{item.notes || t("teacher.interventions.noNotesYet")}</p>
                 <p className="text-xs text-black/50">
-                  Updated {new Date(item.updatedAt).toLocaleString()}
+                  {t("teacher.interventions.updated", {
+                    date: new Date(item.updatedAt).toLocaleString(),
+                  })}
                 </p>
               </li>
             ))}

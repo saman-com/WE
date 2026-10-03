@@ -148,6 +148,37 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
     }
 
     [Fact]
+    public async Task Teacher_CreateAssessment_WithEmptyTitle_ReturnsTranslatableErrorCode()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/assessments",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateAssessmentRequest(
+            organisationId,
+            classId,
+            "   ",
+            null,
+            null,
+            [],
+            []));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("validation.invalid_request", error.Code);
+    }
+
+    [Fact]
     public async Task Student_CanListPublishedAssessments_ForEnrolledClassOnly()
     {
         var teacherId = Guid.NewGuid().ToString();

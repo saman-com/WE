@@ -1,3 +1,5 @@
+import { readApiError } from "@/lib/api-error";
+
 const assessmentApiUrl =
   process.env.NEXT_PUBLIC_ASSESSMENT_API_URL ?? "http://localhost:8085";
 
@@ -54,7 +56,7 @@ async function assessmentRequest<T>(
   }
 
   if (!response.ok) {
-    throw new Error(`Assessment request failed (${response.status}).`);
+    throw await readApiError(response, "validation.invalid_request");
   }
 
   return response.json() as Promise<T>;

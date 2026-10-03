@@ -1,5 +1,7 @@
 namespace AssessmentService.Application;
 
+public sealed record ApiErrorResponse(string Code);
+
 public record CreateAssessmentRequest(
     Guid OrganisationId,
     Guid ClassId,

@@ -17,6 +17,7 @@ import {
   listEvidenceForAssessment,
   type Evidence,
 } from "@/lib/evidence";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function canReview(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -30,6 +31,7 @@ type MarkDraft = {
 
 export default function AssessmentReviewPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useParams<{ assessmentId: string }>();
   const assessmentId = params.assessmentId;
 
@@ -57,7 +59,7 @@ export default function AssessmentReviewPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!canReview(loaded)) {
-          setError("Only teachers can approve evidence.");
+          setError(t("assessments.review.teachersOnly"));
           return;
         }
         setProfile(loaded);
@@ -83,9 +85,9 @@ export default function AssessmentReviewPage() {
         setDrafts(initialDrafts);
       })
       .catch(() => {
-        setError("Unable to load submissions for review.");
+        setError(t("assessments.review.loadError"));
       });
-  }, [router, assessmentId, message]);
+  }, [router, assessmentId, message, t]);
 
   function evidenceFor(submissionId: string): Evidence | undefined {
     return evidence.find((item) => item.submissionId === submissionId);
@@ -138,9 +140,9 @@ export default function AssessmentReviewPage() {
           },
         },
       }));
-      setMessage("AI draft ready for your review. Edit before approving.");
+      setMessage(t("assessments.review.draftReady"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "AI draft request failed.");
+      setError(err instanceof Error ? err.message : t("assessments.review.draftFailed"));
     } finally {
       setBusy(false);
     }
@@ -187,9 +189,9 @@ export default function AssessmentReviewPage() {
         }
       }
 
-      setMessage("Submission approved. Evidence recorded on the student learning profile.");
+      setMessage(t("assessments.review.approved"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Approval failed.");
+      setError(err instanceof Error ? err.message : t("assessments.review.approvalFailed"));
     } finally {
       setBusy(false);
     }
@@ -201,7 +203,7 @@ export default function AssessmentReviewPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/assessments" className="underline">
-            Back to assessments
+            {t("assessments.review.backToAssessments")}
           </Link>
         </div>
       </div>
@@ -211,7 +213,7 @@ export default function AssessmentReviewPage() {
   if (!profile || !token || !assessment) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading submissions...</p>
+        <p>{t("assessments.review.loading")}</p>
       </div>
     );
   }
@@ -220,9 +222,9 @@ export default function AssessmentReviewPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Review submissions</h1>
+          <h1 className="text-2xl font-semibold">{t("assessments.list.reviewSubmissions")}</h1>
           <Link href="/assessments" className="text-sm underline">
-            Assessments
+            {t("dashboard.nav.assessments")}
           </Link>
         </div>
 
@@ -235,12 +237,14 @@ export default function AssessmentReviewPage() {
             <p className="text-sm text-black/70">{assessment.instructions}</p>
           ) : null}
           <p className="text-sm">
-            Micro-skills: {assessment.microSkillIds.length}
+            {t("assessments.review.microSkillsCount", {
+              count: assessment.microSkillIds.length,
+            })}
           </p>
         </div>
 
         {submissions.length === 0 ? (
-          <p className="text-sm text-black/60">No student submissions yet.</p>
+          <p className="text-sm text-black/60">{t("assessments.review.noSubmissions")}</p>
         ) : (
           <ul className="space-y-4">
             {submissions.map((submission) => {
@@ -248,17 +252,21 @@ export default function AssessmentReviewPage() {
               return (
                 <li key={submission.id} className="rounded-lg border border-black/10 p-6 space-y-4">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="font-medium">Student {submission.studentUserId}</p>
+                    <p className="font-medium">
+                      {t("assessments.review.studentLabel", { id: submission.studentUserId })}
+                    </p>
                     <span className="text-xs uppercase tracking-wide">
-                      {approved ? "Approved" : submission.status}
+                      {approved ? t("assessments.review.approvedBadge") : submission.status}
                     </span>
                   </div>
                   <p className="text-sm text-black/70">
-                    Submitted {new Date(submission.submittedAt).toLocaleString()}
-                    {submission.isLate ? " (late)" : ""}
+                    {t("assessments.review.submittedAt", {
+                      date: new Date(submission.submittedAt).toLocaleString(),
+                      late: submission.isLate ? t("assessments.review.lateSuffix") : "",
+                    })}
                   </p>
                   <label className="block space-y-1">
-                    <span className="text-sm">Responses</span>
+                    <span className="text-sm">{t("assessments.review.responses")}</span>
                     <textarea
                       className="w-full border rounded px-3 py-2 bg-black/5"
                       rows={4}
@@ -269,7 +277,7 @@ export default function AssessmentReviewPage() {
 
                   {assessment.microSkillIds.length === 0 ? (
                     <p className="text-sm text-black/60">
-                      This assessment has no micro-skills linked, so marks cannot be recorded.
+                      {t("assessments.review.noMicroSkills")}
                     </p>
                   ) : approved ? (
                     <ul className="text-sm space-y-2">
@@ -285,7 +293,7 @@ export default function AssessmentReviewPage() {
                         <div key={microSkillId} className="border rounded p-3 space-y-2">
                           <p className="text-sm font-medium">{microSkillId}</p>
                           <label className="block space-y-1">
-                            <span className="text-sm">Mark</span>
+                            <span className="text-sm">{t("assessments.review.mark")}</span>
                             <input
                               className="w-full border rounded px-3 py-2"
                               type="number"
@@ -301,7 +309,7 @@ export default function AssessmentReviewPage() {
                             />
                           </label>
                           <label className="block space-y-1">
-                            <span className="text-sm">Feedback</span>
+                            <span className="text-sm">{t("assessments.review.feedback")}</span>
                             <textarea
                               className="w-full border rounded px-3 py-2"
                               rows={2}
@@ -322,7 +330,7 @@ export default function AssessmentReviewPage() {
                             onClick={() => handleDraftWithAi(submission, microSkillId)}
                             className="rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50"
                           >
-                            Draft with AI
+                            {t("assessments.review.draftWithAi")}
                           </button>
                         </div>
                       ))}
@@ -332,7 +340,7 @@ export default function AssessmentReviewPage() {
                         onClick={() => handleApprove(submission)}
                         className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
                       >
-                        Approve evidence
+                        {t("assessments.review.approveEvidence")}
                       </button>
                     </div>
                   )}

@@ -14,11 +14,13 @@ import {
   type SchoolClass,
   type YearLevel,
 } from "@/lib/organisation";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const STUDENT_SEED_ID = "22222222-2222-2222-2222-222222222222";
 
 export default function OrganisationSetupPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export default function OrganisationSetupPage() {
     fetchProfile(stored)
       .then((loaded) => {
         if (!loaded.roles.includes("SystemAdministrator")) {
-          setError("Only system administrators can set up organisations.");
+          setError(t("organisation.adminOnly"));
           return;
         }
         setProfile(loaded);
@@ -58,7 +60,7 @@ export default function OrganisationSetupPage() {
         localStorage.removeItem("we_access_token");
         router.replace("/login");
       });
-  }, [router]);
+  }, [router, t]);
 
   async function run(action: () => Promise<void>) {
     if (!token) {
@@ -70,7 +72,7 @@ export default function OrganisationSetupPage() {
     try {
       await action();
     } catch {
-      setError("Request failed. Check the form values and try again.");
+      setError(t("organisation.requestFailedCheckForm"));
     } finally {
       setBusy(false);
     }
@@ -82,7 +84,7 @@ export default function OrganisationSetupPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/dashboard" className="underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -92,7 +94,7 @@ export default function OrganisationSetupPage() {
   if (!profile || !token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading organisation setup...</p>
+        <p>{t("organisation.loading")}</p>
       </div>
     );
   }
@@ -101,15 +103,14 @@ export default function OrganisationSetupPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Organisation setup</h1>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.organisationSetup")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
         </div>
 
         <p className="text-sm text-black/60">
-          Create a school, add a year level and class, assign a teacher, and
-          enroll a student. Seed student id: {STUDENT_SEED_ID}
+          {t("organisation.intro", { seedId: STUDENT_SEED_ID })}
         </p>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -122,23 +123,23 @@ export default function OrganisationSetupPage() {
             void run(async () => {
               const created = await createOrganisation(token, schoolName, schoolCode);
               setOrganisation(created);
-              setMessage(`Created school ${created.name}.`);
+              setMessage(t("organisation.createdSchool", { name: created.name }));
             });
           }}
         >
-          <h2 className="font-medium">1. Create school</h2>
+          <h2 className="font-medium">{t("organisation.step1Title")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={schoolName}
             onChange={(event) => setSchoolName(event.target.value)}
-            placeholder="School name"
+            placeholder={t("organisation.schoolNamePlaceholder")}
             required
           />
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={schoolCode}
             onChange={(event) => setSchoolCode(event.target.value)}
-            placeholder="School code"
+            placeholder={t("organisation.schoolCodePlaceholder")}
             required
           />
           <button
@@ -146,10 +147,10 @@ export default function OrganisationSetupPage() {
             disabled={busy}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Create school
+            {t("organisation.createSchool")}
           </button>
           {organisation ? (
-            <p className="text-sm">School id: {organisation.id}</p>
+            <p className="text-sm">{t("organisation.schoolId", { id: organisation.id })}</p>
           ) : null}
         </form>
 
@@ -158,7 +159,7 @@ export default function OrganisationSetupPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisation) {
-              setError("Create a school first.");
+              setError(t("organisation.createSchoolFirst"));
               return;
             }
             void run(async () => {
@@ -169,16 +170,16 @@ export default function OrganisationSetupPage() {
                 yearOrder
               );
               setYearLevel(created);
-              setMessage(`Created ${created.name}.`);
+              setMessage(t("organisation.createdYearLevel", { name: created.name }));
             });
           }}
         >
-          <h2 className="font-medium">2. Add year level</h2>
+          <h2 className="font-medium">{t("organisation.step2Title")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={yearName}
             onChange={(event) => setYearName(event.target.value)}
-            placeholder="Year level name"
+            placeholder={t("organisation.yearLevelNamePlaceholder")}
             required
           />
           <input
@@ -193,7 +194,7 @@ export default function OrganisationSetupPage() {
             disabled={busy || !organisation}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Create year level
+            {t("organisation.createYearLevel")}
           </button>
         </form>
 
@@ -202,7 +203,7 @@ export default function OrganisationSetupPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisation || !yearLevel) {
-              setError("Create a school and year level first.");
+              setError(t("organisation.createSchoolAndYearFirst"));
               return;
             }
             void run(async () => {
@@ -214,23 +215,23 @@ export default function OrganisationSetupPage() {
                 classCode
               );
               setSchoolClass(created);
-              setMessage(`Created class ${created.name}.`);
+              setMessage(t("organisation.createdClass", { name: created.name }));
             });
           }}
         >
-          <h2 className="font-medium">3. Create class</h2>
+          <h2 className="font-medium">{t("organisation.step3Title")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={className}
             onChange={(event) => setClassName(event.target.value)}
-            placeholder="Class name"
+            placeholder={t("organisation.classNamePlaceholder")}
             required
           />
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={classCode}
             onChange={(event) => setClassCode(event.target.value)}
-            placeholder="Class code"
+            placeholder={t("organisation.classCodePlaceholder")}
             required
           />
           <button
@@ -238,7 +239,7 @@ export default function OrganisationSetupPage() {
             disabled={busy || !yearLevel}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Create class
+            {t("organisation.createClass")}
           </button>
         </form>
 
@@ -247,7 +248,7 @@ export default function OrganisationSetupPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisation || !schoolClass) {
-              setError("Create a class first.");
+              setError(t("organisation.createClassFirst"));
               return;
             }
             void run(async () => {
@@ -257,16 +258,16 @@ export default function OrganisationSetupPage() {
                 schoolClass.id,
                 teacherUserId
               );
-              setMessage("Teacher assigned.");
+              setMessage(t("organisation.teacherAssigned"));
             });
           }}
         >
-          <h2 className="font-medium">4. Assign teacher</h2>
+          <h2 className="font-medium">{t("organisation.step4Title")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={teacherUserId}
             onChange={(event) => setTeacherUserId(event.target.value)}
-            placeholder="Teacher user id from dashboard"
+            placeholder={t("organisation.teacherIdPlaceholder")}
             required
           />
           <button
@@ -274,7 +275,7 @@ export default function OrganisationSetupPage() {
             disabled={busy || !schoolClass}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Assign teacher
+            {t("organisation.assignTeacher")}
           </button>
         </form>
 
@@ -283,7 +284,7 @@ export default function OrganisationSetupPage() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!organisation || !schoolClass) {
-              setError("Create a class first.");
+              setError(t("organisation.createClassFirst"));
               return;
             }
             void run(async () => {
@@ -293,16 +294,16 @@ export default function OrganisationSetupPage() {
                 schoolClass.id,
                 studentUserId
               );
-              setMessage("Student enrolled.");
+              setMessage(t("organisation.studentEnrolled"));
             });
           }}
         >
-          <h2 className="font-medium">5. Enroll student</h2>
+          <h2 className="font-medium">{t("organisation.step5Title")}</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={studentUserId}
             onChange={(event) => setStudentUserId(event.target.value)}
-            placeholder="Student user id"
+            placeholder={t("organisation.studentIdPlaceholder")}
             required
           />
           <button
@@ -310,7 +311,7 @@ export default function OrganisationSetupPage() {
             disabled={busy || !schoolClass}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Enroll student
+            {t("organisation.enrollStudent")}
           </button>
         </form>
       </div>

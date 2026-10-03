@@ -10,6 +10,7 @@ import {
   type ParentChildLink,
   type ParentChildProgress,
 } from "@/lib/parent-workspace";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isParent(profile: UserProfile): boolean {
   return profile.roles.includes("Parent");
@@ -17,6 +18,7 @@ function isParent(profile: UserProfile): boolean {
 
 export default function ParentWorkspacePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -48,9 +50,9 @@ export default function ParentWorkspacePage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       });
-  }, [router]);
+  }, [router, t]);
 
   async function handleSelectChild(studentUserId: string) {
     const token = localStorage.getItem("we_access_token");
@@ -64,7 +66,7 @@ export default function ParentWorkspacePage() {
       const childProgress = await fetchChildProgress(token, studentUserId);
       setProgress(childProgress);
     } catch {
-      setError("Unable to load this child's progress.");
+      setError(t("parent.home.childProgressError"));
     }
   }
 
@@ -74,7 +76,7 @@ export default function ParentWorkspacePage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -84,7 +86,7 @@ export default function ParentWorkspacePage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading parent workspace...</p>
+        <p>{t("parent.home.loading")}</p>
       </div>
     );
   }
@@ -94,29 +96,29 @@ export default function ParentWorkspacePage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Parent workspace</h1>
+            <h1 className="text-2xl font-semibold">{t("parent.home.title")}</h1>
             <p className="text-sm text-black/60 mt-1">
-              Welcome, {profile.name}. View approved learning progress for your linked children.
+              {t("parent.home.welcome", { name: profile.name })}
             </p>
           </div>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
           <Link href="/parent/messages" className="text-sm underline">
-            School messages
+            {t("dashboard.nav.schoolMessages")}
           </Link>
         </div>
 
         {children.length === 0 ? (
           <div className="rounded-lg border border-black/10 p-6">
             <p className="text-sm text-black/60">
-              No children are linked to your account yet. Please contact your school administrator.
+              {t("parent.home.noChildren")}
             </p>
           </div>
         ) : (
           <>
             <div className="rounded-lg border border-black/10 p-6 space-y-3">
-              <h2 className="font-medium">My children</h2>
+              <h2 className="font-medium">{t("parent.home.myChildren")}</h2>
               <div className="flex flex-wrap gap-2">
                 {children.map((child) => (
                   <button
@@ -129,25 +131,28 @@ export default function ParentWorkspacePage() {
                         : "border-black/20"
                     }`}
                   >
-                    Child {child.studentUserId.slice(0, 8)}
+                    {t("parent.home.childLabel", { id: child.studentUserId.slice(0, 8) })}
                   </button>
                 ))}
               </div>
             </div>
 
             {!progress ? (
-              <p className="text-sm text-black/60">Loading progress...</p>
+              <p className="text-sm text-black/60">{t("parent.home.loadingProgress")}</p>
             ) : (
               <>
                 <div className="rounded-lg border border-black/10 p-6 space-y-3">
-                  <h2 className="font-medium">Mastery summary</h2>
+                  <h2 className="font-medium">{t("parent.home.masteryTitle")}</h2>
                   {progress.mastery.length === 0 ? (
-                    <p className="text-sm text-black/60">No mastery records yet.</p>
+                    <p className="text-sm text-black/60">{t("parent.home.masteryEmpty")}</p>
                   ) : (
                     <ul className="space-y-2">
                       {progress.mastery.map((item) => (
                         <li key={item.microSkillId} className="text-sm">
-                          Skill {item.microSkillId.slice(0, 8)} — {item.masteryLevel}
+                          {t("parent.home.skillLine", {
+                            id: item.microSkillId.slice(0, 8),
+                            level: item.masteryLevel,
+                          })}
                         </li>
                       ))}
                     </ul>
@@ -155,9 +160,9 @@ export default function ParentWorkspacePage() {
                 </div>
 
                 <div className="rounded-lg border border-black/10 p-6 space-y-3">
-                  <h2 className="font-medium">Assessment results</h2>
+                  <h2 className="font-medium">{t("parent.home.resultsTitle")}</h2>
                   {progress.assessments.length === 0 ? (
-                    <p className="text-sm text-black/60">No assessments to show.</p>
+                    <p className="text-sm text-black/60">{t("parent.home.resultsEmpty")}</p>
                   ) : (
                     <ul className="space-y-3">
                       {progress.assessments.map((assessment) => (
@@ -165,7 +170,9 @@ export default function ParentWorkspacePage() {
                           <p className="font-medium">{assessment.title}</p>
                           <p className="text-sm text-black/60">{assessment.className}</p>
                           <p className="text-sm">
-                            {assessment.hasSubmitted ? "Submitted" : "Pending"}
+                            {assessment.hasSubmitted
+                              ? t("parent.home.submitted")
+                              : t("parent.home.pending")}
                           </p>
                         </li>
                       ))}
@@ -174,9 +181,9 @@ export default function ParentWorkspacePage() {
                 </div>
 
                 <div className="rounded-lg border border-black/10 p-6 space-y-3">
-                  <h2 className="font-medium">Recent teacher feedback</h2>
+                  <h2 className="font-medium">{t("student.home.recentFeedbackTitle")}</h2>
                   {progress.feedback.length === 0 ? (
-                    <p className="text-sm text-black/60">No approved feedback yet.</p>
+                    <p className="text-sm text-black/60">{t("parent.home.feedbackEmpty")}</p>
                   ) : (
                     <ul className="space-y-3">
                       {progress.feedback.slice(0, 3).map((item) => (
@@ -195,15 +202,15 @@ export default function ParentWorkspacePage() {
                 </div>
 
                 <div className="rounded-lg border border-black/10 p-6 space-y-3">
-                  <h2 className="font-medium">Active interventions</h2>
+                  <h2 className="font-medium">{t("parent.home.interventionsTitle")}</h2>
                   {progress.activeInterventions.length === 0 ? (
-                    <p className="text-sm text-black/60">No active interventions.</p>
+                    <p className="text-sm text-black/60">{t("parent.home.interventionsEmpty")}</p>
                   ) : (
                     <ul className="space-y-3">
                       {progress.activeInterventions.map((item) => (
                         <li key={item.id} className="border border-black/10 rounded p-3">
                           <p className="font-medium">{item.summary}</p>
-                          <p className="text-sm text-black/60">Status: {item.status}</p>
+                          <p className="text-sm text-black/60">{t("parent.home.statusLine", { status: item.status })}</p>
                         </li>
                       ))}
                     </ul>

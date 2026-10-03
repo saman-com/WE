@@ -22,9 +22,11 @@ import {
   InterventionOutcomesTimeline,
   MasteryTrendChart,
 } from "@/components/longitudinal-charts";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function StudentProfilePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useParams<{ studentUserId: string }>();
   const studentUserId = params.studentUserId;
 
@@ -60,7 +62,7 @@ export default function StudentProfilePage() {
           (loaded.roles.includes("Student") && loaded.id === studentUserId);
 
         if (!canView) {
-          setError("You do not have access to this profile.");
+          setError(t("student.profile.noAccess"));
           return;
         }
 
@@ -114,13 +116,13 @@ export default function StudentProfilePage() {
         }
       })
       .catch(() => {
-        setError("Unable to load student learning profile.");
+        setError(t("student.profile.loadError"));
       });
-  }, [router, studentUserId]);
+  }, [router, studentUserId, t]);
 
   async function handleRequestProgressReport() {
     if (!token || !profile || profile.enrollments.length === 0) {
-      setReportMessage("Student must be enrolled in a class to generate a progress report.");
+      setReportMessage(t("student.profile.report.mustBeEnrolled"));
       return;
     }
 
@@ -137,11 +139,9 @@ export default function StudentProfilePage() {
       );
       setReportDraft(draft.draftContent);
       setReportAuditLogId(draft.auditLogId);
-      setReportMessage(
-        "AI-assisted draft ready. Edit below and approve before sharing."
-      );
+      setReportMessage(t("teacher.class.lesson.draftReady"));
     } catch {
-      setReportMessage("Unable to generate progress report draft.");
+      setReportMessage(t("student.profile.report.draftError"));
     } finally {
       setReportBusy(false);
     }
@@ -157,9 +157,9 @@ export default function StudentProfilePage() {
     try {
       await finalizeAiSummaryAudit(token, reportAuditLogId, reportDraft.trim());
       setReportApproved(true);
-      setReportMessage("Progress report approved. Ready for export or sharing.");
+      setReportMessage(t("student.profile.report.approved"));
     } catch {
-      setReportMessage("Unable to approve progress report.");
+      setReportMessage(t("student.profile.report.approveError"));
     } finally {
       setReportBusy(false);
     }
@@ -174,7 +174,7 @@ export default function StudentProfilePage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/dashboard" className="underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -184,7 +184,7 @@ export default function StudentProfilePage() {
   if (!viewer || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading student profile...</p>
+        <p>{t("student.profile.loading")}</p>
       </div>
     );
   }
@@ -193,33 +193,33 @@ export default function StudentProfilePage() {
     <div className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Student Learning Profile</h1>
+          <h1 className="text-2xl font-semibold">{t("student.profile.title")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
-          <h2 className="font-medium">Student</h2>
+          <h2 className="font-medium">{t("student.profile.studentTitle")}</h2>
           <p>
-            <span className="font-medium">User id:</span> {profile.studentUserId}
+            <span className="font-medium">{t("dashboard.profile.userIdLabel")}</span> {profile.studentUserId}
           </p>
           {viewer.id === profile.studentUserId ? (
             <>
               <p>
-                <span className="font-medium">Name:</span> {viewer.name}
+                <span className="font-medium">{t("dashboard.profile.nameLabel")}</span> {viewer.name}
               </p>
               <p>
-                <span className="font-medium">Email:</span> {viewer.email}
+                <span className="font-medium">{t("dashboard.profile.emailLabel")}</span> {viewer.email}
               </p>
             </>
           ) : null}
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
-          <h2 className="font-medium">Class enrollment</h2>
+          <h2 className="font-medium">{t("student.profile.enrollmentTitle")}</h2>
           {profile.enrollments.length === 0 ? (
-            <p className="text-sm text-black/60">No class enrollments yet.</p>
+            <p className="text-sm text-black/60">{t("student.profile.noEnrollments")}</p>
           ) : (
             <ul className="list-disc pl-5 space-y-1">
               {profile.enrollments.map((enrollment) => (
@@ -232,10 +232,10 @@ export default function StudentProfilePage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
-          <h2 className="font-medium">Evidence timeline</h2>
+          <h2 className="font-medium">{t("student.profile.evidenceTitle")}</h2>
           {profile.evidenceTimeline.length === 0 ? (
             <p className="text-sm text-black/60">
-              No approved evidence yet. Assessment data will appear here after teacher review.
+              {t("student.profile.noEvidence")}
             </p>
           ) : (
             <ul className="list-disc pl-5 space-y-1">
@@ -251,10 +251,9 @@ export default function StudentProfilePage() {
         {isTeacherViewer ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-4">
             <div>
-              <h2 className="font-medium">AI progress report</h2>
+              <h2 className="font-medium">{t("student.profile.report.title")}</h2>
               <p className="text-sm text-black/60 mt-1">
-                Request a draft narrative from SLP and evidence context. Edit and
-                approve before sharing with parents or exporting.
+                {t("student.profile.report.subtitle")}
               </p>
             </div>
             <button
@@ -263,14 +262,14 @@ export default function StudentProfilePage() {
               disabled={reportBusy}
               className="text-sm underline disabled:opacity-50"
             >
-              Request AI draft
+              {t("teacher.class.lesson.requestDraft")}
             </button>
             {reportDraft ? (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-amber-700">
                   {reportApproved
-                    ? "Approved report"
-                    : "AI-assisted draft — requires your approval"}
+                    ? t("student.profile.report.approvedLabel")
+                    : t("teacher.class.lesson.draftLabel")}
                 </p>
                 <textarea
                   value={reportDraft}
@@ -286,7 +285,7 @@ export default function StudentProfilePage() {
                     disabled={reportBusy || !reportDraft.trim()}
                     className="text-sm underline disabled:opacity-50"
                   >
-                    Approve for export/share
+                    {t("teacher.class.lesson.approve")}
                   </button>
                 ) : null}
               </div>
@@ -299,21 +298,32 @@ export default function StudentProfilePage() {
 
         {mastery ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">
-            <h2 className="font-medium">Micro-skill mastery</h2>
+            <h2 className="font-medium">{t("student.profile.mastery.title")}</h2>
             {mastery.records.length === 0 ? (
               <p className="text-sm text-black/60">
-                No mastery records yet. Mastery is calculated from all approved evidence across assessments.
+                {t("student.profile.mastery.empty")}
               </p>
             ) : (
               <ul className="space-y-3">
                 {mastery.records.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
-                      {item.masteryLevel} — average {item.weightedAverage}/5
+                      {t("student.profile.mastery.levelAverage", {
+                        level: item.masteryLevel,
+                        average: item.weightedAverage,
+                      })}
                     </p>
                     <p className="text-xs text-black/60">
-                      Micro-skill: {item.microSkillId} · {item.evidenceCount} evidence source
-                      {item.evidenceCount === 1 ? "" : "s"} · confidence {item.confidenceScore}
+                      {t(
+                        item.evidenceCount === 1
+                          ? "student.profile.mastery.metaOne"
+                          : "student.profile.mastery.metaOther",
+                        {
+                          id: item.microSkillId,
+                          count: item.evidenceCount,
+                          confidence: item.confidenceScore,
+                        }
+                      )}
                     </p>
                     <p className="text-sm">{item.explanation}</p>
                   </li>
@@ -326,9 +336,9 @@ export default function StudentProfilePage() {
         {isTeacherViewer && longitudinal ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-6">
             <div>
-              <h2 className="font-medium">Learning over time</h2>
+              <h2 className="font-medium">{t("student.profile.longitudinal.title")}</h2>
               <p className="text-sm text-black/60 mt-1">
-                Longitudinal analysis from the analytics warehouse — mastery trends, gap history, and intervention outcomes across terms.
+                {t("student.profile.longitudinal.subtitle")}
               </p>
             </div>
             <MasteryTrendChart points={longitudinal.masteryTrend} />
@@ -339,24 +349,33 @@ export default function StudentProfilePage() {
 
         {gaps ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">
-            <h2 className="font-medium">Learning gaps</h2>
+            <h2 className="font-medium">{t("student.profile.gaps.title")}</h2>
             {gaps.gaps.length === 0 ? (
               <p className="text-sm text-black/60">
-                No learning gaps identified yet. Gaps appear when diagnostics show a difference from expected mastery.
+                {t("student.profile.gaps.empty")}
               </p>
             ) : (
               <ul className="space-y-3">
                 {gaps.gaps.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
-                      {item.severity} severity — {item.urgency} urgency
+                      {t("student.profile.gaps.severityUrgency", {
+                        severity: item.severity,
+                        urgency: item.urgency,
+                      })}
                     </p>
                     <p className="text-xs text-black/60">
-                      Micro-skill: {item.microSkillId}
-                      {item.learningObjectiveId ? ` · LO: ${item.learningObjectiveId}` : null}
+                      {t("student.profile.microSkill", { id: item.microSkillId })}
+                      {item.learningObjectiveId
+                        ? ` · ${t("student.profile.gaps.lo", { id: item.learningObjectiveId })}`
+                        : null}
                     </p>
                     <p className="text-xs text-black/60">
-                      Expected: {item.expectedMastery} · Demonstrated: {item.actualMastery} (mark {item.mark}/5)
+                      {t("student.profile.gaps.expectedDemonstrated", {
+                        expected: item.expectedMastery,
+                        actual: item.actualMastery,
+                        mark: item.mark,
+                      })}
                     </p>
                     <p className="text-sm">{item.explanation}</p>
                   </li>
@@ -369,16 +388,16 @@ export default function StudentProfilePage() {
         {interventions ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="font-medium">Interventions</h2>
+              <h2 className="font-medium">{t("student.profile.interventions.title")}</h2>
               {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
                 <Link href="/teacher/interventions" className="text-sm underline">
-                  Manage interventions
+                  {t("student.profile.interventions.manage")}
                 </Link>
               ) : null}
             </div>
             {interventions.interventions.length === 0 ? (
               <p className="text-sm text-black/60">
-                No interventions recorded yet. Teachers create interventions when a learning gap requires planned support.
+                {t("student.profile.interventions.empty")}
               </p>
             ) : (
               <ul className="space-y-3">
@@ -388,13 +407,15 @@ export default function StudentProfilePage() {
                       {item.status} — {item.plannedActions}
                     </p>
                     <p className="text-xs text-black/60">
-                      Gap: {item.learningGapId}
-                      {item.outcome ? ` · Outcome: ${item.outcome}` : null}
+                      {t("teacher.interventions.gapLabel", { id: item.learningGapId })}
+                      {item.outcome
+                        ? ` · ${t("student.profile.interventions.outcome", { outcome: item.outcome })}`
+                        : null}
                     </p>
                     {item.notes ? <p className="text-sm">{item.notes}</p> : null}
                     {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
                       <Link href={`/teacher/interventions/${item.id}`} className="text-xs underline">
-                        View detail
+                        {t("student.profile.interventions.viewDetail")}
                       </Link>
                     ) : null}
                   </li>
@@ -406,19 +427,24 @@ export default function StudentProfilePage() {
 
         {diagnostics ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-2">
-            <h2 className="font-medium">Diagnostic insights</h2>
+            <h2 className="font-medium">{t("student.profile.diagnostics.title")}</h2>
             {diagnostics.diagnostics.length === 0 ? (
               <p className="text-sm text-black/60">
-                No diagnostics yet. Insights appear after approved evidence is analysed.
+                {t("student.profile.diagnostics.empty")}
               </p>
             ) : (
               <ul className="space-y-3">
                 {diagnostics.diagnostics.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
-                      {item.status} — mark {item.mark}/5
+                      {t("student.profile.diagnostics.statusMark", {
+                        status: item.status,
+                        mark: item.mark,
+                      })}
                     </p>
-                    <p className="text-xs text-black/60">Micro-skill: {item.microSkillId}</p>
+                    <p className="text-xs text-black/60">
+                      {t("student.profile.microSkill", { id: item.microSkillId })}
+                    </p>
                     <p className="text-sm">{item.reason}</p>
                   </li>
                 ))}

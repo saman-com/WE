@@ -46,6 +46,20 @@ public class AuthEndpointTests : IClassFixture<IdentityWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Login_WithInvalidCredentials_ReturnsTranslatableErrorCode()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest(IdentityDataSeeder.TeacherEmail, "wrong-password"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        Assert.True(document.RootElement.TryGetProperty("code", out var code));
+        Assert.Equal("auth.invalid_credentials", code.GetString());
+    }
+
+    [Fact]
     public async Task Me_WithoutToken_ReturnsUnauthorized()
     {
         var response = await _client.GetAsync("/api/v1/auth/me");

@@ -10,6 +10,7 @@ import {
   createIntervention,
   type GapInterventionContext,
 } from "@/lib/interventions";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function resolveGapContext(
   gaps: LearningGap[],
@@ -52,6 +53,7 @@ function resolveGapContext(
 
 export default function CreateInterventionPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useParams<{ studentUserId: string }>();
   const searchParams = useSearchParams();
   const studentUserId = params.studentUserId;
@@ -79,7 +81,7 @@ export default function CreateInterventionPage() {
         const isTeacherOrAdmin =
           loaded.roles.includes("Teacher") || loaded.roles.includes("SystemAdministrator");
         if (!isTeacherOrAdmin) {
-          setError("Only teachers can create interventions.");
+          setError(t("teacher.interventions.new.teachersOnly"));
           return;
         }
 
@@ -98,15 +100,15 @@ export default function CreateInterventionPage() {
         }
       })
       .catch(() => {
-        setError("Unable to load intervention form.");
+        setError(t("teacher.interventions.new.loadError"));
       });
-  }, [router, studentUserId, preselectedGapId, searchParams]);
+  }, [router, studentUserId, preselectedGapId, searchParams, t]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const token = localStorage.getItem("we_access_token");
     if (!token || !organisationId || !learningGapId || !plannedActions.trim()) {
-      setError("Organisation, learning gap, and planned actions are required.");
+      setError(t("teacher.interventions.new.requiredError"));
       return;
     }
 
@@ -122,7 +124,7 @@ export default function CreateInterventionPage() {
       });
       router.push(`/teacher/interventions/${created.id}`);
     } catch {
-      setError("Unable to create intervention.");
+      setError(t("teacher.interventions.new.createError"));
       setSubmitting(false);
     }
   }
@@ -133,7 +135,7 @@ export default function CreateInterventionPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href={returnTo ?? `/students/${studentUserId}/profile`} className="underline">
-            Back
+            {t("teacher.interventions.new.back")}
           </Link>
         </div>
       </div>
@@ -143,7 +145,7 @@ export default function CreateInterventionPage() {
   if (!viewer) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading intervention form...</p>
+        <p>{t("teacher.interventions.new.loading")}</p>
       </div>
     );
   }
@@ -152,34 +154,38 @@ export default function CreateInterventionPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Create intervention</h1>
+          <h1 className="text-2xl font-semibold">{t("teacher.interventions.new.title")}</h1>
           <Link href={returnTo ?? "/teacher/interventions"} className="text-sm underline">
-            {returnTo ? "Back to class dashboard" : "Interventions"}
+            {returnTo
+              ? t("teacher.interventions.new.backToClassDashboard")
+              : t("teacher.workspace.nav.interventions")}
           </Link>
         </div>
 
         {gapContext ? (
           <div className="rounded-lg border border-black/10 p-4 space-y-2 bg-black/[0.02]">
-            <h2 className="text-sm font-medium">Learning gap context</h2>
+            <h2 className="text-sm font-medium">{t("teacher.interventions.new.gapContext")}</h2>
             <p className="text-sm">
-              Student:{" "}
+              {t("teacher.interventions.studentLabel")}{" "}
               <Link href={`/students/${studentUserId}/profile`} className="underline">
                 {studentUserId}
               </Link>
             </p>
             <p className="text-xs text-black/60">
-              Micro-skill: {gapContext.microSkillId} · {gapContext.severity} severity ·{" "}
-              {gapContext.urgency} urgency
+              {t("teacher.interventions.new.gapMeta", {
+                microSkill: gapContext.microSkillId,
+                severity: gapContext.severity,
+                urgency: gapContext.urgency,
+              })}
             </p>
             <p className="text-sm">{gapContext.explanation}</p>
             <p className="text-xs text-black/60">
-              Review the suggested actions below and edit before confirming. You remain the
-              decision-maker.
+              {t("teacher.interventions.new.reviewHint")}
             </p>
           </div>
         ) : (
           <p className="text-sm text-black/60">
-            Select a learning gap and confirm planned actions before creating the intervention.
+            {t("teacher.interventions.new.selectGapHint")}
           </p>
         )}
 
@@ -188,7 +194,7 @@ export default function CreateInterventionPage() {
 
           <div className="space-y-1">
             <label htmlFor="plannedActions" className="text-sm font-medium">
-              Planned actions
+              {t("teacher.interventions.new.plannedActionsLabel")}
             </label>
             <textarea
               id="plannedActions"
@@ -201,7 +207,7 @@ export default function CreateInterventionPage() {
 
           <div className="space-y-1">
             <label htmlFor="notes" className="text-sm font-medium">
-              Notes (optional)
+              {t("teacher.interventions.new.notesOptional")}
             </label>
             <textarea
               id="notes"
@@ -218,7 +224,7 @@ export default function CreateInterventionPage() {
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
             disabled={submitting || !learningGapId}
           >
-            Create intervention
+            {t("teacher.interventions.new.title")}
           </button>
         </form>
       </div>

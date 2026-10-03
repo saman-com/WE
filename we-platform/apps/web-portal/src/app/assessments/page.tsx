@@ -22,6 +22,8 @@ import {
   type Curriculum,
   type CurriculumTree,
 } from "@/lib/curriculum";
+import { ApiError } from "@/lib/api-error";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function canManageAssessments(profile: UserProfile): boolean {
   return (
@@ -32,6 +34,7 @@ function canManageAssessments(profile: UserProfile): boolean {
 
 export default function AssessmentsPage() {
   const router = useRouter();
+  const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,16 +53,23 @@ export default function AssessmentsPage() {
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
 
-  const [title, setTitle] = useState("Unit assessment");
-  const [instructions, setInstructions] = useState(
-    "Complete all questions by the due date."
-  );
+  const [title, setTitle] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [selectedLearningObjectiveIds, setSelectedLearningObjectiveIds] =
     useState<string[]>([]);
   const [selectedMicroSkillIds, setSelectedMicroSkillIds] = useState<string[]>(
     []
   );
+  const [defaultsReady, setDefaultsReady] = useState(false);
+
+  useEffect(() => {
+    if (!defaultsReady) {
+      setTitle(t("assessments.defaults.title"));
+      setInstructions(t("assessments.defaults.instructions"));
+      setDefaultsReady(true);
+    }
+  }, [defaultsReady, t]);
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -72,7 +82,7 @@ export default function AssessmentsPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!canManageAssessments(loaded)) {
-          setError("You do not have assessment-management permission.");
+          setError(t("assessments.errorNoPermission"));
           return;
         }
         setProfile(loaded);
@@ -90,7 +100,7 @@ export default function AssessmentsPage() {
         localStorage.removeItem("we_access_token");
         router.replace("/login");
       });
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (!token || !organisationId) {
@@ -151,7 +161,11 @@ export default function AssessmentsPage() {
     try {
       await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed.");
+      if (err instanceof ApiError) {
+        setError(translateError(err.code, "common.requestFailed"));
+      } else {
+        setError(t("common.requestFailed"));
+      }
     } finally {
       setBusy(false);
     }
@@ -184,7 +198,7 @@ export default function AssessmentsPage() {
         learningObjectiveIds: selectedLearningObjectiveIds,
         microSkillIds: selectedMicroSkillIds,
       });
-      setMessage("Assessment created in draft.");
+      setMessage(t("assessments.message.createdDraft"));
     });
   }
 
@@ -195,7 +209,7 @@ export default function AssessmentsPage() {
 
     await run(async () => {
       await publishAssessment(token, assessmentId);
-      setMessage("Assessment published for students.");
+      setMessage(t("assessments.message.published"));
     });
   }
 
@@ -205,7 +219,7 @@ export default function AssessmentsPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/dashboard" className="underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -215,7 +229,7 @@ export default function AssessmentsPage() {
   if (!profile || !token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading...</p>
+        <p>{t("assessments.loading")}</p>
       </div>
     );
   }
@@ -224,9 +238,9 @@ export default function AssessmentsPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Assessments</h1>
+          <h1 className="text-2xl font-semibold">{t("assessments.title")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Dashboard
+            {t("common.dashboard")}
           </Link>
         </div>
 
@@ -234,9 +248,9 @@ export default function AssessmentsPage() {
         {message ? <p className="text-green-700">{message}</p> : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Scope</h2>
+          <h2 className="font-medium">{t("assessments.scope.title")}</h2>
           <label className="block space-y-1">
-            <span className="text-sm">Organisation</span>
+            <span className="text-sm">{t("assessments.scope.organisationLabel")}</span>
             <select
               className="w-full border rounded px-3 py-2"
               value={organisationId}
@@ -251,7 +265,7 @@ export default function AssessmentsPage() {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm">Class</span>
+            <span className="text-sm">{t("assessments.scope.classLabel")}</span>
             <select
               className="w-full border rounded px-3 py-2"
               value={selectedClassId}
@@ -267,7 +281,7 @@ export default function AssessmentsPage() {
 
           {selectedClass ? (
             <div className="text-sm space-y-1">
-              <p className="font-medium">Class roster</p>
+              <p className="font-medium">{t("assessments.scope.rosterTitle")}</p>
               {selectedClass.studentUserIds && selectedClass.studentUserIds.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {selectedClass.studentUserIds.map((studentUserId) => (
@@ -275,17 +289,17 @@ export default function AssessmentsPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-black/60">No students enrolled.</p>
+                <p className="text-black/60">{t("assessments.scope.noStudentsEnrolled")}</p>
               )}
             </div>
           ) : null}
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Create draft assessment</h2>
+          <h2 className="font-medium">{t("assessments.create.title")}</h2>
 
           <label className="block space-y-1">
-            <span className="text-sm">Curriculum (for LO / micro-skill links)</span>
+            <span className="text-sm">{t("assessments.create.curriculumLabel")}</span>
             <select
               className="w-full border rounded px-3 py-2"
               value={selectedCurriculumId}
@@ -343,12 +357,12 @@ export default function AssessmentsPage() {
             </div>
           ) : (
             <p className="text-sm text-black/60">
-              No curriculum tree available. Create LOs and micro-skills under Curriculum first.
+              {t("assessments.create.noCurriculumTree")}
             </p>
           )}
 
           <label className="block space-y-1">
-            <span className="text-sm">Title</span>
+            <span className="text-sm">{t("assessments.create.titleLabel")}</span>
             <input
               className="w-full border rounded px-3 py-2"
               value={title}
@@ -357,7 +371,7 @@ export default function AssessmentsPage() {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm">Instructions</span>
+            <span className="text-sm">{t("assessments.create.instructionsLabel")}</span>
             <textarea
               className="w-full border rounded px-3 py-2"
               rows={3}
@@ -367,7 +381,7 @@ export default function AssessmentsPage() {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-sm">Due date</span>
+            <span className="text-sm">{t("assessments.create.dueDateLabel")}</span>
             <input
               type="datetime-local"
               className="w-full border rounded px-3 py-2"
@@ -382,14 +396,14 @@ export default function AssessmentsPage() {
             onClick={handleCreateAssessment}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-50"
           >
-            Create draft
+            {t("assessments.create.submit")}
           </button>
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Assessments for class</h2>
+          <h2 className="font-medium">{t("assessments.list.title")}</h2>
           {assessments.length === 0 ? (
-            <p className="text-sm text-black/60">No assessments yet.</p>
+            <p className="text-sm text-black/60">{t("assessments.list.empty")}</p>
           ) : (
             <ul className="space-y-4">
               {assessments.map((assessment) => (
@@ -402,11 +416,16 @@ export default function AssessmentsPage() {
                     <p className="text-sm text-black/70">{assessment.instructions}</p>
                   ) : null}
                   <p className="text-sm">
-                    LOs: {assessment.learningObjectiveIds.length} · Micro-skills:{" "}
-                    {assessment.microSkillIds.length}
+                    {t("assessments.list.loMicroSkillsSummary", {
+                      loCount: assessment.learningObjectiveIds.length,
+                      microSkillCount: assessment.microSkillIds.length,
+                    })}
                   </p>
                   {assessment.dueAt ? (
-                    <p className="text-sm">Due: {new Date(assessment.dueAt).toLocaleString()}</p>
+                    <p className="text-sm">
+                      {t("assessments.list.duePrefix")}{" "}
+                      {new Date(assessment.dueAt).toLocaleString()}
+                    </p>
                   ) : null}
                   {assessment.status === "Draft" ? (
                     <button
@@ -415,14 +434,14 @@ export default function AssessmentsPage() {
                       onClick={() => handlePublish(assessment.id)}
                       className="text-sm underline disabled:opacity-50"
                     >
-                      Publish
+                      {t("assessments.list.publish")}
                     </button>
                   ) : (
                     <Link
                       href={`/assessments/${assessment.id}/review`}
                       className="text-sm underline"
                     >
-                      Review submissions
+                      {t("assessments.list.reviewSubmissions")}
                     </Link>
                   )}
                 </li>

@@ -10,6 +10,7 @@ import {
   type RegionalConfiguration,
   type UpdateRegionalConfigurationRequest,
 } from "@/lib/regional-configuration";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isTenantAdmin(profile: UserProfile): boolean {
   return (
@@ -53,6 +54,7 @@ function toForm(config: RegionalConfiguration): UpdateRegionalConfigurationReque
 
 export default function RegionalConfigurationAdminPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [form, setForm] = useState<UpdateRegionalConfigurationRequest>(emptyForm);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -82,10 +84,10 @@ export default function RegionalConfigurationAdminPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       })
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, t]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,9 +105,9 @@ export default function RegionalConfigurationAdminPage() {
       const saved = await updateRegionalConfiguration(token, form);
       setForm(toForm(saved));
       setUpdatedAt(saved.updatedAt);
-      setSuccess("Regional configuration saved for your school.");
+      setSuccess(t("admin.regional.saved"));
     } catch {
-      setError("Unable to save regional configuration.");
+      setError(t("admin.regional.saveError"));
     } finally {
       setSaving(false);
     }
@@ -117,7 +119,7 @@ export default function RegionalConfigurationAdminPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -127,7 +129,7 @@ export default function RegionalConfigurationAdminPage() {
   if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading regional configuration...</p>
+        <p>{t("admin.regional.loading")}</p>
       </div>
     );
   }
@@ -137,18 +139,20 @@ export default function RegionalConfigurationAdminPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Regional Configuration</h1>
+            <h1 className="text-2xl font-semibold">{t("dashboard.nav.regionalConfiguration")}</h1>
             <p className="text-sm text-black/70">
-              Configure academic calendar, grading, assessments, reporting, and locale for your school.
+              {t("admin.regional.subtitle")}
             </p>
             {updatedAt ? (
               <p className="text-xs text-black/50 mt-1">
-                Last updated: {new Date(updatedAt).toLocaleString()}
+                {t("admin.regional.lastUpdated", {
+                  date: new Date(updatedAt).toLocaleString(),
+                })}
               </p>
             ) : null}
           </div>
           <Link href="/dashboard" className="text-sm underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
 
@@ -157,9 +161,9 @@ export default function RegionalConfigurationAdminPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <section className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h2 className="font-medium">Academic calendar</h2>
+            <h2 className="font-medium">{t("admin.regional.calendarTitle")}</h2>
             <label className="text-sm space-y-1 block">
-              <span>First term name</span>
+              <span>{t("admin.regional.firstTermName")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.academicCalendar.terms[0]?.name ?? ""}
@@ -181,7 +185,7 @@ export default function RegionalConfigurationAdminPage() {
             </label>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm space-y-1">
-                <span>Term start</span>
+                <span>{t("admin.regional.termStart")}</span>
                 <input
                   type="date"
                   className="w-full border border-black/20 rounded px-2 py-1"
@@ -203,7 +207,7 @@ export default function RegionalConfigurationAdminPage() {
                 />
               </label>
               <label className="text-sm space-y-1">
-                <span>Term end</span>
+                <span>{t("admin.regional.termEnd")}</span>
                 <input
                   type="date"
                   className="w-full border border-black/20 rounded px-2 py-1"
@@ -226,7 +230,7 @@ export default function RegionalConfigurationAdminPage() {
               </label>
             </div>
             <label className="text-sm space-y-1 block">
-              <span>Holiday name</span>
+              <span>{t("admin.regional.holidayName")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.academicCalendar.holidays[0]?.name ?? ""}
@@ -247,7 +251,7 @@ export default function RegionalConfigurationAdminPage() {
               />
             </label>
             <label className="text-sm space-y-1 block">
-              <span>Holiday date</span>
+              <span>{t("admin.regional.holidayDate")}</span>
               <input
                 type="date"
                 className="w-full border border-black/20 rounded px-2 py-1"
@@ -271,9 +275,9 @@ export default function RegionalConfigurationAdminPage() {
           </section>
 
           <section className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h2 className="font-medium">Grading scale</h2>
+            <h2 className="font-medium">{t("admin.regional.gradingTitle")}</h2>
             <label className="text-sm space-y-1 block">
-              <span>Scale name</span>
+              <span>{t("admin.regional.scaleName")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.gradingScale.name}
@@ -288,9 +292,9 @@ export default function RegionalConfigurationAdminPage() {
           </section>
 
           <section className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h2 className="font-medium">Assessment models</h2>
+            <h2 className="font-medium">{t("admin.regional.modelsTitle")}</h2>
             <label className="text-sm space-y-1 block">
-              <span>Model name</span>
+              <span>{t("admin.regional.modelName")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.assessmentModels[0]?.name ?? ""}
@@ -305,7 +309,7 @@ export default function RegionalConfigurationAdminPage() {
               />
             </label>
             <label className="text-sm space-y-1 block">
-              <span>Category</span>
+              <span>{t("admin.regional.category")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.assessmentModels[0]?.category ?? ""}
@@ -322,9 +326,9 @@ export default function RegionalConfigurationAdminPage() {
           </section>
 
           <section className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h2 className="font-medium">Reporting templates</h2>
+            <h2 className="font-medium">{t("admin.regional.templatesTitle")}</h2>
             <label className="text-sm space-y-1 block">
-              <span>Template name</span>
+              <span>{t("admin.regional.templateName")}</span>
               <input
                 className="w-full border border-black/20 rounded px-2 py-1"
                 value={form.reportingTemplates[0]?.name ?? ""}
@@ -341,10 +345,10 @@ export default function RegionalConfigurationAdminPage() {
           </section>
 
           <section className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h2 className="font-medium">Locale settings</h2>
+            <h2 className="font-medium">{t("admin.regional.localeTitle")}</h2>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm space-y-1">
-                <span>Language code</span>
+                <span>{t("admin.regional.languageCode")}</span>
                 <input
                   className="w-full border border-black/20 rounded px-2 py-1"
                   value={form.localeSettings.languageCode}
@@ -360,7 +364,7 @@ export default function RegionalConfigurationAdminPage() {
                 />
               </label>
               <label className="text-sm space-y-1">
-                <span>Region code</span>
+                <span>{t("admin.regional.regionCode")}</span>
                 <input
                   className="w-full border border-black/20 rounded px-2 py-1"
                   value={form.localeSettings.regionCode}
@@ -376,7 +380,7 @@ export default function RegionalConfigurationAdminPage() {
                 />
               </label>
               <label className="text-sm space-y-1">
-                <span>Date format</span>
+                <span>{t("admin.regional.dateFormat")}</span>
                 <input
                   className="w-full border border-black/20 rounded px-2 py-1"
                   value={form.localeSettings.dateFormat}
@@ -392,7 +396,7 @@ export default function RegionalConfigurationAdminPage() {
                 />
               </label>
               <label className="text-sm space-y-1">
-                <span>Time zone</span>
+                <span>{t("admin.regional.timeZone")}</span>
                 <input
                   className="w-full border border-black/20 rounded px-2 py-1"
                   value={form.localeSettings.timeZone}
@@ -415,7 +419,7 @@ export default function RegionalConfigurationAdminPage() {
             disabled={saving}
             className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save configuration"}
+            {saving ? t("common.saving") : t("admin.regional.saveConfiguration")}
           </button>
         </form>
       </div>

@@ -15,6 +15,7 @@ import {
   type FederationPolicy,
   type FederationSchool,
 } from "@/lib/federation";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function isFederationAdmin(profile: UserProfile): boolean {
   return profile.roles.includes("FederationAdmin");
@@ -22,6 +23,7 @@ function isFederationAdmin(profile: UserProfile): boolean {
 
 export default function FederationAdminPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [schools, setSchools] = useState<FederationSchool[]>([]);
   const [metrics, setMetrics] = useState<FederationMetrics | null>(null);
@@ -66,10 +68,10 @@ export default function FederationAdminPage() {
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
-        setError("Session expired. Please sign in again.");
+        setError(t("common.sessionExpired"));
       })
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, t]);
 
   async function handleCreateSchool(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,9 +87,9 @@ export default function FederationAdminPage() {
       setSchoolName("");
       setSchoolCode("");
       await reload(token);
-      setSuccess("School tenant provisioned with default configuration.");
+      setSuccess(t("admin.federation.provisioned"));
     } catch {
-      setError("Failed to provision school tenant.");
+      setError(t("admin.federation.provisionFailed"));
     }
   }
 
@@ -103,9 +105,9 @@ export default function FederationAdminPage() {
     try {
       await assignSchoolAdmin(token, selectedSchoolId, { userId: adminUserId });
       setAdminUserId("");
-      setSuccess("School admin assigned.");
+      setSuccess(t("admin.federation.adminAssigned"));
     } catch {
-      setError("Failed to assign school admin.");
+      setError(t("admin.federation.assignFailed"));
     }
   }
 
@@ -124,16 +126,16 @@ export default function FederationAdminPage() {
         { policyKey, policyValue },
       ]);
       setPolicies(updated);
-      setSuccess("Federation policy updated.");
+      setSuccess(t("admin.federation.policyUpdated"));
     } catch {
-      setError("Failed to update federation policy.");
+      setError(t("admin.federation.policyUpdateFailed"));
     }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <p>Loading federation admin portal...</p>
+        <p>{t("admin.federation.loading")}</p>
       </div>
     );
   }
@@ -144,7 +146,7 @@ export default function FederationAdminPage() {
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
           <Link href="/login" className="underline">
-            Back to login
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -155,9 +157,9 @@ export default function FederationAdminPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Federation Administration</h1>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.federationAdmin")}</h1>
           <Link href="/dashboard" className="text-sm underline">
-            Back to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
 
@@ -165,59 +167,63 @@ export default function FederationAdminPage() {
         {success ? <p className="text-green-700">{success}</p> : null}
 
         <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Cross-school metrics</h2>
+          <h2 className="font-medium">{t("admin.federation.metricsTitle")}</h2>
           {metrics ? (
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-black/60">Schools</p>
+                <p className="text-black/60">{t("admin.federation.schools")}</p>
                 <p className="text-lg font-medium">{metrics.totalSchools}</p>
               </div>
               <div>
-                <p className="text-black/60">Total enrollment</p>
+                <p className="text-black/60">{t("admin.federation.totalEnrollment")}</p>
                 <p className="text-lg font-medium">{metrics.totalEnrollment}</p>
               </div>
               <div>
-                <p className="text-black/60">Average progress</p>
+                <p className="text-black/60">{t("admin.federation.averageProgress")}</p>
                 <p className="text-lg font-medium">{metrics.averageProgressPercent}%</p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-black/60">No metrics available.</p>
+            <p className="text-sm text-black/60">{t("admin.federation.noMetrics")}</p>
           )}
         </section>
 
         <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Provision school tenant</h2>
+          <h2 className="font-medium">{t("admin.federation.provisionTitle")}</h2>
           <form onSubmit={handleCreateSchool} className="space-y-3">
             <input
               className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder="School name"
+              placeholder={t("organisation.schoolNamePlaceholder")}
               value={schoolName}
               onChange={(event) => setSchoolName(event.target.value)}
               required
             />
             <input
               className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder="School code"
+              placeholder={t("organisation.schoolCodePlaceholder")}
               value={schoolCode}
               onChange={(event) => setSchoolCode(event.target.value)}
               required
             />
             <button type="submit" className="text-sm underline">
-              Create school
+              {t("organisation.createSchool")}
             </button>
           </form>
         </section>
 
         <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Schools in federation</h2>
+          <h2 className="font-medium">{t("admin.federation.schoolsTitle")}</h2>
           {schools.length === 0 ? (
-            <p className="text-sm text-black/60">No schools provisioned yet.</p>
+            <p className="text-sm text-black/60">{t("admin.federation.noSchools")}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {schools.map((school) => (
                 <li key={school.tenantId}>
-                  {school.name} ({school.code}) — tenant {school.tenantId}
+                  {t("admin.federation.schoolLine", {
+                    name: school.name,
+                    code: school.code,
+                    tenantId: school.tenantId,
+                  })}
                 </li>
               ))}
             </ul>
@@ -225,7 +231,7 @@ export default function FederationAdminPage() {
         </section>
 
         <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Assign school admin</h2>
+          <h2 className="font-medium">{t("admin.federation.assignTitle")}</h2>
           <form onSubmit={handleAssignAdmin} className="space-y-3">
             <select
               className="w-full border border-black/20 rounded px-3 py-2"
@@ -233,7 +239,7 @@ export default function FederationAdminPage() {
               onChange={(event) => setSelectedSchoolId(event.target.value)}
               required
             >
-              <option value="">Select school</option>
+              <option value="">{t("admin.federation.selectSchool")}</option>
               {schools.map((school) => (
                 <option key={school.tenantId} value={school.tenantId}>
                   {school.name}
@@ -242,19 +248,19 @@ export default function FederationAdminPage() {
             </select>
             <input
               className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder="Admin user id"
+              placeholder={t("admin.federation.adminUserIdPlaceholder")}
               value={adminUserId}
               onChange={(event) => setAdminUserId(event.target.value)}
               required
             />
             <button type="submit" className="text-sm underline">
-              Assign admin
+              {t("admin.federation.assignAdmin")}
             </button>
           </form>
         </section>
 
         <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">Federation policies</h2>
+          <h2 className="font-medium">{t("admin.federation.policiesTitle")}</h2>
           {policies.length > 0 ? (
             <ul className="text-sm space-y-1">
               {policies.map((policy) => (
@@ -264,25 +270,25 @@ export default function FederationAdminPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-black/60">No policies configured.</p>
+            <p className="text-sm text-black/60">{t("admin.federation.noPolicies")}</p>
           )}
           <form onSubmit={handleUpdatePolicy} className="space-y-3">
             <input
               className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder="Policy key"
+              placeholder={t("admin.federation.policyKeyPlaceholder")}
               value={policyKey}
               onChange={(event) => setPolicyKey(event.target.value)}
               required
             />
             <input
               className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder="Policy value"
+              placeholder={t("admin.federation.policyValuePlaceholder")}
               value={policyValue}
               onChange={(event) => setPolicyValue(event.target.value)}
               required
             />
             <button type="submit" className="text-sm underline">
-              Save policy
+              {t("admin.federation.savePolicy")}
             </button>
           </form>
         </section>
