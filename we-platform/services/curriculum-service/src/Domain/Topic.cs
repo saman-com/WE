@@ -9,6 +9,8 @@ public sealed class Topic : ITenantEntity
     public Guid UnitId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+    public Guid? SourceNodeId { get; set; }
+    public bool IsOverridden { get; set; }
 
     public Unit Unit { get; set; } = null!;
 }

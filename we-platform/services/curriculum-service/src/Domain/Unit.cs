@@ -9,6 +9,8 @@ public sealed class Unit : ITenantEntity
     public Guid SubjectId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+    public Guid? SourceNodeId { get; set; }
+    public bool IsOverridden { get; set; }
 
     public Subject Subject { get; set; } = null!;
     public ICollection<Topic> Topics { get; set; } = new List<Topic>();

@@ -15,10 +15,12 @@ public static class CurriculumEndpoints
 
         api.MapGet("/", ListCurricula);
         api.MapPost("/", CreateCurriculum);
+        api.MapPost("/{parentCurriculumId:guid}/inherit", InheritCurriculum);
         api.MapGet("/{curriculumId:guid}", GetCurriculum);
         api.MapPut("/{curriculumId:guid}", UpdateCurriculum);
         api.MapDelete("/{curriculumId:guid}", DeleteCurriculum);
         api.MapGet("/{curriculumId:guid}/tree", GetTree);
+        api.MapGet("/{curriculumId:guid}/variant-links", GetVariantLinks);
 
         api.MapGet("/{curriculumId:guid}/subjects", ListSubjects);
         api.MapPost("/{curriculumId:guid}/subjects", CreateSubject);
@@ -53,6 +55,7 @@ public static class CurriculumEndpoints
 
     private static async Task<IResult> ListCurricula(
         Guid? organisationId,
+        string? regionCode,
         ClaimsPrincipal principal,
         CurriculumDbContext db,
         ITenantContext tenantContext)
@@ -68,6 +71,12 @@ public static class CurriculumEndpoints
             query = query.Where(item => item.OrganisationId == orgId);
         }
 
+        if (!string.IsNullOrWhiteSpace(regionCode))
+        {
+            var normalizedRegion = regionCode.Trim();
+            query = query.Where(item => item.RegionCode == normalizedRegion);
+        }
+
         var items = await query
             .OrderBy(item => item.Name)
             .Select(item => new CurriculumResponse(
@@ -75,7 +84,10 @@ public static class CurriculumEndpoints
                 item.OrganisationId,
                 item.Name,
                 item.Version,
-                item.Status))
+                item.Status,
+                item.RegionCode,
+                item.Scope,
+                item.ParentCurriculumId))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -112,6 +124,22 @@ public static class CurriculumEndpoints
             return Results.BadRequest();
         }
 
+        var scope = string.IsNullOrWhiteSpace(request.Scope)
+            ? CurriculumScopes.School
+            : request.Scope.Trim();
+        if (!CurriculumScopes.All.Contains(scope))
+        {
+            return Results.BadRequest();
+        }
+
+        var regionCode = string.IsNullOrWhiteSpace(request.RegionCode)
+            ? null
+            : request.RegionCode.Trim();
+        if (scope == CurriculumScopes.Regional && regionCode is null)
+        {
+            return Results.BadRequest();
+        }
+
         var curriculum = new Curriculum
         {
             Id = Guid.CreateVersion7(),
@@ -120,6 +148,9 @@ public static class CurriculumEndpoints
             Name = request.Name.Trim(),
             Version = request.Version.Trim(),
             Status = status,
+            RegionCode = regionCode,
+            Scope = scope,
+            ParentCurriculumId = null,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -127,6 +158,175 @@ public static class CurriculumEndpoints
         await db.SaveChangesAsync();
 
         return Results.Created($"/api/v1/curriculum/{curriculum.Id}", ToCurriculum(curriculum));
+    }
+
+    private static async Task<IResult> InheritCurriculum(
+        Guid parentCurriculumId,
+        InheritCurriculumRequest request,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        if (request.OrganisationId == Guid.Empty
+            || !tenantContext.HasTenant
+            || request.OrganisationId != tenantContext.TenantId)
+        {
+            return Results.Forbid();
+        }
+
+        var parent = await db.Curricula
+            .IgnoreQueryFilters()
+            .Include(item => item.Subjects)
+            .ThenInclude(subject => subject.Units)
+            .ThenInclude(unit => unit.Topics)
+            .Include(item => item.Subjects)
+            .ThenInclude(subject => subject.Units)
+            .ThenInclude(unit => unit.LearningObjectives)
+            .ThenInclude(objective => objective.MicroSkills)
+            .FirstOrDefaultAsync(item => item.Id == parentCurriculumId);
+
+        if (parent is null || parent.Scope != CurriculumScopes.Regional)
+        {
+            return Results.NotFound();
+        }
+
+        var clone = new Curriculum
+        {
+            Id = Guid.CreateVersion7(),
+            TenantId = request.OrganisationId,
+            OrganisationId = request.OrganisationId,
+            Name = parent.Name,
+            Version = parent.Version,
+            Status = CurriculumStatuses.Draft,
+            RegionCode = parent.RegionCode,
+            Scope = CurriculumScopes.School,
+            ParentCurriculumId = parent.Id,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        foreach (var subject in parent.Subjects.OrderBy(item => item.SortOrder).ThenBy(item => item.Name))
+        {
+            var clonedSubject = new Subject
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = request.OrganisationId,
+                CurriculumId = clone.Id,
+                Name = subject.Name,
+                Code = subject.Code,
+                SortOrder = subject.SortOrder,
+                SourceNodeId = subject.Id,
+                IsOverridden = false
+            };
+
+            foreach (var unit in subject.Units.OrderBy(item => item.SortOrder).ThenBy(item => item.Name))
+            {
+                var clonedUnit = new Unit
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = request.OrganisationId,
+                    SubjectId = clonedSubject.Id,
+                    Name = unit.Name,
+                    SortOrder = unit.SortOrder,
+                    SourceNodeId = unit.Id,
+                    IsOverridden = false
+                };
+
+                foreach (var topic in unit.Topics.OrderBy(item => item.SortOrder).ThenBy(item => item.Name))
+                {
+                    clonedUnit.Topics.Add(new Topic
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = request.OrganisationId,
+                        UnitId = clonedUnit.Id,
+                        Name = topic.Name,
+                        SortOrder = topic.SortOrder,
+                        SourceNodeId = topic.Id,
+                        IsOverridden = false
+                    });
+                }
+
+                foreach (var objective in unit.LearningObjectives
+                             .OrderBy(item => item.SortOrder)
+                             .ThenBy(item => item.Title))
+                {
+                    var clonedObjective = new LearningObjective
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = request.OrganisationId,
+                        UnitId = clonedUnit.Id,
+                        Title = objective.Title,
+                        SortOrder = objective.SortOrder,
+                        SourceNodeId = objective.Id,
+                        IsOverridden = false
+                    };
+
+                    foreach (var skill in objective.MicroSkills
+                                 .OrderBy(item => item.SortOrder)
+                                 .ThenBy(item => item.Name))
+                    {
+                        clonedObjective.MicroSkills.Add(new MicroSkill
+                        {
+                            Id = Guid.CreateVersion7(),
+                            TenantId = request.OrganisationId,
+                            LearningObjectiveId = clonedObjective.Id,
+                            Name = skill.Name,
+                            SortOrder = skill.SortOrder,
+                            SourceNodeId = skill.Id,
+                            IsOverridden = false
+                        });
+                    }
+
+                    clonedUnit.LearningObjectives.Add(clonedObjective);
+                }
+
+                clonedSubject.Units.Add(clonedUnit);
+            }
+
+            clone.Subjects.Add(clonedSubject);
+        }
+
+        db.Curricula.Add(clone);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/v1/curriculum/{clone.Id}", ToCurriculum(clone));
+    }
+
+    private static async Task<IResult> GetVariantLinks(
+        Guid curriculumId,
+        ClaimsPrincipal principal,
+        CurriculumDbContext db,
+        ITenantContext tenantContext)
+    {
+        if (!principal.CanManageCurriculum())
+        {
+            return Results.Forbid();
+        }
+
+        var curriculum = await FindCurriculumAsync(db, curriculumId, tenantContext);
+        if (curriculum is null)
+        {
+            return Results.NotFound();
+        }
+
+        var learningObjectiveIds = await db.LearningObjectives
+            .Where(objective => objective.Unit.Subject.CurriculumId == curriculumId)
+            .Select(objective => objective.Id)
+            .ToListAsync();
+
+        var microSkillIds = await db.MicroSkills
+            .Where(skill => skill.LearningObjective.Unit.Subject.CurriculumId == curriculumId)
+            .Select(skill => skill.Id)
+            .ToListAsync();
+
+        return Results.Ok(new VariantCurriculumLinksResponse(
+            curriculumId,
+            learningObjectiveIds,
+            microSkillIds));
     }
 
     private static async Task<IResult> GetCurriculum(
@@ -282,10 +482,18 @@ public static class CurriculumEndpoints
                                     .Select(skill => new MicroSkillTreeResponse(
                                         skill.Id,
                                         skill.Name,
-                                        skill.SortOrder))
-                                    .ToList()))
-                            .ToList()))
-                    .ToList()))
+                                        skill.SortOrder,
+                                        skill.SourceNodeId,
+                                        skill.IsOverridden))
+                                    .ToList(),
+                                objective.SourceNodeId,
+                                objective.IsOverridden))
+                            .ToList(),
+                        unit.SourceNodeId,
+                        unit.IsOverridden))
+                    .ToList(),
+                subject.SourceNodeId,
+                subject.IsOverridden))
             .ToList();
 
         return Results.Ok(new CurriculumTreeResponse(
@@ -294,7 +502,10 @@ public static class CurriculumEndpoints
             curriculum.Name,
             curriculum.Version,
             curriculum.Status,
-            subjects));
+            subjects,
+            curriculum.RegionCode,
+            curriculum.Scope,
+            curriculum.ParentCurriculumId));
     }
 
     private static async Task<IResult> ListSubjects(
@@ -321,7 +532,9 @@ public static class CurriculumEndpoints
                 subject.CurriculumId,
                 subject.Name,
                 subject.Code,
-                subject.SortOrder))
+                subject.SortOrder,
+                subject.SourceNodeId,
+                subject.IsOverridden))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -473,7 +686,9 @@ public static class CurriculumEndpoints
                 unit.SubjectId,
                 curriculumId,
                 unit.Name,
-                unit.SortOrder))
+                unit.SortOrder,
+                unit.SourceNodeId,
+                unit.IsOverridden))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -562,6 +777,11 @@ public static class CurriculumEndpoints
 
         unit.Name = request.Name.Trim();
         unit.SortOrder = request.SortOrder;
+        if (await IsSchoolVariantAsync(db, curriculumId))
+        {
+            unit.IsOverridden = true;
+        }
+
         await db.SaveChangesAsync();
         return Results.Ok(ToUnit(unit, curriculumId));
     }
@@ -618,7 +838,9 @@ public static class CurriculumEndpoints
                 subjectId,
                 curriculumId,
                 topic.Name,
-                topic.SortOrder))
+                topic.SortOrder,
+                topic.SourceNodeId,
+                topic.IsOverridden))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -767,7 +989,9 @@ public static class CurriculumEndpoints
                 subjectId,
                 curriculumId,
                 objective.Title,
-                objective.SortOrder))
+                objective.SortOrder,
+                objective.SourceNodeId,
+                objective.IsOverridden))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -861,6 +1085,11 @@ public static class CurriculumEndpoints
 
         objective.Title = request.Title.Trim();
         objective.SortOrder = request.SortOrder;
+        if (await IsSchoolVariantAsync(db, curriculumId))
+        {
+            objective.IsOverridden = true;
+        }
+
         await db.SaveChangesAsync();
         return Results.Ok(ToLearningObjective(objective, subjectId, curriculumId));
     }
@@ -920,7 +1149,9 @@ public static class CurriculumEndpoints
                 subjectId,
                 curriculumId,
                 skill.Name,
-                skill.SortOrder))
+                skill.SortOrder,
+                skill.SourceNodeId,
+                skill.IsOverridden))
             .ToListAsync();
 
         return Results.Ok(items);
@@ -1192,22 +1423,60 @@ public static class CurriculumEndpoints
     }
 
     private static CurriculumResponse ToCurriculum(Curriculum curriculum) =>
-        new(curriculum.Id, curriculum.OrganisationId, curriculum.Name, curriculum.Version, curriculum.Status);
+        new(
+            curriculum.Id,
+            curriculum.OrganisationId,
+            curriculum.Name,
+            curriculum.Version,
+            curriculum.Status,
+            curriculum.RegionCode,
+            curriculum.Scope,
+            curriculum.ParentCurriculumId);
 
     private static SubjectResponse ToSubject(Subject subject) =>
-        new(subject.Id, subject.CurriculumId, subject.Name, subject.Code, subject.SortOrder);
+        new(
+            subject.Id,
+            subject.CurriculumId,
+            subject.Name,
+            subject.Code,
+            subject.SortOrder,
+            subject.SourceNodeId,
+            subject.IsOverridden);
 
     private static UnitResponse ToUnit(Unit unit, Guid curriculumId) =>
-        new(unit.Id, unit.SubjectId, curriculumId, unit.Name, unit.SortOrder);
+        new(
+            unit.Id,
+            unit.SubjectId,
+            curriculumId,
+            unit.Name,
+            unit.SortOrder,
+            unit.SourceNodeId,
+            unit.IsOverridden);
 
     private static TopicResponse ToTopic(Topic topic, Guid subjectId, Guid curriculumId) =>
-        new(topic.Id, topic.UnitId, subjectId, curriculumId, topic.Name, topic.SortOrder);
+        new(
+            topic.Id,
+            topic.UnitId,
+            subjectId,
+            curriculumId,
+            topic.Name,
+            topic.SortOrder,
+            topic.SourceNodeId,
+            topic.IsOverridden);
 
     private static LearningObjectiveResponse ToLearningObjective(
         LearningObjective objective,
         Guid subjectId,
         Guid curriculumId) =>
-        new(objective.Id, objective.UnitId, subjectId, curriculumId, objective.Title, objective.SortOrder);
+        new(
+            objective.Id,
+            objective.UnitId,
+            subjectId,
+            curriculumId,
+            objective.Title,
+            objective.SortOrder,
+            objective.SourceNodeId,
+            objective.IsOverridden);
 
     private static MicroSkillResponse ToMicroSkill(
         MicroSkill microSkill,
@@ -1221,7 +1490,17 @@ public static class CurriculumEndpoints
             subjectId,
             curriculumId,
             microSkill.Name,
-            microSkill.SortOrder);
+            microSkill.SortOrder,
+            microSkill.SourceNodeId,
+            microSkill.IsOverridden);
+
+    private static async Task<bool> IsSchoolVariantAsync(CurriculumDbContext db, Guid curriculumId)
+    {
+        var curriculum = await db.Curricula
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(item => item.Id == curriculumId);
+        return curriculum is { Scope: CurriculumScopes.School, ParentCurriculumId: not null };
+    }
 
     private static bool IsValidStatus(string? status) =>
         !string.IsNullOrWhiteSpace(status) && CurriculumStatuses.All.Contains(status.Trim());

@@ -7,6 +7,9 @@ export type Curriculum = {
   name: string;
   version: string;
   status: string;
+  regionCode: string | null;
+  scope: string;
+  parentCurriculumId: string | null;
 };
 
 export type Subject = {
@@ -15,6 +18,8 @@ export type Subject = {
   name: string;
   code: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type Unit = {
@@ -23,6 +28,8 @@ export type Unit = {
   curriculumId: string;
   name: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type Topic = {
@@ -32,6 +39,8 @@ export type Topic = {
   curriculumId: string;
   name: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type MicroSkill = {
@@ -42,12 +51,16 @@ export type MicroSkill = {
   curriculumId: string;
   name: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type MicroSkillTree = {
   id: string;
   name: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type LearningObjective = {
@@ -57,6 +70,8 @@ export type LearningObjective = {
   curriculumId: string;
   title: string;
   sortOrder: number;
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type LearningObjectiveTree = {
@@ -64,6 +79,8 @@ export type LearningObjectiveTree = {
   title: string;
   sortOrder: number;
   microSkills: MicroSkillTree[];
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type UnitTree = {
@@ -72,6 +89,8 @@ export type UnitTree = {
   sortOrder: number;
   topics: Topic[];
   learningObjectives: LearningObjectiveTree[];
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type SubjectTree = {
@@ -80,6 +99,8 @@ export type SubjectTree = {
   code: string;
   sortOrder: number;
   units: UnitTree[];
+  sourceNodeId: string | null;
+  isOverridden: boolean;
 };
 
 export type CurriculumTree = {
@@ -89,6 +110,9 @@ export type CurriculumTree = {
   version: string;
   status: string;
   subjects: SubjectTree[];
+  regionCode: string | null;
+  scope: string;
+  parentCurriculumId: string | null;
 };
 
 async function curriculumRequest<T>(
@@ -118,11 +142,16 @@ async function curriculumRequest<T>(
 
 export function listCurricula(
   token: string,
-  organisationId: string
+  organisationId: string,
+  regionCode?: string
 ): Promise<Curriculum[]> {
+  const params = new URLSearchParams({ organisationId });
+  if (regionCode) {
+    params.set("regionCode", regionCode);
+  }
   return curriculumRequest<Curriculum[]>(
     token,
-    `/api/v1/curriculum?organisationId=${organisationId}`
+    `/api/v1/curriculum?${params.toString()}`
   );
 }
 
@@ -130,7 +159,8 @@ export function createCurriculum(
   token: string,
   organisationId: string,
   name: string,
-  version: string
+  version: string,
+  options?: { regionCode?: string; scope?: "Regional" | "School" }
 ): Promise<Curriculum> {
   return curriculumRequest<Curriculum>(token, "/api/v1/curriculum", {
     method: "POST",
@@ -139,8 +169,25 @@ export function createCurriculum(
       name,
       version,
       status: "Draft",
+      regionCode: options?.regionCode ?? null,
+      scope: options?.scope ?? "School",
     }),
   });
+}
+
+export function inheritCurriculum(
+  token: string,
+  parentCurriculumId: string,
+  organisationId: string
+): Promise<Curriculum> {
+  return curriculumRequest<Curriculum>(
+    token,
+    `/api/v1/curriculum/${parentCurriculumId}/inherit`,
+    {
+      method: "POST",
+      body: JSON.stringify({ organisationId }),
+    }
+  );
 }
 
 export function getCurriculumTree(
@@ -187,6 +234,24 @@ export function createUnit(
   );
 }
 
+export function updateUnit(
+  token: string,
+  curriculumId: string,
+  subjectId: string,
+  unitId: string,
+  name: string,
+  sortOrder: number
+): Promise<Unit> {
+  return curriculumRequest<Unit>(
+    token,
+    `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ name, sortOrder }),
+    }
+  );
+}
+
 export function createTopic(
   token: string,
   curriculumId: string,
@@ -218,6 +283,25 @@ export function createLearningObjective(
     `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}/learning-objectives`,
     {
       method: "POST",
+      body: JSON.stringify({ title, sortOrder }),
+    }
+  );
+}
+
+export function updateLearningObjective(
+  token: string,
+  curriculumId: string,
+  subjectId: string,
+  unitId: string,
+  learningObjectiveId: string,
+  title: string,
+  sortOrder: number
+): Promise<LearningObjective> {
+  return curriculumRequest<LearningObjective>(
+    token,
+    `/api/v1/curriculum/${curriculumId}/subjects/${subjectId}/units/${unitId}/learning-objectives/${learningObjectiveId}`,
+    {
+      method: "PUT",
       body: JSON.stringify({ title, sortOrder }),
     }
   );

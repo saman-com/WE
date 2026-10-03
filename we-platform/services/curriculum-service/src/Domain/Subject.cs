@@ -10,6 +10,8 @@ public sealed class Subject : ITenantEntity
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+    public Guid? SourceNodeId { get; set; }
+    public bool IsOverridden { get; set; }
 
     public Curriculum Curriculum { get; set; } = null!;
     public ICollection<Unit> Units { get; set; } = new List<Unit>();

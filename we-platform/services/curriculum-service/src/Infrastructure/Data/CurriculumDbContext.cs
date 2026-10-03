@@ -27,8 +27,17 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.Version).HasColumnName("version").IsRequired();
             entity.Property(e => e.Status).HasColumnName("status").IsRequired();
+            entity.Property(e => e.RegionCode).HasColumnName("region_code");
+            entity.Property(e => e.Scope).HasColumnName("scope").IsRequired();
+            entity.Property(e => e.ParentCurriculumId).HasColumnName("parent_curriculum_id");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(e => e.OrganisationId);
+            entity.HasIndex(e => e.RegionCode);
+            entity.HasIndex(e => e.ParentCurriculumId);
+            entity.HasOne(e => e.ParentCurriculum)
+                .WithMany(e => e.ChildCurricula)
+                .HasForeignKey(e => e.ParentCurriculumId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasMany(e => e.Subjects).WithOne(e => e.Curriculum).HasForeignKey(e => e.CurriculumId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -43,6 +52,8 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.Code).HasColumnName("code").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.SourceNodeId).HasColumnName("source_node_id");
+            entity.Property(e => e.IsOverridden).HasColumnName("is_overridden");
             entity.HasIndex(e => new { e.CurriculumId, e.Code }).IsUnique();
             entity.HasMany(e => e.Units).WithOne(e => e.Subject).HasForeignKey(e => e.SubjectId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -57,6 +68,8 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.SubjectId).HasColumnName("subject_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.SourceNodeId).HasColumnName("source_node_id");
+            entity.Property(e => e.IsOverridden).HasColumnName("is_overridden");
             entity.HasIndex(e => e.SubjectId);
             entity.HasMany(e => e.Topics).WithOne(e => e.Unit).HasForeignKey(e => e.UnitId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -73,6 +86,8 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.UnitId).HasColumnName("unit_id").IsRequired();
             entity.Property(e => e.Title).HasColumnName("title").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.SourceNodeId).HasColumnName("source_node_id");
+            entity.Property(e => e.IsOverridden).HasColumnName("is_overridden");
             entity.HasIndex(e => e.UnitId);
             entity.HasMany(e => e.MicroSkills).WithOne(e => e.LearningObjective)
                 .HasForeignKey(e => e.LearningObjectiveId)
@@ -88,6 +103,8 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.LearningObjectiveId).HasColumnName("learning_objective_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.SourceNodeId).HasColumnName("source_node_id");
+            entity.Property(e => e.IsOverridden).HasColumnName("is_overridden");
             entity.HasIndex(e => e.LearningObjectiveId);
         });
 
@@ -100,6 +117,8 @@ public sealed class CurriculumDbContext(
             entity.Property(e => e.UnitId).HasColumnName("unit_id").IsRequired();
             entity.Property(e => e.Name).HasColumnName("name").IsRequired();
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.SourceNodeId).HasColumnName("source_node_id");
+            entity.Property(e => e.IsOverridden).HasColumnName("is_overridden");
             entity.HasIndex(e => e.UnitId);
         });
 

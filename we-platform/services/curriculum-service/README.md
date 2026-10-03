@@ -1,8 +1,12 @@
 # Curriculum Service
 
-Curriculum hierarchy (subject → unit → topic) with learning objectives and micro-skills scoped to an organisation for the WE Platform (issues 005–006).
+Curriculum hierarchy (subject → unit → topic) with learning objectives and micro-skills scoped to an organisation for the WE Platform (issues 005–006, 042).
 
 Teachers and system administrators have curriculum-management permission. Other authenticated roles receive 403.
+
+## Curriculum variants (issue 042)
+
+Education authorities define **regional** curriculum variants (`scope=Regional`, `regionCode`). Schools **inherit** a regional variant into a school-scoped curriculum (`parentCurriculumId`), receiving a cloned tree with `sourceNodeId` provenance. School updates to units/LOs on an inherited variant set `isOverridden=true` without changing the regional parent or other schools. Variant-specific LO and micro-skill IDs are exposed via `/variant-links` for assessment and evidence linking.
 
 ## Endpoints
 
@@ -10,12 +14,14 @@ All `/api/v1/curriculum/*` routes require a Bearer JWT from Identity Service.
 
 | Method | Path | Roles | Description |
 |--------|------|-------|-------------|
-| POST | `/api/v1/curriculum` | Teacher, SystemAdministrator | Create curriculum linked to an organisation |
-| GET | `/api/v1/curriculum?organisationId={uuid}` | Teacher, SystemAdministrator | List curricula for a school |
+| POST | `/api/v1/curriculum` | Teacher, SystemAdministrator | Create curriculum (optional `regionCode` + `scope=Regional`) |
+| POST | `/api/v1/curriculum/{parentId}/inherit` | Teacher, SystemAdministrator | Inherit regional variant into a school organisation |
+| GET | `/api/v1/curriculum?organisationId={uuid}&regionCode={code}` | Teacher, SystemAdministrator | List curricula (optional region filter) |
 | GET | `/api/v1/curriculum/{id}` | Teacher, SystemAdministrator | Get curriculum |
 | PUT | `/api/v1/curriculum/{id}` | Teacher, SystemAdministrator | Update curriculum |
 | DELETE | `/api/v1/curriculum/{id}` | Teacher, SystemAdministrator | Delete curriculum (cascades subjects/units/topics) |
 | GET | `/api/v1/curriculum/{id}/tree` | Teacher, SystemAdministrator | Navigable subject → unit → topic → learning objective → micro-skill tree |
+| GET | `/api/v1/curriculum/{id}/variant-links` | Teacher, SystemAdministrator | Variant-specific LO and micro-skill IDs for assessments/evidence |
 | POST/GET/PUT/DELETE | `/api/v1/curriculum/{id}/subjects` | Teacher, SystemAdministrator | Subject CRUD |
 | POST/GET/PUT/DELETE | `/api/v1/curriculum/{id}/subjects/{subjectId}/units` | Teacher, SystemAdministrator | Unit CRUD (units cannot exist without a subject) |
 | POST/GET/PUT/DELETE | `/api/v1/curriculum/{id}/subjects/{subjectId}/units/{unitId}/topics` | Teacher, SystemAdministrator | Topic CRUD |
@@ -46,7 +52,7 @@ docker compose up -d
 curl http://localhost:8083/health
 ```
 
-Schema SQL is versioned in `databases/curriculum/`.
+Schema SQL is versioned in `databases/curriculum/` (`V003__curriculum_variants.sql`).
 
 ## Tests
 

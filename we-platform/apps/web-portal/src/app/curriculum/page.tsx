@@ -13,7 +13,10 @@ import {
   createTopic,
   createUnit,
   getCurriculumTree,
+  inheritCurriculum,
   listCurricula,
+  updateLearningObjective,
+  updateUnit,
   type Curriculum,
   type CurriculumTree,
 } from "@/lib/curriculum";
@@ -42,6 +45,11 @@ export default function CurriculumPage() {
 
   const [curriculumName, setCurriculumName] = useState("Cambridge Science");
   const [curriculumVersion, setCurriculumVersion] = useState("2027");
+  const [regionCode, setRegionCode] = useState("NZ-NCEA");
+  const [createAsRegional, setCreateAsRegional] = useState(false);
+  const [parentCurriculumId, setParentCurriculumId] = useState("");
+  const [overrideUnitName, setOverrideUnitName] = useState("");
+  const [overrideObjectiveTitle, setOverrideObjectiveTitle] = useState("");
   const [subjectName, setSubjectName] = useState("Chemistry");
   const [subjectCode, setSubjectCode] = useState("CHEM");
   const [unitName, setUnitName] = useState("Chemical Reactions");
@@ -243,7 +251,9 @@ export default function CurriculumPage() {
         </div>
 
         <p className="text-sm text-black/60">
-          Browse and edit the school curriculum tree: subject → units → topics, learning objectives, and micro-skills.
+          Define regional curriculum variants, inherit them into schools, and override
+          units or learning objectives. Tree: subject → units → topics, learning
+          objectives, and micro-skills.
         </p>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -282,21 +292,32 @@ export default function CurriculumPage() {
               setError("Choose or enter an organisation id.");
               return;
             }
+            if (createAsRegional && !regionCode.trim()) {
+              setError("Regional variants require a region code.");
+              return;
+            }
             void run(async () => {
               const created = await createCurriculum(
                 token,
                 organisationId,
                 curriculumName,
-                curriculumVersion
+                curriculumVersion,
+                createAsRegional
+                  ? { regionCode: regionCode.trim(), scope: "Regional" }
+                  : { scope: "School" }
               );
-              setMessage(`Created curriculum ${created.name}.`);
+              setMessage(
+                createAsRegional
+                  ? `Created regional variant ${created.name} (${created.regionCode}).`
+                  : `Created curriculum ${created.name}.`
+              );
               await loadCurricula(token, organisationId);
               setSelectedCurriculumId(created.id);
               await refreshTree(token, created.id);
             });
           }}
         >
-          <h2 className="font-medium">Create curriculum</h2>
+          <h2 className="font-medium">Create curriculum / regional variant</h2>
           <input
             className="w-full rounded border border-black/20 px-3 py-2"
             value={curriculumName}
@@ -311,12 +332,69 @@ export default function CurriculumPage() {
             placeholder="Version"
             required
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={createAsRegional}
+              onChange={(event) => setCreateAsRegional(event.target.checked)}
+            />
+            Define as regional / authority variant
+          </label>
+          {createAsRegional ? (
+            <input
+              className="w-full rounded border border-black/20 px-3 py-2"
+              value={regionCode}
+              onChange={(event) => setRegionCode(event.target.value)}
+              placeholder="Region code (e.g. NZ-NCEA)"
+              required
+            />
+          ) : null}
           <button
             type="submit"
             disabled={busy || !organisationId}
             className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
           >
-            Create curriculum
+            {createAsRegional ? "Create regional variant" : "Create curriculum"}
+          </button>
+        </form>
+
+        <form
+          className="rounded-lg border border-black/10 p-6 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!organisationId || !parentCurriculumId.trim()) {
+              setError("Organisation and regional parent curriculum id are required to inherit.");
+              return;
+            }
+            void run(async () => {
+              const inherited = await inheritCurriculum(
+                token,
+                parentCurriculumId.trim(),
+                organisationId
+              );
+              setMessage(
+                `Inherited regional variant into school curriculum ${inherited.name} (${inherited.regionCode}).`
+              );
+              await loadCurricula(token, organisationId);
+              setSelectedCurriculumId(inherited.id);
+              await refreshTree(token, inherited.id);
+            });
+          }}
+        >
+          <h2 className="font-medium">Inherit regional variant into school</h2>
+          <input
+            className="w-full rounded border border-black/20 px-3 py-2"
+            value={parentCurriculumId}
+            onChange={(event) => setParentCurriculumId(event.target.value)}
+            placeholder="Regional parent curriculum id"
+            required
+          />
+          <button
+            type="submit"
+            disabled={busy || !organisationId}
+            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+          >
+            Inherit into this organisation
           </button>
         </form>
 
@@ -338,10 +416,20 @@ export default function CurriculumPage() {
             >
               {curricula.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} ({item.version})
+                  {item.name} ({item.version}) — {item.scope}
+                  {item.regionCode ? ` / ${item.regionCode}` : ""}
                 </option>
               ))}
             </select>
+            {tree ? (
+              <p className="text-sm text-black/60">
+                Scope: {tree.scope}
+                {tree.regionCode ? ` · Region: ${tree.regionCode}` : ""}
+                {tree.parentCurriculumId
+                  ? ` · Inherited from ${tree.parentCurriculumId}`
+                  : ""}
+              </p>
+            ) : null}
           </section>
         ) : null}
 
@@ -374,6 +462,9 @@ export default function CurriculumPage() {
                           subject.units.map((unit) => (
                             <li key={unit.id}>
                               {unit.name}
+                              {unit.isOverridden ? (
+                                <span className="ml-2 text-xs text-amber-700">(overridden)</span>
+                              ) : null}
                               {unit.topics.length > 0 ? (
                                 <ul className="ml-5 list-[circle]">
                                   {unit.topics.map((topic) => (
@@ -386,6 +477,11 @@ export default function CurriculumPage() {
                                   {unit.learningObjectives.map((objective) => (
                                     <li key={objective.id}>
                                       <span className="font-medium">LO:</span> {objective.title}
+                                      {objective.isOverridden ? (
+                                        <span className="ml-2 text-xs text-amber-700">
+                                          (overridden)
+                                        </span>
+                                      ) : null}
                                       {objective.microSkills.length > 0 ? (
                                         <ul className="ml-5 list-[square]">
                                           {objective.microSkills.map((skill) => (
@@ -408,6 +504,97 @@ export default function CurriculumPage() {
             </ul>
           )}
         </section>
+
+        {tree?.parentCurriculumId && selectedUnit ? (
+          <form
+            className="rounded-lg border border-black/10 p-6 space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!selectedCurriculumId || !overrideUnitName.trim()) {
+                setError("Enter an overridden unit name.");
+                return;
+              }
+              void run(async () => {
+                await updateUnit(
+                  token,
+                  selectedCurriculumId,
+                  selectedUnit.subjectId,
+                  selectedUnit.id,
+                  overrideUnitName.trim(),
+                  selectedUnit.sortOrder
+                );
+                setMessage(`Overrode unit ${selectedUnit.id}.`);
+                await refreshTree(token, selectedCurriculumId);
+              });
+            }}
+          >
+            <h2 className="font-medium">Override unit (school variant)</h2>
+            <p className="text-sm text-black/60">
+              Selected unit: {selectedUnit.name}
+              {selectedUnit.isOverridden ? " (already overridden)" : ""}
+            </p>
+            <input
+              className="w-full rounded border border-black/20 px-3 py-2"
+              value={overrideUnitName}
+              onChange={(event) => setOverrideUnitName(event.target.value)}
+              placeholder="School-specific unit name"
+              required
+            />
+            <button
+              type="submit"
+              disabled={busy || !selectedCurriculumId}
+              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+            >
+              Override unit
+            </button>
+          </form>
+        ) : null}
+
+        {tree?.parentCurriculumId && selectedObjectiveUnit && selectedObjective ? (
+          <form
+            className="rounded-lg border border-black/10 p-6 space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!selectedCurriculumId || !overrideObjectiveTitle.trim()) {
+                setError("Enter an overridden learning objective title.");
+                return;
+              }
+              void run(async () => {
+                await updateLearningObjective(
+                  token,
+                  selectedCurriculumId,
+                  selectedObjective.subjectId,
+                  selectedObjective.unitId,
+                  selectedObjective.id,
+                  overrideObjectiveTitle.trim(),
+                  selectedObjective.sortOrder
+                );
+                setMessage(`Overrode learning objective ${selectedObjective.id}.`);
+                await refreshTree(token, selectedCurriculumId);
+              });
+            }}
+          >
+            <h2 className="font-medium">Override learning objective (school variant)</h2>
+            <p className="text-sm text-black/60">
+              Selected LO: {selectedObjective.title}
+              {selectedObjective.isOverridden ? " (already overridden)" : ""}
+            </p>
+            <input
+              className="w-full rounded border border-black/20 px-3 py-2"
+              value={overrideObjectiveTitle}
+              onChange={(event) => setOverrideObjectiveTitle(event.target.value)}
+              placeholder="School-specific learning objective"
+              required
+            />
+            <button
+              type="submit"
+              disabled={busy || !selectedCurriculumId}
+              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+            >
+              Override learning objective
+            </button>
+          </form>
+        ) : null}
 
         <form
           className="rounded-lg border border-black/10 p-6 space-y-3"

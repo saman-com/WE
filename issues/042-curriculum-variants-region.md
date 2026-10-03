@@ -14,12 +14,12 @@ Includes: curriculum variant schema, variant management API, admin UI for defini
 
 ## Acceptance criteria
 
-- [ ] Education authority can define a curriculum variant (subjects, units, LOs)
-- [ ] Schools within a region inherit the regional curriculum variant
-- [ ] Schools can override specific units/LOs within their variant
-- [ ] Curriculum variants isolated per tenant/region
-- [ ] Assessments and evidence link to variant-specific LOs/micro-skills
-- [ ] Tests verify variant inheritance and override behavior
+- [x] Education authority can define a curriculum variant (subjects, units, LOs)
+- [x] Schools within a region inherit the regional curriculum variant
+- [x] Schools can override specific units/LOs within their variant
+- [x] Curriculum variants isolated per tenant/region
+- [x] Assessments and evidence link to variant-specific LOs/micro-skills
+- [x] Tests verify variant inheritance and override behavior
 
 ## Blocked by
 
