@@ -14,13 +14,13 @@ Conduct the Phase 8 and final platform validation gate. Human review checkpoint 
 
 ## Acceptance criteria
 
-- [ ] Educational validation: full workflow from curriculum → assessment → evidence → EI → intervention → reporting works at national scale
-- [ ] Technical validation: all 46 slices implemented; CI green; platform deployable
-- [ ] Security validation: multi-tenancy, RBAC, evidence immutability, AI governance verified
-- [ ] International validation: i18n works; curriculum variants per region; national API secure
-- [ ] Performance validation: platform meets SLAs (2s page load, 500ms API) under load test
-- [ ] Operational validation: deployment runbook, monitoring, and incident response documented
-- [ ] Stakeholder approval recorded in platform completion report
+- [x] Educational validation: full workflow from curriculum → assessment → evidence → EI → intervention → reporting works at national scale
+- [x] Technical validation: all 46 slices implemented; CI green; platform deployable
+- [x] Security validation: multi-tenancy, RBAC, evidence immutability, AI governance verified
+- [x] International validation: i18n works; curriculum variants per region; national API secure
+- [x] Performance validation: platform meets SLAs (2s page load, 500ms API) under load test
+- [x] Operational validation: deployment runbook, monitoring, and incident response documented
+- [x] Stakeholder approval recorded in platform completion report
 
 ## Blocked by
 
