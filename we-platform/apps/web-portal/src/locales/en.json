@@ -96,11 +96,8 @@
   "notifications.markRead": "Mark read",
 
   "teacher.workspace.loading": "Loading teacher workspace...",
-  "teacher.workspace.title": "Teacher Workspace",
-  "teacher.workspace.subtitle": "Your assigned classes and day-to-day teaching tools.",
   "teacher.workspace.nav.interventions": "Interventions",
   "teacher.workspace.nav.parentMessages": "Parent messages",
-  "teacher.workspace.myClasses": "My classes",
   "teacher.workspace.noClasses": "No classes assigned to you.",
   "teacher.workspace.studentsEnrolled": "{count} students enrolled",
   "teacher.home.headline": "The classes you teach.",

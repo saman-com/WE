@@ -96,11 +96,8 @@
   "notifications.markRead": "تحديد كمقروء",
 
   "teacher.workspace.loading": "جارٍ تحميل مساحة عمل المعلم...",
-  "teacher.workspace.title": "مساحة عمل المعلم",
-  "teacher.workspace.subtitle": "الصفوف المسندة إليك وأدوات التدريس اليومية.",
   "teacher.workspace.nav.interventions": "التدخلات",
   "teacher.workspace.nav.parentMessages": "رسائل أولياء الأمور",
-  "teacher.workspace.myClasses": "صفوفي",
   "teacher.workspace.noClasses": "لا توجد صفوف مسندة إليك.",
   "teacher.workspace.studentsEnrolled": "{count} طالب مسجل",
   "teacher.home.headline": "الصفوف التي تدرّسها.",
