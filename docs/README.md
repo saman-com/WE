@@ -8,6 +8,7 @@ All product, architecture, and engineering documentation for the WE Platform.
 |------|----------|-------------|
 | BP-001 | [`product/BP-001-business-package.md`](product/BP-001-business-package.md) | Vision, benefits, phased rollout |
 | SP-001 | [`product/SP-001-functional-specification.md`](product/SP-001-functional-specification.md) | Functional spec (parent PRD for implementation) |
+| UX-001 | [`product/UX-001-ui-design.md`](product/UX-001-ui-design.md) | UI design, edition 1: student home and teacher home |
 
 ## Architecture & engineering
 
@@ -45,7 +46,7 @@ docs/validation/   # Created as issues are completed
 | SP-001 | Functional Specification | Complete |
 | TD-001 | Technical Architecture | Complete |
 | EP-001 | Engineering Package | Complete |
-| UX-001 | UI/UX Design System | Future |
+| UX-001 | UI design, edition 1 (student home and teacher home) | Accepted. Build in issues 047 and 048 |
 | PM-001 | Product Management Guide | Future |
 | OP-001 | Operations Manual | Future |
 
