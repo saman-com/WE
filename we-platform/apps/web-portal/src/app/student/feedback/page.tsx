@@ -8,6 +8,8 @@ import {
   fetchStudentWorkspace,
   type StudentWorkspaceFeedback,
 } from "@/lib/student-workspace";
+import { LearningFrame } from "@/components/learning-frame";
+import { levelFromMark } from "@/lib/student-focus";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function isStudent(profile: UserProfile): boolean {
@@ -45,9 +47,9 @@ export default function StudentFeedbackPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="we-learning flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-700">{error}</p>
           <Link href="/student" className="underline">
             {t("student.backToMyLearning")}
           </Link>
@@ -58,47 +60,39 @@ export default function StudentFeedbackPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="we-learning flex items-center justify-center p-6">
         <p>{t("student.feedback.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{t("student.feedback.title")}</h1>
-          <Link href="/student" className="text-sm underline">
-            {t("student.myLearning")}
-          </Link>
-        </div>
-
+    <LearningFrame eyebrow="WE" title={t("student.feedback.title")}>
+      <div className="space-y-6">
+        <Link href="/student" className="text-sm text-black/60 underline-offset-2 hover:underline">
+          {t("student.myLearning")}
+        </Link>
         {feedback.length === 0 ? (
-          <p className="text-sm text-black/60">
-            {t("student.feedback.empty")}
-          </p>
+          <p className="text-sm text-black/60">{t("student.feedback.empty")}</p>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-6">
             {feedback.map((item) => (
-              <li key={item.evidenceId} className="rounded-lg border border-black/10 p-6 space-y-3">
+              <li key={item.evidenceId} className="space-y-3">
                 <div>
-                  <p className="font-medium">{item.title}</p>
+                  <p className="font-semibold">{item.title}</p>
                   <p className="text-sm text-black/60">
                     {t("student.feedback.reviewed", {
                       date: new Date(item.approvedAt).toLocaleString(),
                     })}
                   </p>
                 </div>
-                <ul className="space-y-2">
+                <ul className="divide-y divide-black/10 border-y border-black/10">
                   {item.microSkillMarks.map((mark) => (
-                    <li key={mark.microSkillId} className="text-sm border-t border-black/5 pt-2">
-                      <p>
-                        <span className="font-medium">{t("student.feedback.markLabel")}</span> {mark.mark}
-                      </p>
-                      {mark.feedback ? (
-                        <p className="text-black/80 mt-1">{mark.feedback}</p>
-                      ) : null}
+                    <li key={mark.microSkillId} className="flex items-baseline justify-between gap-3 py-3">
+                      <span className="text-sm">{mark.feedback || t("student.feedback.markLabel")}</span>
+                      <span className="shrink-0 text-sm text-black/60">
+                        {t(`student.focus.level.${levelFromMark(mark.mark)}`)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -107,6 +101,6 @@ export default function StudentFeedbackPage() {
           </ul>
         )}
       </div>
-    </div>
+    </LearningFrame>
   );
 }

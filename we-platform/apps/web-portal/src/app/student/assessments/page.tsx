@@ -28,6 +28,13 @@ function isStudent(profile: UserProfile): boolean {
   return profile.roles.includes("Student");
 }
 
+function requestedParam(name: "classId" | "assessmentId"): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 export default function StudentAssessmentsPage() {
   const router = useRouter();
   const { t } = useI18n();
@@ -79,8 +86,12 @@ export default function StudentAssessmentsPage() {
           );
           const flattened = scoped.flat();
           setClassScopes(flattened);
-          if (flattened[0]) {
-            setSelectedClassId(flattened[0].schoolClass.id);
+          const requested = flattened.find(
+            (scope) => scope.schoolClass.id === requestedParam("classId")
+          );
+          const initial = requested ?? flattened[0];
+          if (initial) {
+            setSelectedClassId(initial.schoolClass.id);
           }
         } catch {
           setClassScopes([]);
@@ -102,11 +113,9 @@ export default function StudentAssessmentsPage() {
     listAssessments(token, selectedScope.organisationId, selectedScope.schoolClass.id)
       .then((loaded) => {
         setAssessments(loaded);
-        if (loaded[0]) {
-          setSelectedAssessmentId(loaded[0].id);
-        } else {
-          setSelectedAssessmentId("");
-        }
+        const initial =
+          loaded.find((item) => item.id === requestedParam("assessmentId")) ?? loaded[0];
+        setSelectedAssessmentId(initial?.id ?? "");
       })
       .catch(() => {
         setAssessments([]);

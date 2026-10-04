@@ -8,6 +8,7 @@ import {
   fetchStudentWorkspace,
   type StudentWorkspaceTimelineEntry,
 } from "@/lib/student-workspace";
+import { LearningFrame } from "@/components/learning-frame";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function isStudent(profile: UserProfile): boolean {
@@ -45,9 +46,9 @@ export default function StudentProgressPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="we-learning flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-700">{error}</p>
           <Link href="/student" className="underline">
             {t("student.backToMyLearning")}
           </Link>
@@ -58,37 +59,26 @@ export default function StudentProgressPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="we-learning flex items-center justify-center p-6">
         <p>{t("student.progress.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{t("student.progress.title")}</h1>
-            <p className="text-sm text-black/60 mt-1">
-              {t("student.progress.subtitle")}
-            </p>
-          </div>
-          <Link href="/student" className="text-sm underline">
-            {t("student.myLearning")}
-          </Link>
-        </div>
-
+    <LearningFrame eyebrow="WE" title={t("student.progress.title")}>
+      <div className="space-y-6">
+        <Link href="/student" className="text-sm text-black/60 underline-offset-2 hover:underline">
+          {t("student.myLearning")}
+        </Link>
+        <p className="max-w-xl text-sm text-black/60">{t("student.progress.subtitle")}</p>
         {timeline.length === 0 ? (
-          <p className="text-sm text-black/60">
-            {t("student.progress.empty")}
-          </p>
+          <p className="text-sm text-black/60">{t("student.progress.empty")}</p>
         ) : (
-          <ol className="relative border-l border-black/20 ml-3 space-y-6">
+          <ol className="space-y-4 border-s border-black/15 ps-4">
             {timeline.map((entry) => (
-              <li key={entry.id} className="ml-6">
-                <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-black" />
-                <p className="font-medium">{entry.title}</p>
+              <li key={entry.id}>
+                <p className="font-semibold">{entry.title}</p>
                 <p className="text-sm text-black/60">
                   {new Date(entry.recordedAt).toLocaleString()}
                 </p>
@@ -97,6 +87,6 @@ export default function StudentProgressPage() {
           </ol>
         )}
       </div>
-    </div>
+    </LearningFrame>
   );
 }

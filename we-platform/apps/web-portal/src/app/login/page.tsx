@@ -23,7 +23,9 @@ export default function LoginPage() {
       const result = await login(email, password);
       localStorage.setItem("we_access_token", result.accessToken);
       const profile = await fetchProfile(result.accessToken);
-      if (profile.roles.includes("Teacher")) {
+      if (profile.roles.includes("Student")) {
+        router.push("/student");
+      } else if (profile.roles.includes("Teacher")) {
         router.push("/teacher");
       } else {
         router.push("/dashboard");
