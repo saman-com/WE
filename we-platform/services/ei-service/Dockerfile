@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY services/ei-service/src/Domain/EiService.Domain.csproj services/ei-service/src/Domain/
 COPY services/ei-service/src/Application/EiService.Application.csproj services/ei-service/src/Application/
 COPY services/ei-service/src/Infrastructure/EiService.Infrastructure.csproj services/ei-service/src/Infrastructure/
 COPY services/ei-service/src/Api/EiService.Api.csproj services/ei-service/src/Api/
 RUN dotnet restore services/ei-service/src/Api/EiService.Api.csproj
+COPY shared/tenancy/ shared/tenancy/
 COPY services/ei-service/src/ services/ei-service/src/
 RUN dotnet publish services/ei-service/src/Api/EiService.Api.csproj -c Release -o /app/publish
 
