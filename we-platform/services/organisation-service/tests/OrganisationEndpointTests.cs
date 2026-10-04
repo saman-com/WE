@@ -275,6 +275,31 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task Student_GetClass_ListsOnlyThemselvesAsStudent()
+    {
+        // Assessment and evidence services admit a student only when their id is in StudentUserIds.
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var classmateId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Birch School", UniqueCode("BIR"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 11", 11);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "11MAT", UniqueCode("11M"));
+
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, classmateId);
+
+        var fetched = await SendAsAsync<ClassResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}",
+            studentId,
+            org.Id,
+            TestJwt.StudentRole);
+
+        Assert.Equal([studentId], fetched.StudentUserIds);
+    }
+
+    [Fact]
     public async Task Teacher_IsDeniedCrossClassAccess()
     {
         var adminId = Guid.NewGuid().ToString();

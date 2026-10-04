@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY services/identity-service/src/Domain/IdentityService.Domain.csproj services/identity-service/src/Domain/
 COPY services/identity-service/src/Application/IdentityService.Application.csproj services/identity-service/src/Application/
 COPY services/identity-service/src/Infrastructure/IdentityService.Infrastructure.csproj services/identity-service/src/Infrastructure/
 COPY services/identity-service/src/Api/IdentityService.Api.csproj services/identity-service/src/Api/
 RUN dotnet restore services/identity-service/src/Api/IdentityService.Api.csproj
+COPY shared/tenancy/ shared/tenancy/
 COPY services/identity-service/src/ services/identity-service/src/
 RUN dotnet publish services/identity-service/src/Api/IdentityService.Api.csproj -c Release -o /app/publish
 

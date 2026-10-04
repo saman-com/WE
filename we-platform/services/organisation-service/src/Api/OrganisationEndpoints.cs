@@ -943,7 +943,18 @@ public static class OrganisationEndpoints
 
     private static ClassResponse ToClass(SchoolClass schoolClass, ClaimsPrincipal principal)
     {
-        var includeStudents = principal.IsAdmin() || principal.IsTeacher() || principal.IsSchoolLeader();
+        var enrolled = schoolClass.Enrollments.Select(e => e.StudentUserId);
+        IReadOnlyList<string>? studentUserIds = null;
+        if (principal.IsAdmin() || principal.IsTeacher() || principal.IsSchoolLeader())
+        {
+            studentUserIds = enrolled.ToList();
+        }
+        else if (principal.IsStudent())
+        {
+            var userId = principal.UserId();
+            studentUserIds = enrolled.Where(id => id == userId).ToList();
+        }
+
         return new ClassResponse(
             schoolClass.Id,
             schoolClass.OrganisationId,
@@ -951,7 +962,7 @@ public static class OrganisationEndpoints
             schoolClass.Name,
             schoolClass.Code,
             schoolClass.Teachers.Select(t => t.TeacherUserId).ToList(),
-            includeStudents ? schoolClass.Enrollments.Select(e => e.StudentUserId).ToList() : null);
+            studentUserIds);
     }
 
     private static string UserId(this ClaimsPrincipal principal) =>

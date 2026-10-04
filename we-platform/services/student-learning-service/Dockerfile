@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY services/student-learning-service/src/Domain/StudentLearningService.Domain.csproj services/student-learning-service/src/Domain/
 COPY services/student-learning-service/src/Application/StudentLearningService.Application.csproj services/student-learning-service/src/Application/
 COPY services/student-learning-service/src/Infrastructure/StudentLearningService.Infrastructure.csproj services/student-learning-service/src/Infrastructure/
 COPY services/student-learning-service/src/Api/StudentLearningService.Api.csproj services/student-learning-service/src/Api/
 RUN dotnet restore services/student-learning-service/src/Api/StudentLearningService.Api.csproj
+COPY shared/tenancy/ shared/tenancy/
 COPY services/student-learning-service/src/ services/student-learning-service/src/
 RUN dotnet publish services/student-learning-service/src/Api/StudentLearningService.Api.csproj -c Release -o /app/publish
 
