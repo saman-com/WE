@@ -1,0 +1,285 @@
+{
+  "generatedFrom": "services/*/src IgnoreQueryFilters() scan",
+  "entries": [
+    {
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "line": 853,
+      "reason": "lookup-by-id-then-TenantAccess-on-callers"
+    },
+    {
+      "file": "services/assessment-service/src/Api/Program.cs",
+      "line": 59,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/assessment-service/src/Api/Program.cs",
+      "line": 64,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/assessment-service/src/Api/Program.cs",
+      "line": 69,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/assessment-service/src/Api/Program.cs",
+      "line": 74,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/assessment-service/src/Infrastructure/Ai/AiFeedbackDraftService.cs",
+      "line": 95,
+      "reason": "finalize-audit-teacher-and-TenantAccess"
+    },
+    {
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "line": 196,
+      "reason": "conversation-then-TenantAccess"
+    },
+    {
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "line": 252,
+      "reason": "inbox-explicit-tenant-predicate"
+    },
+    {
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "line": 257,
+      "reason": "inbox-explicit-tenant-predicate"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 183,
+      "reason": "inherit-regional-parent-tree"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 343,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 365,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 402,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 431,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1309,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1327,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1349,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1372,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1396,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1416,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "line": 1500,
+      "reason": "variant-scope-after-Find-TenantAccess"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "line": 59,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "line": 64,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "line": 70,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "line": 76,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "line": 82,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/diagnostic-service/src/Api/DiagnosticEndpoints.cs",
+      "line": 50,
+      "reason": "list-forbid-foreign-then-filter-tenant"
+    },
+    {
+      "file": "services/edw-ingest-service/src/Infrastructure/EdwIngestProcessor.cs",
+      "line": 175,
+      "reason": "shared-calendar-dim-default-tenant"
+    },
+    {
+      "file": "services/ei-service/src/Infrastructure/Ai/AiSummaryDraftService.cs",
+      "line": 127,
+      "reason": "finalize-audit-teacher-and-TenantAccess"
+    },
+    {
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "line": 309,
+      "reason": "lookup-by-id-then-TenantAccess-on-callers"
+    },
+    {
+      "file": "services/evidence-service/src/Api/Program.cs",
+      "line": 61,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "line": 129,
+      "reason": "list-forbid-foreign-then-filter-tenant"
+    },
+    {
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "line": 255,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "line": 289,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/learning-gap-service/src/Api/GapEndpoints.cs",
+      "line": 49,
+      "reason": "list-forbid-foreign-then-filter-tenant"
+    },
+    {
+      "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
+      "line": 50,
+      "reason": "list-forbid-foreign-then-filter-tenant"
+    },
+    {
+      "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
+      "line": 108,
+      "reason": "list-forbid-foreign-then-filter-tenant"
+    },
+    {
+      "file": "services/notification-service/src/Api/NotificationEndpoints.cs",
+      "line": 47,
+      "reason": "mark-read-TenantAccess-and-recipient"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 131,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 165,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 206,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 891,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 910,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 930,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "line": 56,
+      "reason": "enrollment-tenant-predicate"
+    },
+    {
+      "file": "services/organisation-service/src/Api/Program.cs",
+      "line": 62,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/organisation-service/src/Api/Program.cs",
+      "line": 67,
+      "reason": "startup-backfill"
+    },
+    {
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "line": 150,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "line": 199,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/reporting-service/src/Infrastructure/Analytics/LongitudinalAnalyticsQuery.cs",
+      "line": 23,
+      "reason": "shared-calendar-dim-default-tenant"
+    },
+    {
+      "file": "services/reporting-service/src/Infrastructure/Analytics/LongitudinalAnalyticsQuery.cs",
+      "line": 60,
+      "reason": "shared-calendar-dim-default-tenant"
+    },
+    {
+      "file": "services/reporting-service/src/Infrastructure/DependencyInjection.cs",
+      "line": 166,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/reporting-service/src/Infrastructure/DependencyInjection.cs",
+      "line": 185,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "line": 52,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "line": 100,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "line": 228,
+      "reason": "lookup-by-id-then-TenantAccess"
+    }
+  ]
+}
