@@ -78,9 +78,16 @@ public static class FederationEndpoints
         db.FederationSchools.Add(school);
         await db.SaveChangesAsync();
 
-        await provisioner.ProvisionDefaultConfigurationAsync(tenantId);
-        school.HasDefaultConfiguration = true;
-        await db.SaveChangesAsync();
+        try
+        {
+            await provisioner.ProvisionDefaultConfigurationAsync(tenantId);
+            school.HasDefaultConfiguration = true;
+            await db.SaveChangesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            school.HasDefaultConfiguration = false;
+        }
 
         return Results.Created(
             $"/api/v1/federation/schools/{school.TenantId}",

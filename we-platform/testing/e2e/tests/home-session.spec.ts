@@ -81,6 +81,10 @@ for (const role of roles) {
       if (role === "federation") {
         await expect(page.getByText("shared-curriculum").first()).toBeVisible();
         await expect(page.getByText("No metrics available.")).toHaveCount(0);
+        await page.getByRole("button", { name: "Add a school" }).click();
+        await expect(page.getByLabel("School name")).toBeVisible();
+        await page.getByRole("button", { name: "Overview" }).click();
+        await expect(page.getByText("North Federation School").first()).toBeVisible();
       }
       const token = await page.evaluate(() => localStorage.getItem("we_access_token"));
       expect(token).toBeTruthy();

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LearningFrame } from "@/components/learning-frame";
+import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -39,6 +39,7 @@ export default function FederationAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("overview");
 
   async function reload(token: string) {
     const [loadedSchools, loadedMetrics, loadedPolicies] = await Promise.all([
@@ -193,139 +194,173 @@ export default function FederationAdminPage() {
         router.push("/login");
       }}
       signOutLabel={t("common.signOut")}
+      tabs={[
+        { id: "overview", label: t("admin.federation.tab.overview") },
+        { id: "add", label: t("admin.federation.tab.addSchool") },
+        { id: "assign", label: t("admin.federation.tab.assign") },
+        { id: "policy", label: t("admin.federation.tab.policy") },
+      ]}
+      activeTab={tab}
+      onTabChange={setTab}
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <h1 className="text-2xl font-semibold">{t("dashboard.nav.federationAdmin")}</h1>
+        {error ? (
+          <p role="status" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p role="status" className="text-sm text-green-800">
+            {success}
+          </p>
+        ) : null}
 
-        {error ? <p className="text-red-600">{error}</p> : null}
-        {success ? <p className="text-green-700">{success}</p> : null}
+        {tab === "overview" ? (
+          <>
+            <FocusCard>
+              <h2 className="font-medium">{t("admin.federation.metricsTitle")}</h2>
+              {metrics ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-black/60">{t("admin.federation.schools")}</p>
+                    <p className="text-lg font-medium">{metrics.totalSchools}</p>
+                  </div>
+                  <div>
+                    <p className="text-black/60">{t("admin.federation.totalEnrollment")}</p>
+                    <p className="text-lg font-medium">{metrics.totalEnrollment}</p>
+                  </div>
+                  <div>
+                    <p className="text-black/60">{t("admin.federation.averageProgress")}</p>
+                    <p className="text-lg font-medium">{metrics.averageProgressPercent}%</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-black/60">{t("admin.federation.noMetrics")}</p>
+              )}
+            </FocusCard>
+            <FocusCard>
+              <h2 className="font-medium">{t("admin.federation.schoolsTitle")}</h2>
+              {schools.length === 0 ? (
+                <p className="mt-3 text-sm text-black/60">{t("admin.federation.noSchools")}</p>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {schools.map((school) => (
+                    <li key={school.tenantId}>
+                      {t("admin.federation.schoolLine", {
+                        name: school.name,
+                        code: school.code,
+                        tenantId: school.tenantId,
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FocusCard>
+            <FocusCard>
+              <h2 className="font-medium">{t("admin.federation.policiesTitle")}</h2>
+              {policies.length > 0 ? (
+                <ul className="mt-3 space-y-1 text-sm">
+                  {policies.map((policy) => (
+                    <li key={policy.policyKey}>
+                      {policy.policyKey}: {policy.policyValue}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-black/60">{t("admin.federation.noPolicies")}</p>
+              )}
+            </FocusCard>
+          </>
+        ) : null}
 
-        <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">{t("admin.federation.metricsTitle")}</h2>
-          {metrics ? (
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-black/60">{t("admin.federation.schools")}</p>
-                <p className="text-lg font-medium">{metrics.totalSchools}</p>
-              </div>
-              <div>
-                <p className="text-black/60">{t("admin.federation.totalEnrollment")}</p>
-                <p className="text-lg font-medium">{metrics.totalEnrollment}</p>
-              </div>
-              <div>
-                <p className="text-black/60">{t("admin.federation.averageProgress")}</p>
-                <p className="text-lg font-medium">{metrics.averageProgressPercent}%</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-black/60">{t("admin.federation.noMetrics")}</p>
-          )}
-        </section>
+        {tab === "add" ? (
+          <FocusCard>
+            <h2 className="font-medium">{t("admin.federation.provisionTitle")}</h2>
+            <form onSubmit={handleCreateSchool} className="mt-4 space-y-3">
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.schoolName")}</span>
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={schoolName}
+                  onChange={(event) => setSchoolName(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.schoolCode")}</span>
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={schoolCode}
+                  onChange={(event) => setSchoolCode(event.target.value)}
+                  required
+                />
+              </label>
+              <PrimaryButton type="submit">{t("organisation.createSchool")}</PrimaryButton>
+            </form>
+          </FocusCard>
+        ) : null}
 
-        <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">{t("admin.federation.provisionTitle")}</h2>
-          <form onSubmit={handleCreateSchool} className="space-y-3">
-            <input
-              className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder={t("organisation.schoolNamePlaceholder")}
-              value={schoolName}
-              onChange={(event) => setSchoolName(event.target.value)}
-              required
-            />
-            <input
-              className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder={t("organisation.schoolCodePlaceholder")}
-              value={schoolCode}
-              onChange={(event) => setSchoolCode(event.target.value)}
-              required
-            />
-            <button type="submit" className="text-sm underline">
-              {t("organisation.createSchool")}
-            </button>
-          </form>
-        </section>
+        {tab === "assign" ? (
+          <FocusCard>
+            <h2 className="font-medium">{t("admin.federation.assignTitle")}</h2>
+            <form onSubmit={handleAssignAdmin} className="mt-4 space-y-3">
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.selectSchool")}</span>
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={selectedSchoolId}
+                  onChange={(event) => setSelectedSchoolId(event.target.value)}
+                  required
+                >
+                  <option value="">{t("admin.federation.selectSchool")}</option>
+                  {schools.map((school) => (
+                    <option key={school.tenantId} value={school.tenantId}>
+                      {school.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.adminUserId")}</span>
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={adminUserId}
+                  onChange={(event) => setAdminUserId(event.target.value)}
+                  required
+                />
+              </label>
+              <PrimaryButton type="submit">{t("admin.federation.assignAdmin")}</PrimaryButton>
+            </form>
+          </FocusCard>
+        ) : null}
 
-        <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">{t("admin.federation.schoolsTitle")}</h2>
-          {schools.length === 0 ? (
-            <p className="text-sm text-black/60">{t("admin.federation.noSchools")}</p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {schools.map((school) => (
-                <li key={school.tenantId}>
-                  {t("admin.federation.schoolLine", {
-                    name: school.name,
-                    code: school.code,
-                    tenantId: school.tenantId,
-                  })}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">{t("admin.federation.assignTitle")}</h2>
-          <form onSubmit={handleAssignAdmin} className="space-y-3">
-            <select
-              className="w-full border border-black/20 rounded px-3 py-2"
-              value={selectedSchoolId}
-              onChange={(event) => setSelectedSchoolId(event.target.value)}
-              required
-            >
-              <option value="">{t("admin.federation.selectSchool")}</option>
-              {schools.map((school) => (
-                <option key={school.tenantId} value={school.tenantId}>
-                  {school.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder={t("admin.federation.adminUserIdPlaceholder")}
-              value={adminUserId}
-              onChange={(event) => setAdminUserId(event.target.value)}
-              required
-            />
-            <button type="submit" className="text-sm underline">
-              {t("admin.federation.assignAdmin")}
-            </button>
-          </form>
-        </section>
-
-        <section className="rounded-lg border border-black/10 p-6 space-y-4">
-          <h2 className="font-medium">{t("admin.federation.policiesTitle")}</h2>
-          {policies.length > 0 ? (
-            <ul className="text-sm space-y-1">
-              {policies.map((policy) => (
-                <li key={policy.policyKey}>
-                  {policy.policyKey}: {policy.policyValue}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-black/60">{t("admin.federation.noPolicies")}</p>
-          )}
-          <form onSubmit={handleUpdatePolicy} className="space-y-3">
-            <input
-              className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder={t("admin.federation.policyKeyPlaceholder")}
-              value={policyKey}
-              onChange={(event) => setPolicyKey(event.target.value)}
-              required
-            />
-            <input
-              className="w-full border border-black/20 rounded px-3 py-2"
-              placeholder={t("admin.federation.policyValuePlaceholder")}
-              value={policyValue}
-              onChange={(event) => setPolicyValue(event.target.value)}
-              required
-            />
-            <button type="submit" className="text-sm underline">
-              {t("admin.federation.savePolicy")}
-            </button>
-          </form>
-        </section>
+        {tab === "policy" ? (
+          <FocusCard>
+            <h2 className="font-medium">{t("admin.federation.policiesTitle")}</h2>
+            <form onSubmit={handleUpdatePolicy} className="mt-4 space-y-3">
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.policyKey")}</span>
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={policyKey}
+                  onChange={(event) => setPolicyKey(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>{t("admin.federation.policyValue")}</span>
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={policyValue}
+                  onChange={(event) => setPolicyValue(event.target.value)}
+                  required
+                />
+              </label>
+              <PrimaryButton type="submit">{t("admin.federation.savePolicy")}</PrimaryButton>
+            </form>
+          </FocusCard>
+        ) : null}
       </div>
     </LearningFrame>
   );
