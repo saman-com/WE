@@ -2682,6 +2682,14 @@ Examples of access permissions are shown below.
 A detailed permission matrix will be maintained within the Engineering
 Package.
 
+Cross-service permission checks (for example teacher–student and
+class-membership lookups against the organisation service) are cached
+in-process for **30 seconds**. Cache keys always include the school
+(organisation) identifier so a cached allow/deny decision can never be
+shared across schools. As a result, enrolment changes, class assignment
+changes, and similar permission updates may take up to 30 seconds to
+take effect on subsequent API requests.
+
 4.17 Temporary Permissions
 
 Some responsibilities require temporary access.

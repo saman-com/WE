@@ -65,6 +65,20 @@ A release is deployable only when both jobs are green.
 | National API unauthorized | Missing/invalid API key | Provision active ministry key with required scopes |
 | Portal blank after login | API URL env misconfigured | Verify `NEXT_PUBLIC_*` URLs in `.env.local` |
 
+## Access-check cache (cross-service permissions)
+
+Services that call organisation-service for teacher/student/class access
+(`HttpOrganisationAccessChecker` / `HttpClassAccessChecker`) cache each
+decision in `IMemoryCache` for **30 seconds**.
+
+- Cache keys always include the **school (organisation) id**, so a cached
+  allow/deny can never be reused across schools.
+- Permission changes (enrolment, class assignment, leadership access) may
+  take up to 30 seconds to appear on subsequent requests. Operators who
+  need an immediate effect should restart the affected API container(s).
+
+See SP-001 §4.16 (Permission Matrix) for the product statement of this delay.
+
 ## Schema upgrades (existing Postgres volumes)
 
 `EnsureCreated` does **not** add new tables to databases that already exist. For evidence, diagnostic, gaps, mastery, and student-learning services, MassTransit requires `InboxState`, `OutboxState`, and `OutboxMessage`.

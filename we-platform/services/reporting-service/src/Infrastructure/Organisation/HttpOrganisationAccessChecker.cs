@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ReportingService.Application;
+using WePlatform.Tenancy;
 
 namespace ReportingService.Infrastructure.Organisation;
 
@@ -11,10 +12,9 @@ public sealed class HttpOrganisationAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
     IMemoryCache cache,
+    ITenantContext tenantContext,
     ILogger<HttpOrganisationAccessChecker> logger) : IOrganisationAccessChecker
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
-
     public async Task<bool> TeacherCanManageClassAsync(
         string teacherUserId,
         Guid organisationId,
@@ -22,7 +22,7 @@ public sealed class HttpOrganisationAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"access:teacher:{teacherUserId}:class:{organisationId}:{classId}";
+        var cacheKey = AccessCacheKeys.TeacherClass(organisationId, teacherUserId, classId);
         if (cache.TryGetValue(cacheKey, out bool cached))
         {
             return cached;
@@ -43,13 +43,13 @@ public sealed class HttpOrganisationAccessChecker(
         using var response = await httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            cache.Set(cacheKey, false, CacheDuration);
+            cache.Set(cacheKey, false, AccessCacheKeys.DefaultDuration);
             return false;
         }
 
         var schoolClass = await response.Content.ReadFromJsonAsync<ClassResponse>(cancellationToken);
         var allowed = schoolClass?.TeacherUserIds?.Contains(teacherUserId) == true;
-        cache.Set(cacheKey, allowed, CacheDuration);
+        cache.Set(cacheKey, allowed, AccessCacheKeys.DefaultDuration);
         return allowed;
     }
 
@@ -59,7 +59,7 @@ public sealed class HttpOrganisationAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"access:leader:{schoolLeaderUserId}:org:{organisationId}";
+        var cacheKey = AccessCacheKeys.LeaderOrganisation(organisationId, schoolLeaderUserId);
         if (cache.TryGetValue(cacheKey, out bool cached))
         {
             return cached;
@@ -79,7 +79,7 @@ public sealed class HttpOrganisationAccessChecker(
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         var allowed = response.IsSuccessStatusCode;
-        cache.Set(cacheKey, allowed, CacheDuration);
+        cache.Set(cacheKey, allowed, AccessCacheKeys.DefaultDuration);
         return allowed;
     }
 
@@ -87,12 +87,19 @@ public sealed class HttpOrganisationAccessChecker(
         string teacherUserId,
         string studentUserId,
         string bearerToken,
-        CancellationToken cancellationToken = default) =>
-        CheckAccessCachedAsync(
-            $"access:teacher:{teacherUserId}:student:{studentUserId}",
+        CancellationToken cancellationToken = default)
+    {
+        if (!tenantContext.HasTenant)
+        {
+            return Task.FromResult(false);
+        }
+
+        return CheckAccessCachedAsync(
+            AccessCacheKeys.TeacherStudent(tenantContext.TenantId!.Value, teacherUserId, studentUserId),
             $"/api/v1/access/teacher/{Uri.EscapeDataString(teacherUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
             bearerToken,
             cancellationToken);
+    }
 
     private async Task<bool> CheckAccessCachedAsync(
         string cacheKey,
@@ -119,7 +126,7 @@ public sealed class HttpOrganisationAccessChecker(
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         var allowed = response.IsSuccessStatusCode;
-        cache.Set(cacheKey, allowed, CacheDuration);
+        cache.Set(cacheKey, allowed, AccessCacheKeys.DefaultDuration);
         return allowed;
     }
 

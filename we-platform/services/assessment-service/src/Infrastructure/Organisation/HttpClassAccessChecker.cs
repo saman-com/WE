@@ -4,6 +4,7 @@ using AssessmentService.Application;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure.Organisation;
 
@@ -13,8 +14,6 @@ public sealed class HttpClassAccessChecker(
     IMemoryCache cache,
     ILogger<HttpClassAccessChecker> logger) : IClassAccessChecker
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
-
     public Task<bool> TeacherCanManageClassAsync(
         string teacherUserId,
         Guid organisationId,
@@ -22,7 +21,7 @@ public sealed class HttpClassAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         CheckClassMembershipCachedAsync(
-            $"access:teacher:{teacherUserId}:class:{organisationId}:{classId}",
+            AccessCacheKeys.TeacherClass(organisationId, teacherUserId, classId),
             teacherUserId,
             organisationId,
             classId,
@@ -37,7 +36,7 @@ public sealed class HttpClassAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         CheckClassMembershipCachedAsync(
-            $"access:student:{studentUserId}:class:{organisationId}:{classId}",
+            AccessCacheKeys.StudentClass(organisationId, studentUserId, classId),
             studentUserId,
             organisationId,
             classId,
@@ -71,7 +70,7 @@ public sealed class HttpClassAccessChecker(
 
         var schoolClass = await GetClassAsync(organisationId, classId, bearerToken, cancellationToken);
         var allowed = schoolClass is not null && isMember(schoolClass, userId);
-        cache.Set(cacheKey, allowed, CacheDuration);
+        cache.Set(cacheKey, allowed, AccessCacheKeys.DefaultDuration);
         return allowed;
     }
 

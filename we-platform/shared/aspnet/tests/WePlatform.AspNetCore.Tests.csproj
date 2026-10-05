@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WePlatform.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\tenancy\WePlatform.Tenancy.csproj" />
   </ItemGroup>
 
   <ItemGroup>

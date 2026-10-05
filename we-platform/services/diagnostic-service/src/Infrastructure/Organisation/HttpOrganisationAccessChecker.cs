@@ -3,6 +3,7 @@ using DiagnosticService.Application;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using WePlatform.Tenancy;
 
 namespace DiagnosticService.Infrastructure.Organisation;
 
@@ -10,20 +11,26 @@ public sealed class HttpOrganisationAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
     IMemoryCache cache,
+    ITenantContext tenantContext,
     ILogger<HttpOrganisationAccessChecker> logger) : IOrganisationAccessChecker
 {
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
-
     public Task<bool> TeacherCanViewStudentAsync(
         string teacherUserId,
         string studentUserId,
         string bearerToken,
-        CancellationToken cancellationToken = default) =>
-        CheckAccessCachedAsync(
-            $"access:teacher:{teacherUserId}:student:{studentUserId}",
+        CancellationToken cancellationToken = default)
+    {
+        if (!tenantContext.HasTenant)
+        {
+            return Task.FromResult(false);
+        }
+
+        return CheckAccessCachedAsync(
+            AccessCacheKeys.TeacherStudent(tenantContext.TenantId!.Value, teacherUserId, studentUserId),
             $"/api/v1/access/teacher/{Uri.EscapeDataString(teacherUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
             bearerToken,
             cancellationToken);
+    }
 
     private async Task<bool> CheckAccessCachedAsync(
         string cacheKey,
@@ -37,7 +44,7 @@ public sealed class HttpOrganisationAccessChecker(
         }
 
         var allowed = await CheckAccessAsync(path, bearerToken, cancellationToken);
-        cache.Set(cacheKey, allowed, CacheDuration);
+        cache.Set(cacheKey, allowed, AccessCacheKeys.DefaultDuration);
         return allowed;
     }
 
