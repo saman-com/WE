@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LearningFrame } from "@/components/learning-frame";
+import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
 import {
@@ -63,6 +63,9 @@ export default function CurriculumPage() {
   const [objectiveUnitId, setObjectiveUnitId] = useState("");
   const [microSkillName, setMicroSkillName] = useState("Identify reactants and products");
   const [microSkillObjectiveId, setMicroSkillObjectiveId] = useState("");
+  const [tab, setTab] = useState("tree");
+  const [addKind, setAddKind] = useState("subject");
+  const [overrideKind, setOverrideKind] = useState("unit");
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -243,6 +246,15 @@ export default function CurriculumPage() {
     )
     .find((objective) => objective.id === microSkillObjectiveId);
 
+  const tabs = [
+    { id: "tree", label: t("curriculum.tab.tree") },
+    { id: "add", label: t("curriculum.tab.add") },
+    { id: "inherit", label: t("curriculum.tab.inherit") },
+    ...(tree?.parentCurriculumId
+      ? [{ id: "override", label: t("curriculum.tab.override") }]
+      : []),
+  ];
+
   return (
     <LearningFrame
       eyebrow="WE"
@@ -252,632 +264,553 @@ export default function CurriculumPage() {
         router.push("/login");
       }}
       signOutLabel={t("common.signOut")}
+      tabs={tabs}
+      activeTab={tab}
+      onTabChange={setTab}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-6">
         <h1 className="text-2xl font-semibold">{t("dashboard.nav.curriculum")}</h1>
+        {error || message ? (
+          <p role="status" className={`text-sm ${error ? "text-red-700" : "text-green-800"}`}>
+            {error ?? message}
+          </p>
+        ) : null}
 
-        <p className="text-sm text-black/60">
-          {t("curriculum.intro")}
-        </p>
+        {tab === "tree" ? (
+          <FocusCard>
+            <label className="block space-y-1 text-sm">
+              <span>{t("curriculum.label.school")}</span>
+              {organisations.length > 0 ? (
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={organisationId}
+                  onChange={(event) => setOrganisationId(event.target.value)}
+                >
+                  {organisations.map((organisation) => (
+                    <option key={organisation.id} value={organisation.id}>
+                      {organisation.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={organisationId}
+                  onChange={(event) => setOrganisationId(event.target.value)}
+                  required
+                />
+              )}
+            </label>
+            {curricula.length > 0 ? (
+              <label className="mt-3 block space-y-1 text-sm">
+                <span>{t("curriculum.label.curriculum")}</span>
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={selectedCurriculumId}
+                  onChange={(event) => {
+                    const nextId = event.target.value;
+                    setSelectedCurriculumId(nextId);
+                    if (token && nextId) {
+                      void refreshTree(token, nextId).catch(() => {
+                        setError(t("curriculum.loadTreeError"));
+                      });
+                    }
+                  }}
+                >
+                  {curricula.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <h2 className="mt-4 font-medium">{tree?.name ?? t("curriculum.treeTitle")}</h2>
+            {!tree ? (
+              <p className="mt-2 text-sm text-black/60">{t("curriculum.treeEmpty")}</p>
+            ) : tree.subjects.length === 0 ? (
+              <p className="mt-2 text-sm text-black/60">{t("curriculum.noSubjects")}</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {tree.subjects.map((subject) => {
+                  const expanded = expandedSubjects.includes(subject.id);
+                  return (
+                    <li key={subject.id}>
+                      <button
+                        type="button"
+                        className="text-start font-medium underline"
+                        onClick={() => toggleSubject(subject.id)}
+                      >
+                        {expanded ? "▾" : "▸"} {subject.name} ({subject.code})
+                      </button>
+                      {expanded ? (
+                        <ul className="ms-6 mt-1 list-disc space-y-1">
+                          {subject.units.length === 0 ? (
+                            <li className="text-sm text-black/60">{t("curriculum.noUnits")}</li>
+                          ) : (
+                            subject.units.map((unit) => (
+                              <li key={unit.id}>
+                                {unit.name}
+                                {unit.isOverridden ? (
+                                  <span className="ms-2 text-xs text-amber-700">
+                                    {t("curriculum.overridden")}
+                                  </span>
+                                ) : null}
+                                {unit.topics.length > 0 ? (
+                                  <ul className="ms-5 list-[circle]">
+                                    {unit.topics.map((topic) => (
+                                      <li key={topic.id}>{topic.name}</li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                                {unit.learningObjectives.length > 0 ? (
+                                  <ul className="ms-5 mt-1 space-y-1">
+                                    {unit.learningObjectives.map((objective) => (
+                                      <li key={objective.id}>
+                                        <span className="font-medium">{t("curriculum.loLabel")}</span>{" "}
+                                        {objective.title}
+                                        {objective.microSkills.length > 0 ? (
+                                          <ul className="ms-5 list-[square]">
+                                            {objective.microSkills.map((skill) => (
+                                              <li key={skill.id}>{skill.name}</li>
+                                            ))}
+                                          </ul>
+                                        ) : null}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </FocusCard>
+        ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {message ? <p className="text-sm text-green-700">{message}</p> : null}
-
-        <section className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">{t("assessments.scope.organisationLabel")}</h2>
-          {organisations.length > 0 ? (
-            <select
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={organisationId}
-              onChange={(event) => setOrganisationId(event.target.value)}
-            >
-              {organisations.map((organisation) => (
-                <option key={organisation.id} value={organisation.id}>
-                  {organisation.name} ({organisation.code})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={organisationId}
-              onChange={(event) => setOrganisationId(event.target.value)}
-              placeholder={t("curriculum.organisationIdPlaceholder")}
-              required
-            />
-          )}
-        </section>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisationId) {
-              setError(t("curriculum.chooseOrganisation"));
-              return;
-            }
-            if (createAsRegional && !regionCode.trim()) {
-              setError(t("curriculum.regionCodeRequired"));
-              return;
-            }
-            void run(async () => {
-              const created = await createCurriculum(
-                token,
-                organisationId,
-                curriculumName,
-                curriculumVersion,
-                createAsRegional
-                  ? { regionCode: regionCode.trim(), scope: "Regional" }
-                  : { scope: "School" }
-              );
-              setMessage(
-                createAsRegional
-                  ? t("curriculum.createdRegional", {
-                      name: created.name,
-                      region: created.regionCode ?? "",
-                    })
-                  : t("curriculum.createdCurriculum", { name: created.name })
-              );
-              await loadCurricula(token, organisationId);
-              setSelectedCurriculumId(created.id);
-              await refreshTree(token, created.id);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.createTitle")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={curriculumName}
-            onChange={(event) => setCurriculumName(event.target.value)}
-            placeholder={t("curriculum.namePlaceholder")}
-            required
-          />
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={curriculumVersion}
-            onChange={(event) => setCurriculumVersion(event.target.value)}
-            placeholder={t("curriculum.versionPlaceholder")}
-            required
-          />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={createAsRegional}
-              onChange={(event) => setCreateAsRegional(event.target.checked)}
-            />
-            {t("curriculum.defineRegional")}
-          </label>
-          {createAsRegional ? (
-            <input
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={regionCode}
-              onChange={(event) => setRegionCode(event.target.value)}
-              placeholder={t("curriculum.regionCodePlaceholder")}
-              required
-            />
-          ) : null}
-          <button
-            type="submit"
-            disabled={busy || !organisationId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {createAsRegional
-              ? t("curriculum.createRegionalButton")
-              : t("curriculum.createButton")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisationId || !parentCurriculumId.trim()) {
-              setError(t("curriculum.inheritRequired"));
-              return;
-            }
-            void run(async () => {
-              const inherited = await inheritCurriculum(
-                token,
-                parentCurriculumId.trim(),
-                organisationId
-              );
-              setMessage(
-                t("curriculum.inherited", {
-                  name: inherited.name,
-                  region: inherited.regionCode ?? "",
-                })
-              );
-              await loadCurricula(token, organisationId);
-              setSelectedCurriculumId(inherited.id);
-              await refreshTree(token, inherited.id);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.inheritTitle")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={parentCurriculumId}
-            onChange={(event) => setParentCurriculumId(event.target.value)}
-            placeholder={t("curriculum.parentIdPlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !organisationId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.inheritButton")}
-          </button>
-        </form>
-
-        {curricula.length > 0 ? (
-          <section className="rounded-lg border border-black/10 p-6 space-y-3">
-            <h2 className="font-medium">{t("curriculum.selectTitle")}</h2>
-            <select
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={selectedCurriculumId}
-              onChange={(event) => {
-                const nextId = event.target.value;
-                setSelectedCurriculumId(nextId);
-                if (token && nextId) {
-                  void refreshTree(token, nextId).catch(() => {
-                    setError(t("curriculum.loadTreeError"));
+        {tab === "add" ? (
+          <FocusCard>
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (addKind === "curriculum") {
+                  if (!organisationId) {
+                    setError(t("curriculum.chooseOrganisation"));
+                    return;
+                  }
+                  if (createAsRegional && !regionCode.trim()) {
+                    setError(t("curriculum.regionCodeRequired"));
+                    return;
+                  }
+                  void run(async () => {
+                    const created = await createCurriculum(
+                      token,
+                      organisationId,
+                      curriculumName,
+                      curriculumVersion,
+                      createAsRegional
+                        ? { regionCode: regionCode.trim(), scope: "Regional" }
+                        : { scope: "School" }
+                    );
+                    setMessage(
+                      createAsRegional
+                        ? t("curriculum.createdRegional", {
+                            name: created.name,
+                            region: created.regionCode ?? "",
+                          })
+                        : t("curriculum.createdCurriculum", { name: created.name })
+                    );
+                    await loadCurricula(token, organisationId);
+                    setSelectedCurriculumId(created.id);
+                    await refreshTree(token, created.id);
                   });
+                  return;
                 }
+                if (!selectedCurriculumId) {
+                  setError(t("curriculum.createCurriculumFirst"));
+                  return;
+                }
+                if (addKind === "subject") {
+                  void run(async () => {
+                    const created = await createSubject(
+                      token,
+                      selectedCurriculumId,
+                      subjectName,
+                      subjectCode,
+                      (tree?.subjects.length ?? 0) + 1
+                    );
+                    setUnitSubjectId(created.id);
+                    setMessage(t("curriculum.addedSubject", { name: created.name }));
+                    await refreshTree(token, selectedCurriculumId);
+                  });
+                  return;
+                }
+                if (addKind === "unit") {
+                  if (!unitSubjectId) {
+                    setError(t("curriculum.addSubjectFirst"));
+                    return;
+                  }
+                  void run(async () => {
+                    const created = await createUnit(
+                      token,
+                      selectedCurriculumId,
+                      unitSubjectId,
+                      unitName,
+                      (selectedSubject?.units.length ?? 0) + 1
+                    );
+                    setTopicUnitId(created.id);
+                    setObjectiveUnitId(created.id);
+                    setMessage(t("curriculum.addedUnit", { name: created.name }));
+                    await refreshTree(token, selectedCurriculumId);
+                  });
+                  return;
+                }
+                if (addKind === "topic") {
+                  if (!selectedUnit) {
+                    setError(t("curriculum.addUnitFirst"));
+                    return;
+                  }
+                  void run(async () => {
+                    const created = await createTopic(
+                      token,
+                      selectedCurriculumId,
+                      selectedUnit.subjectId,
+                      selectedUnit.id,
+                      topicName,
+                      selectedUnit.topics.length + 1
+                    );
+                    setMessage(t("curriculum.addedTopic", { name: created.name }));
+                    await refreshTree(token, selectedCurriculumId);
+                  });
+                  return;
+                }
+                if (addKind === "objective") {
+                  if (!selectedObjectiveUnit) {
+                    setError(t("curriculum.addUnitFirst"));
+                    return;
+                  }
+                  void run(async () => {
+                    const created = await createLearningObjective(
+                      token,
+                      selectedCurriculumId,
+                      selectedObjectiveUnit.subjectId,
+                      selectedObjectiveUnit.id,
+                      objectiveTitle,
+                      (selectedObjectiveUnit.learningObjectives?.length ?? 0) + 1
+                    );
+                    setMicroSkillObjectiveId(created.id);
+                    setMessage(t("curriculum.addedObjective", { title: created.title }));
+                    await refreshTree(token, selectedCurriculumId);
+                  });
+                  return;
+                }
+                if (!selectedObjective) {
+                  setError(t("curriculum.addObjectiveFirst"));
+                  return;
+                }
+                void run(async () => {
+                  const created = await createMicroSkill(
+                    token,
+                    selectedCurriculumId,
+                    selectedObjective.subjectId,
+                    selectedObjective.unitId,
+                    selectedObjective.id,
+                    microSkillName,
+                    selectedObjective.microSkills.length + 1
+                  );
+                  setMessage(
+                    t("curriculum.addedMicroSkill", { name: created.name, id: created.id })
+                  );
+                  await refreshTree(token, selectedCurriculumId);
+                });
               }}
             >
-              {curricula.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.version}) — {item.scope}
-                  {item.regionCode ? ` / ${item.regionCode}` : ""}
-                </option>
-              ))}
-            </select>
-            {tree ? (
-              <p className="text-sm text-black/60">
-                {t("curriculum.scopeLine", { scope: tree.scope })}
-                {tree.regionCode
-                  ? ` · ${t("curriculum.regionLine", { region: tree.regionCode })}`
-                  : ""}
-                {tree.parentCurriculumId
-                  ? ` · ${t("curriculum.inheritedFrom", { id: tree.parentCurriculumId })}`
-                  : ""}
-              </p>
-            ) : null}
-          </section>
+              <label className="block space-y-1 text-sm">
+                <span>{t("curriculum.label.kind")}</span>
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={addKind}
+                  onChange={(event) => setAddKind(event.target.value)}
+                >
+                  <option value="curriculum">{t("curriculum.kind.curriculum")}</option>
+                  <option value="subject">{t("curriculum.kind.subject")}</option>
+                  <option value="unit">{t("curriculum.kind.unit")}</option>
+                  <option value="topic">{t("curriculum.kind.topic")}</option>
+                  <option value="objective">{t("curriculum.kind.objective")}</option>
+                  <option value="skill">{t("curriculum.kind.skill")}</option>
+                </select>
+              </label>
+              {addKind === "curriculum" ? (
+                <>
+                  <Labeled value={curriculumName} onChange={setCurriculumName} label={t("curriculum.label.name")} />
+                  <Labeled value={curriculumVersion} onChange={setCurriculumVersion} label={t("curriculum.label.version")} />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={createAsRegional}
+                      onChange={(event) => setCreateAsRegional(event.target.checked)}
+                    />
+                    {t("curriculum.defineRegional")}
+                  </label>
+                  {createAsRegional ? (
+                    <Labeled value={regionCode} onChange={setRegionCode} label={t("curriculum.label.region")} />
+                  ) : null}
+                </>
+              ) : null}
+              {addKind === "subject" ? (
+                <>
+                  <Labeled value={subjectName} onChange={setSubjectName} label={t("curriculum.label.subject")} />
+                  <Labeled value={subjectCode} onChange={setSubjectCode} label={t("curriculum.label.code")} />
+                </>
+              ) : null}
+              {addKind === "unit" ? (
+                <>
+                  <NodeSelect
+                    label={t("curriculum.label.subject")}
+                    value={unitSubjectId}
+                    onChange={setUnitSubjectId}
+                    options={(tree?.subjects ?? []).map((subject) => ({
+                      id: subject.id,
+                      label: subject.name,
+                    }))}
+                  />
+                  <Labeled value={unitName} onChange={setUnitName} label={t("curriculum.label.unit")} />
+                </>
+              ) : null}
+              {addKind === "topic" ? (
+                <>
+                  <NodeSelect
+                    label={t("curriculum.label.unit")}
+                    value={topicUnitId}
+                    onChange={setTopicUnitId}
+                    options={(tree?.subjects ?? []).flatMap((subject) =>
+                      subject.units.map((unit) => ({
+                        id: unit.id,
+                        label: `${subject.name} / ${unit.name}`,
+                      }))
+                    )}
+                  />
+                  <Labeled value={topicName} onChange={setTopicName} label={t("curriculum.label.topic")} />
+                </>
+              ) : null}
+              {addKind === "objective" ? (
+                <>
+                  <NodeSelect
+                    label={t("curriculum.label.unit")}
+                    value={objectiveUnitId}
+                    onChange={setObjectiveUnitId}
+                    options={(tree?.subjects ?? []).flatMap((subject) =>
+                      subject.units.map((unit) => ({
+                        id: unit.id,
+                        label: `${subject.name} / ${unit.name}`,
+                      }))
+                    )}
+                  />
+                  <Labeled
+                    value={objectiveTitle}
+                    onChange={setObjectiveTitle}
+                    label={t("curriculum.label.objective")}
+                  />
+                </>
+              ) : null}
+              {addKind === "skill" ? (
+                <>
+                  <NodeSelect
+                    label={t("curriculum.label.objective")}
+                    value={microSkillObjectiveId}
+                    onChange={setMicroSkillObjectiveId}
+                    options={(tree?.subjects ?? []).flatMap((subject) =>
+                      subject.units.flatMap((unit) =>
+                        unit.learningObjectives.map((objective) => ({
+                          id: objective.id,
+                          label: objective.title,
+                        }))
+                      )
+                    )}
+                  />
+                  <Labeled value={microSkillName} onChange={setMicroSkillName} label={t("curriculum.label.skill")} />
+                </>
+              ) : null}
+              <PrimaryButton type="submit" disabled={busy}>
+                {t("curriculum.tab.add")}
+              </PrimaryButton>
+            </form>
+          </FocusCard>
         ) : null}
 
-        <section className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">{t("curriculum.treeTitle")}</h2>
-          {!tree ? (
-            <p className="text-sm text-black/60">
-              {t("curriculum.treeEmpty")}
-            </p>
-          ) : tree.subjects.length === 0 ? (
-            <p className="text-sm text-black/60">{t("curriculum.noSubjects")}</p>
-          ) : (
-            <ul className="space-y-2">
-              {tree.subjects.map((subject) => {
-                const expanded = expandedSubjects.includes(subject.id);
-                return (
-                  <li key={subject.id}>
-                    <button
-                      type="button"
-                      className="text-left font-medium underline"
-                      onClick={() => toggleSubject(subject.id)}
-                    >
-                      {expanded ? "▾" : "▸"} {subject.name} ({subject.code})
-                    </button>
-                    {expanded ? (
-                      <ul className="ml-6 mt-1 list-disc space-y-1">
-                        {subject.units.length === 0 ? (
-                          <li className="text-sm text-black/60">{t("curriculum.noUnits")}</li>
-                        ) : (
-                          subject.units.map((unit) => (
-                            <li key={unit.id}>
-                              {unit.name}
-                              {unit.isOverridden ? (
-                                <span className="ml-2 text-xs text-amber-700">
-                                  {t("curriculum.overridden")}
-                                </span>
-                              ) : null}
-                              {unit.topics.length > 0 ? (
-                                <ul className="ml-5 list-[circle]">
-                                  {unit.topics.map((topic) => (
-                                    <li key={topic.id}>{topic.name}</li>
-                                  ))}
-                                </ul>
-                              ) : null}
-                              {unit.learningObjectives.length > 0 ? (
-                                <ul className="ml-5 mt-1 space-y-1">
-                                  {unit.learningObjectives.map((objective) => (
-                                    <li key={objective.id}>
-                                      <span className="font-medium">{t("curriculum.loLabel")}</span> {objective.title}
-                                      {objective.isOverridden ? (
-                                        <span className="ml-2 text-xs text-amber-700">
-                                          {t("curriculum.overridden")}
-                                        </span>
-                                      ) : null}
-                                      {objective.microSkills.length > 0 ? (
-                                        <ul className="ml-5 list-[square]">
-                                          {objective.microSkills.map((skill) => (
-                                            <li key={skill.id}>{skill.name}</li>
-                                          ))}
-                                        </ul>
-                                      ) : null}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : null}
-                            </li>
-                          ))
-                        )}
-                      </ul>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        {tree?.parentCurriculumId && selectedUnit ? (
-          <form
-            className="rounded-lg border border-black/10 p-6 space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!selectedCurriculumId || !overrideUnitName.trim()) {
-                setError(t("curriculum.overrideUnitNameRequired"));
-                return;
-              }
-              void run(async () => {
-                await updateUnit(
-                  token,
-                  selectedCurriculumId,
-                  selectedUnit.subjectId,
-                  selectedUnit.id,
-                  overrideUnitName.trim(),
-                  selectedUnit.sortOrder
-                );
-                setMessage(t("curriculum.overrodeUnit", { id: selectedUnit.id }));
-                await refreshTree(token, selectedCurriculumId);
-              });
-            }}
-          >
-            <h2 className="font-medium">{t("curriculum.overrideUnitTitle")}</h2>
-            <p className="text-sm text-black/60">
-              {t("curriculum.selectedUnit", { name: selectedUnit.name })}
-              {selectedUnit.isOverridden ? ` ${t("curriculum.alreadyOverridden")}` : ""}
-            </p>
-            <input
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={overrideUnitName}
-              onChange={(event) => setOverrideUnitName(event.target.value)}
-              placeholder={t("curriculum.schoolUnitNamePlaceholder")}
-              required
-            />
-            <button
-              type="submit"
-              disabled={busy || !selectedCurriculumId}
-              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+        {tab === "inherit" ? (
+          <FocusCard>
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!organisationId || !parentCurriculumId.trim()) {
+                  setError(t("curriculum.inheritRequired"));
+                  return;
+                }
+                void run(async () => {
+                  const inherited = await inheritCurriculum(
+                    token,
+                    parentCurriculumId.trim(),
+                    organisationId
+                  );
+                  setMessage(
+                    t("curriculum.inherited", {
+                      name: inherited.name,
+                      region: inherited.regionCode ?? "",
+                    })
+                  );
+                  await loadCurricula(token, organisationId);
+                  setSelectedCurriculumId(inherited.id);
+                  await refreshTree(token, inherited.id);
+                });
+              }}
             >
-              {t("curriculum.overrideUnitButton")}
-            </button>
-          </form>
+              <Labeled
+                value={parentCurriculumId}
+                onChange={setParentCurriculumId}
+                label={t("curriculum.label.parent")}
+              />
+              <PrimaryButton type="submit" disabled={busy || !organisationId}>
+                {t("curriculum.inheritButton")}
+              </PrimaryButton>
+            </form>
+          </FocusCard>
         ) : null}
 
-        {tree?.parentCurriculumId && selectedObjectiveUnit && selectedObjective ? (
-          <form
-            className="rounded-lg border border-black/10 p-6 space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!selectedCurriculumId || !overrideObjectiveTitle.trim()) {
-                setError(t("curriculum.overrideObjectiveRequired"));
-                return;
-              }
-              void run(async () => {
-                await updateLearningObjective(
-                  token,
-                  selectedCurriculumId,
-                  selectedObjective.subjectId,
-                  selectedObjective.unitId,
-                  selectedObjective.id,
-                  overrideObjectiveTitle.trim(),
-                  selectedObjective.sortOrder
-                );
-                setMessage(t("curriculum.overrodeObjective", { id: selectedObjective.id }));
-                await refreshTree(token, selectedCurriculumId);
-              });
-            }}
-          >
-            <h2 className="font-medium">{t("curriculum.overrideObjectiveTitle")}</h2>
-            <p className="text-sm text-black/60">
-              {t("curriculum.selectedObjective", { title: selectedObjective.title })}
-              {selectedObjective.isOverridden ? ` ${t("curriculum.alreadyOverridden")}` : ""}
-            </p>
-            <input
-              className="w-full rounded border border-black/20 px-3 py-2"
-              value={overrideObjectiveTitle}
-              onChange={(event) => setOverrideObjectiveTitle(event.target.value)}
-              placeholder={t("curriculum.schoolObjectivePlaceholder")}
-              required
-            />
-            <button
-              type="submit"
-              disabled={busy || !selectedCurriculumId}
-              className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
+        {tab === "override" && tree?.parentCurriculumId ? (
+          <FocusCard>
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (overrideKind === "unit") {
+                  if (!selectedCurriculumId || !selectedUnit || !overrideUnitName.trim()) {
+                    setError(t("curriculum.overrideUnitNameRequired"));
+                    return;
+                  }
+                  void run(async () => {
+                    await updateUnit(
+                      token,
+                      selectedCurriculumId,
+                      selectedUnit.subjectId,
+                      selectedUnit.id,
+                      overrideUnitName.trim(),
+                      selectedUnit.sortOrder
+                    );
+                    setMessage(t("curriculum.overrodeUnit", { id: selectedUnit.id }));
+                    await refreshTree(token, selectedCurriculumId);
+                  });
+                  return;
+                }
+                if (!selectedCurriculumId || !selectedObjective || !overrideObjectiveTitle.trim()) {
+                  setError(t("curriculum.overrideObjectiveRequired"));
+                  return;
+                }
+                void run(async () => {
+                  await updateLearningObjective(
+                    token,
+                    selectedCurriculumId,
+                    selectedObjective.subjectId,
+                    selectedObjective.unitId,
+                    selectedObjective.id,
+                    overrideObjectiveTitle.trim(),
+                    selectedObjective.sortOrder
+                  );
+                  setMessage(t("curriculum.overrodeObjective", { id: selectedObjective.id }));
+                  await refreshTree(token, selectedCurriculumId);
+                });
+              }}
             >
-              {t("curriculum.overrideObjectiveButton")}
-            </button>
-          </form>
+              <label className="block space-y-1 text-sm">
+                <span>{t("curriculum.override.kind")}</span>
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={overrideKind}
+                  onChange={(event) => setOverrideKind(event.target.value)}
+                >
+                  <option value="unit">{t("curriculum.override.unit")}</option>
+                  <option value="objective">{t("curriculum.override.objective")}</option>
+                </select>
+              </label>
+              {overrideKind === "unit" ? (
+                <Labeled
+                  value={overrideUnitName}
+                  onChange={setOverrideUnitName}
+                  label={t("curriculum.label.unit")}
+                />
+              ) : (
+                <Labeled
+                  value={overrideObjectiveTitle}
+                  onChange={setOverrideObjectiveTitle}
+                  label={t("curriculum.label.objective")}
+                />
+              )}
+              <PrimaryButton type="submit" disabled={busy}>
+                {t("curriculum.tab.override")}
+              </PrimaryButton>
+            </form>
+          </FocusCard>
         ) : null}
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedCurriculumId) {
-              setError(t("curriculum.createCurriculumFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createSubject(
-                token,
-                selectedCurriculumId,
-                subjectName,
-                subjectCode,
-                (tree?.subjects.length ?? 0) + 1
-              );
-              setUnitSubjectId(created.id);
-              setMessage(t("curriculum.addedSubject", { name: created.name }));
-              await refreshTree(token, selectedCurriculumId);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.addSubjectTitle")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={subjectName}
-            onChange={(event) => setSubjectName(event.target.value)}
-            placeholder={t("curriculum.subjectNamePlaceholder")}
-            required
-          />
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={subjectCode}
-            onChange={(event) => setSubjectCode(event.target.value)}
-            placeholder={t("curriculum.subjectCodePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !selectedCurriculumId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.addSubjectTitle")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedCurriculumId || !unitSubjectId) {
-              setError(t("curriculum.addSubjectFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createUnit(
-                token,
-                selectedCurriculumId,
-                unitSubjectId,
-                unitName,
-                (selectedSubject?.units.length ?? 0) + 1
-              );
-              setTopicUnitId(created.id);
-              setObjectiveUnitId(created.id);
-              setMessage(t("curriculum.addedUnit", { name: created.name }));
-              await refreshTree(token, selectedCurriculumId);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.addUnitTitle")}</h2>
-          <select
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={unitSubjectId}
-            onChange={(event) => setUnitSubjectId(event.target.value)}
-            disabled={!tree || tree.subjects.length === 0}
-          >
-            {(tree?.subjects ?? []).map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={unitName}
-            onChange={(event) => setUnitName(event.target.value)}
-            placeholder={t("curriculum.unitNamePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !unitSubjectId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.addUnitTitle")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedCurriculumId || !selectedUnit) {
-              setError(t("curriculum.addUnitFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createTopic(
-                token,
-                selectedCurriculumId,
-                selectedUnit.subjectId,
-                selectedUnit.id,
-                topicName,
-                selectedUnit.topics.length + 1
-              );
-              setMessage(t("curriculum.addedTopic", { name: created.name }));
-              await refreshTree(token, selectedCurriculumId);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.addTopicTitle")}</h2>
-          <select
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={topicUnitId}
-            onChange={(event) => setTopicUnitId(event.target.value)}
-            disabled={!tree || tree.subjects.every((subject) => subject.units.length === 0)}
-          >
-            {(tree?.subjects ?? []).flatMap((subject) =>
-              subject.units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {subject.name} / {unit.name}
-                </option>
-              ))
-            )}
-          </select>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={topicName}
-            onChange={(event) => setTopicName(event.target.value)}
-            placeholder={t("curriculum.topicNamePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !topicUnitId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.addTopicTitle")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedCurriculumId || !selectedObjectiveUnit) {
-              setError(t("curriculum.addUnitFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createLearningObjective(
-                token,
-                selectedCurriculumId,
-                selectedObjectiveUnit.subjectId,
-                selectedObjectiveUnit.id,
-                objectiveTitle,
-                (selectedObjectiveUnit.learningObjectives?.length ?? 0) + 1
-              );
-              setMicroSkillObjectiveId(created.id);
-              setMessage(t("curriculum.addedObjective", { title: created.title }));
-              await refreshTree(token, selectedCurriculumId);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.addObjectiveTitle")}</h2>
-          <select
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={objectiveUnitId}
-            onChange={(event) => setObjectiveUnitId(event.target.value)}
-            disabled={!tree || tree.subjects.every((subject) => subject.units.length === 0)}
-          >
-            {(tree?.subjects ?? []).flatMap((subject) =>
-              subject.units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {subject.name} / {unit.name}
-                </option>
-              ))
-            )}
-          </select>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={objectiveTitle}
-            onChange={(event) => setObjectiveTitle(event.target.value)}
-            placeholder={t("curriculum.objectiveTitlePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !objectiveUnitId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.addObjectiveTitle")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedCurriculumId || !selectedObjective) {
-              setError(t("curriculum.addObjectiveFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createMicroSkill(
-                token,
-                selectedCurriculumId,
-                selectedObjective.subjectId,
-                selectedObjective.unitId,
-                selectedObjective.id,
-                microSkillName,
-                selectedObjective.microSkills.length + 1
-              );
-              setMessage(t("curriculum.addedMicroSkill", { name: created.name, id: created.id }));
-              await refreshTree(token, selectedCurriculumId);
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("curriculum.addMicroSkillTitle")}</h2>
-          <select
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={microSkillObjectiveId}
-            onChange={(event) => setMicroSkillObjectiveId(event.target.value)}
-            disabled={
-              !tree ||
-              tree.subjects.every((subject) =>
-                subject.units.every((unit) => unit.learningObjectives.length === 0)
-              )
-            }
-          >
-            {(tree?.subjects ?? []).flatMap((subject) =>
-              subject.units.flatMap((unit) =>
-                unit.learningObjectives.map((objective) => (
-                  <option key={objective.id} value={objective.id}>
-                    {subject.name} / {unit.name} / {objective.title}
-                  </option>
-                ))
-              )
-            )}
-          </select>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={microSkillName}
-            onChange={(event) => setMicroSkillName(event.target.value)}
-            placeholder={t("curriculum.microSkillNamePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !microSkillObjectiveId}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("curriculum.addMicroSkillTitle")}
-          </button>
-        </form>
       </div>
     </LearningFrame>
   );
 }
+
+function Labeled({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block space-y-1 text-sm">
+      <span>{label}</span>
+      <input
+        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      />
+    </label>
+  );
+}
+
+function NodeSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { id: string; label: string }[];
+}) {
+  return (
+    <label className="block space-y-1 text-sm">
+      <span>{label}</span>
+      <select
+        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
