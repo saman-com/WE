@@ -152,7 +152,9 @@ public sealed class HttpStudentLearningProfileClient(
 
     private sealed record ProfilePayload(
         string StudentUserId,
-        IReadOnlyList<ProfileTimelinePayload> EvidenceTimeline);
+        IReadOnlyList<ProfileTimelinePayload> EvidenceTimeline,
+        bool HasMore = false,
+        string? NextCursor = null);
 
     private sealed record ProfileTimelinePayload(
         Guid Id,

@@ -78,9 +78,9 @@ public sealed class HttpAssessmentDashboardClient(
             response.EnsureSuccessStatusCode();
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<List<StudentAssessmentSummaryPayload>>(
+        var payload = await response.Content.ReadFromJsonAsync<PagedPayload<StudentAssessmentSummaryPayload>>(
             cancellationToken: cancellationToken);
-        return payload?.Select(item => new StudentAssessmentSummaryData(
+        return payload?.Items.Select(item => new StudentAssessmentSummaryData(
             item.Id,
             item.Title,
             item.DueAt,
@@ -120,9 +120,9 @@ public sealed class HttpAssessmentDashboardClient(
             response.EnsureSuccessStatusCode();
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<List<StudentAssessmentSummaryPayload>>(
+        var payload = await response.Content.ReadFromJsonAsync<PagedPayload<StudentAssessmentSummaryPayload>>(
             cancellationToken: cancellationToken);
-        return payload?.Select(item => new StudentAssessmentSummaryData(
+        return payload?.Items.Select(item => new StudentAssessmentSummaryData(
             item.Id,
             item.Title,
             item.DueAt,
@@ -131,6 +131,8 @@ public sealed class HttpAssessmentDashboardClient(
             item.SubmittedAt)).ToList()
             ?? [];
     }
+
+    private sealed record PagedPayload<T>(IReadOnlyList<T> Items, bool HasMore, string? NextCursor);
 
     private sealed record ClassAssessmentSummaryPayload(
         Guid Id,

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AssessmentService.Application;
+using WePlatform.AspNetCore;
 
 namespace AssessmentService.Tests;
 
@@ -88,9 +89,9 @@ public class TenantIsolationEndpointTests : IClassFixture<AssessmentWebApplicati
             TestJwt.TeacherRole);
         var okA = await _client.SendAsync(listA);
         okA.EnsureSuccessStatusCode();
-        var itemsA = await okA.Content.ReadFromJsonAsync<List<AssessmentResponse>>();
-        Assert.Contains(itemsA!, item => item.Id == assessmentA.Id);
-        Assert.DoesNotContain(itemsA!, item => item.Id == assessmentB.Id);
+        var itemsA = await okA.Content.ReadFromJsonAsync<PagedResponse<AssessmentResponse>>();
+        Assert.Contains(itemsA!.Items, item => item.Id == assessmentA.Id);
+        Assert.DoesNotContain(itemsA.Items, item => item.Id == assessmentB.Id);
 
         using var listB = TestJwt.Authorized(
             HttpMethod.Get,
@@ -100,9 +101,9 @@ public class TenantIsolationEndpointTests : IClassFixture<AssessmentWebApplicati
             TestJwt.TeacherRole);
         var okB = await _client.SendAsync(listB);
         okB.EnsureSuccessStatusCode();
-        var itemsB = await okB.Content.ReadFromJsonAsync<List<AssessmentResponse>>();
-        Assert.Contains(itemsB!, item => item.Id == assessmentB.Id);
-        Assert.DoesNotContain(itemsB!, item => item.Id == assessmentA.Id);
+        var itemsB = await okB.Content.ReadFromJsonAsync<PagedResponse<AssessmentResponse>>();
+        Assert.Contains(itemsB!.Items, item => item.Id == assessmentB.Id);
+        Assert.DoesNotContain(itemsB.Items, item => item.Id == assessmentA.Id);
 
         using var createIntoA = TestJwt.Authorized(HttpMethod.Post, "/api/v1/assessments", teacherB, schoolB, TestJwt.TeacherRole);
         createIntoA.Content = JsonContent.Create(new CreateAssessmentRequest(

@@ -15,7 +15,9 @@ public sealed record EvidenceTimelineEntry(
 public sealed record StudentProfileResponse(
     string StudentUserId,
     IReadOnlyList<ClassEnrollmentSummary> Enrollments,
-    IReadOnlyList<EvidenceTimelineEntry> EvidenceTimeline);
+    IReadOnlyList<EvidenceTimelineEntry> EvidenceTimeline,
+    bool HasMore = false,
+    string? NextCursor = null);
 
 public sealed record StudentProfileSummaryResponse(
     string StudentUserId,

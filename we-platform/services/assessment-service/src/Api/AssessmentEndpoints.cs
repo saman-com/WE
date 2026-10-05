@@ -5,6 +5,7 @@ using AssessmentService.Application;
 using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Ai;
 using AssessmentService.Infrastructure.Data;
+using WePlatform.AspNetCore;
 using WePlatform.Events;
 using WePlatform.Tenancy;
 
@@ -93,6 +94,9 @@ public static class AssessmentEndpoints
     private static async Task<IResult> ListAssessments(
         Guid? organisationId,
         Guid? classId,
+        int? page,
+        int? pageSize,
+        string? cursor,
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
@@ -101,6 +105,42 @@ public static class AssessmentEndpoints
         if (principal.IsStudent() && !classId.HasValue)
         {
             return Results.BadRequest();
+        }
+
+        var size = Paging.ClampPageSize(pageSize);
+        var pageNumber = Paging.ResolvePage(cursor, page);
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
+
+        // When scoped to a class, check access once then page in SQL.
+        if (organisationId.HasValue && classId.HasValue)
+        {
+            if (principal.IsStudent())
+            {
+                var access = await EvaluateViewAccessAsync(
+                    principal,
+                    organisationId.Value,
+                    classId.Value,
+                    AssessmentStatuses.Published,
+                    accessChecker,
+                    authHeader);
+                if (access is not null)
+                {
+                    return access;
+                }
+            }
+            else if (!principal.IsAdmin())
+            {
+                var teacherAccess = await EvaluateTeacherClassAccessAsync(
+                    principal,
+                    organisationId.Value,
+                    classId.Value,
+                    accessChecker,
+                    authHeader);
+                if (teacherAccess is not null)
+                {
+                    return teacherAccess;
+                }
+            }
         }
 
         var query = db.Assessments
@@ -124,17 +164,26 @@ public static class AssessmentEndpoints
             query = query.Where(a => a.Status == AssessmentStatuses.Published);
         }
 
-        var assessments = await query
+        if (organisationId.HasValue && classId.HasValue)
+        {
+            var window = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((pageNumber - 1) * size)
+                .Take(size + 1)
+                .ToListAsync();
+            return Results.Ok(Paging.ToPage(window.Select(ToResponse).ToList(), pageNumber, size));
+        }
+
+        // Cross-class listing: page at the DB, then filter by access (may return fewer than pageSize).
+        var candidates = await query
             .OrderByDescending(a => a.CreatedAt)
-            .Take(100)
+            .Skip((pageNumber - 1) * size)
+            .Take(size + 1)
             .ToListAsync();
 
-        // One organisation access check per (org, class) — never N HTTP calls per assessment row.
         var accessByClass = new Dictionary<(Guid OrganisationId, Guid ClassId), bool>();
         var visible = new List<Assessment>();
-        var authHeader = httpContext.Request.Headers.Authorization.ToString();
-
-        foreach (var assessment in assessments)
+        foreach (var assessment in candidates)
         {
             var key = (assessment.OrganisationId, assessment.ClassId);
             if (!accessByClass.TryGetValue(key, out var allowed))
@@ -156,7 +205,7 @@ public static class AssessmentEndpoints
             }
         }
 
-        return Results.Ok(visible.Select(ToResponse).ToList());
+        return Results.Ok(Paging.ToPage(visible.Select(ToResponse).ToList(), pageNumber, size));
     }
 
     private static async Task<IResult> ListClassAssessmentSummary(
@@ -217,6 +266,9 @@ public static class AssessmentEndpoints
         Guid organisationId,
         Guid classId,
         string? studentUserId,
+        int? page,
+        int? pageSize,
+        string? cursor,
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
@@ -269,6 +321,9 @@ public static class AssessmentEndpoints
             return Results.Forbid();
         }
 
+        var size = Paging.ClampPageSize(pageSize);
+        var pageNumber = Paging.ResolvePage(cursor, page);
+
         var assessments = await db.Assessments
             .AsNoTracking()
             .Include(a => a.LearningObjectives)
@@ -278,7 +333,8 @@ public static class AssessmentEndpoints
                 && a.ClassId == classId
                 && a.Status == AssessmentStatuses.Published)
             .OrderByDescending(a => a.DueAt ?? a.PublishedAt ?? a.CreatedAt)
-            .Take(50)
+            .Skip((pageNumber - 1) * size)
+            .Take(size + 1)
             .ToListAsync();
 
         var summaries = assessments
@@ -295,7 +351,7 @@ public static class AssessmentEndpoints
             })
             .ToList();
 
-        return Results.Ok(summaries);
+        return Results.Ok(Paging.ToPage(summaries, pageNumber, size));
     }
 
     private static async Task<IResult> GetAssessment(

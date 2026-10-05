@@ -1,3 +1,5 @@
+import type { Paged } from "@/lib/paging";
+
 const evidenceApiUrl =
   process.env.NEXT_PUBLIC_EVIDENCE_API_URL ?? "http://localhost:8086";
 
@@ -52,12 +54,59 @@ async function evidenceRequest<T>(
 
 export function listEvidenceForAssessment(
   token: string,
-  assessmentId: string
-): Promise<Evidence[]> {
+  assessmentId: string,
+  options?: { pageSize?: number; cursor?: string | null; page?: number }
+): Promise<Paged<Evidence>> {
   const params = new URLSearchParams({ assessmentId });
-  return evidenceRequest<Evidence[]>(
+  if (options?.pageSize) {
+    params.set("pageSize", String(options.pageSize));
+  }
+  if (options?.page) {
+    params.set("page", String(options.page));
+  }
+  if (options?.cursor) {
+    params.set("cursor", options.cursor);
+  }
+  return evidenceRequest<Paged<Evidence>>(
     token,
     `/api/v1/evidence?${params.toString()}`
+  );
+}
+
+export type StudentFeedback = {
+  id: string;
+  assessmentId: string;
+  title: string;
+  approvedAt: string;
+  microSkillMarks: MicroSkillMark[];
+};
+
+export function listStudentFeedback(
+  token: string,
+  options?: {
+    studentUserId?: string;
+    pageSize?: number;
+    cursor?: string | null;
+    page?: number;
+  }
+): Promise<Paged<StudentFeedback>> {
+  const params = new URLSearchParams();
+  if (options?.studentUserId) {
+    params.set("studentUserId", options.studentUserId);
+  }
+  if (options?.pageSize) {
+    params.set("pageSize", String(options.pageSize));
+  }
+  if (options?.page) {
+    params.set("page", String(options.page));
+  }
+  if (options?.cursor) {
+    params.set("cursor", options.cursor);
+  }
+  const query = params.toString();
+  return evidenceRequest<Paged<StudentFeedback>>(
+    token,
+    `/api/v1/evidence/student-feedback${query ? `?${query}` : ""}`
   );
 }
 

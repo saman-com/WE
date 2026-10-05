@@ -18,6 +18,7 @@ import {
   listEvidenceForAssessment,
   type Evidence,
 } from "@/lib/evidence";
+import { fetchAllPages } from "@/lib/paging";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function canReview(profile: UserProfile): boolean {
@@ -69,7 +70,9 @@ export default function AssessmentReviewPage() {
         setAssessment(loadedAssessment);
         const [loadedSubmissions, loadedEvidence] = await Promise.all([
           listSubmissions(stored, assessmentId),
-          listEvidenceForAssessment(stored, assessmentId),
+          fetchAllPages((cursor) =>
+            listEvidenceForAssessment(stored, assessmentId, { cursor })
+          ),
         ]);
         setSubmissions(loadedSubmissions);
         setEvidence(loadedEvidence);
@@ -96,7 +99,9 @@ export default function AssessmentReviewPage() {
   async function reloadReviewData(accessToken: string) {
     const [loadedSubmissions, loadedEvidence] = await Promise.all([
       listSubmissions(accessToken, assessmentId),
-      listEvidenceForAssessment(accessToken, assessmentId),
+      fetchAllPages((cursor) =>
+        listEvidenceForAssessment(accessToken, assessmentId, { cursor })
+      ),
     ]);
     setSubmissions(loadedSubmissions);
     setEvidence(loadedEvidence);

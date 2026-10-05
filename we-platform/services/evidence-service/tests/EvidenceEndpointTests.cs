@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using EvidenceService.Application;
-
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 namespace EvidenceService.Tests;
@@ -312,16 +312,70 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             3,
             "Private feedback.");
 
-        var feedback = await SendAsAsync<List<StudentFeedbackResponse>>(
+        var feedback = await SendAsAsync<PagedResponse<StudentFeedbackResponse>>(
             HttpMethod.Get,
             "/api/v1/evidence/student-feedback",
             studentId,
             TestJwt.StudentRole,
             organisationId);
 
-        Assert.Single(feedback);
-        Assert.Equal(evidence.Id, feedback[0].Id);
-        Assert.Equal("Strong reasoning.", feedback[0].MicroSkillMarks[0].Feedback);
+        Assert.Single(feedback.Items);
+        Assert.False(feedback.HasMore);
+        Assert.Equal(evidence.Id, feedback.Items[0].Id);
+        Assert.Equal("Strong reasoning.", feedback.Items[0].MicroSkillMarks[0].Feedback);
+    }
+
+    [Fact]
+    public async Task Student_CanPageThroughAllFeedback_WhenMoreThanOnePage()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        var microSkillId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        for (var i = 0; i < 120; i++)
+        {
+            await ApproveAsync(
+                teacherId,
+                organisationId,
+                classId,
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                studentId,
+                $"Evidence {i}",
+                microSkillId,
+                4,
+                $"Feedback {i}");
+        }
+
+        var seen = new HashSet<Guid>();
+        string? cursor = null;
+        var pages = 0;
+        do
+        {
+            var query = cursor is null
+                ? "/api/v1/evidence/student-feedback?pageSize=50"
+                : $"/api/v1/evidence/student-feedback?pageSize=50&cursor={cursor}";
+            var page = await SendAsAsync<PagedResponse<StudentFeedbackResponse>>(
+                HttpMethod.Get,
+                query,
+                studentId,
+                TestJwt.StudentRole,
+                organisationId);
+            Assert.InRange(page.Items.Count, 1, 50);
+            foreach (var item in page.Items)
+            {
+                Assert.True(seen.Add(item.Id));
+            }
+
+            pages++;
+            cursor = page.HasMore ? page.NextCursor : null;
+        } while (cursor is not null);
+
+        Assert.Equal(120, seen.Count);
+        Assert.True(pages >= 3);
     }
 
     [Fact]

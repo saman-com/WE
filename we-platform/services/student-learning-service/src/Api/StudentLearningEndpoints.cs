@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StudentLearningService.Application;
 using StudentLearningService.Domain;
 using StudentLearningService.Infrastructure.Data;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 namespace StudentLearningService.Api;
@@ -83,6 +84,9 @@ public static class StudentLearningEndpoints
 
     private static async Task<IResult> GetProfile(
         string studentUserId,
+        int? page,
+        int? pageSize,
+        string? cursor,
         ClaimsPrincipal principal,
         StudentLearningDbContext db,
         IOrganisationAccessChecker accessChecker,
@@ -113,9 +117,6 @@ public static class StudentLearningEndpoints
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(p => p.Enrollments)
-            .Include(p => p.EvidenceEntries
-                .OrderByDescending(e => e.RecordedAt)
-                .Take(50))
             .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
 
         if (profile is null)
@@ -129,7 +130,37 @@ public static class StudentLearningEndpoints
             return tenantAccess;
         }
 
-        return Results.Ok(ToResponse(profile));
+        var size = Paging.ClampPageSize(pageSize);
+        var pageNumber = Paging.ResolvePage(cursor, page);
+        var evidenceWindow = await db.EvidenceEntries
+            .AsNoTracking()
+            .Where(e => e.ProfileId == profile.Id)
+            .OrderByDescending(e => e.RecordedAt)
+            .Skip((pageNumber - 1) * size)
+            .Take(size + 1)
+            .ToListAsync();
+
+        var paged = Paging.ToPage(
+            evidenceWindow
+                .Select(e => new EvidenceTimelineEntry(e.Id, e.Title, e.RecordedAt))
+                .ToList(),
+            pageNumber,
+            size);
+
+        return Results.Ok(new StudentProfileResponse(
+            profile.StudentUserId,
+            profile.Enrollments
+                .OrderBy(e => e.EnrolledAt)
+                .Select(e => new ClassEnrollmentSummary(
+                    e.OrganisationId,
+                    e.ClassId,
+                    e.ClassName,
+                    e.ClassCode,
+                    e.EnrolledAt))
+                .ToList(),
+            paged.Items,
+            paged.HasMore,
+            paged.NextCursor));
     }
 
     private static async Task<IResult> GetProfileSummary(
@@ -385,8 +416,14 @@ public static class StudentLearningEndpoints
             latest?.RecordedAt);
     }
 
-    private static StudentProfileResponse ToResponse(StudentLearningProfile profile) =>
-        new(
+    private static StudentProfileResponse ToResponse(StudentLearningProfile profile)
+    {
+        var ordered = profile.EvidenceEntries
+            .OrderByDescending(e => e.RecordedAt)
+            .Select(e => new EvidenceTimelineEntry(e.Id, e.Title, e.RecordedAt))
+            .ToList();
+        var paged = Paging.ToPage(ordered, page: 1, pageSize: Paging.DefaultPageSize);
+        return new(
             profile.StudentUserId,
             profile.Enrollments
                 .OrderBy(e => e.EnrolledAt)
@@ -397,10 +434,10 @@ public static class StudentLearningEndpoints
                     e.ClassCode,
                     e.EnrolledAt))
                 .ToList(),
-            profile.EvidenceEntries
-                .OrderBy(e => e.RecordedAt)
-                .Select(e => new EvidenceTimelineEntry(e.Id, e.Title, e.RecordedAt))
-                .ToList());
+            paged.Items,
+            paged.HasMore,
+            paged.NextCursor);
+    }
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

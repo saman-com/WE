@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using EvidenceService.Application;
+using WePlatform.AspNetCore;
 
 namespace EvidenceService.Tests;
 
@@ -97,9 +98,9 @@ public class TenantIsolationEndpointTests : IClassFixture<EvidenceWebApplication
             TestJwt.TeacherRole);
         var ok = await _client.SendAsync(listA);
         ok.EnsureSuccessStatusCode();
-        var listed = await ok.Content.ReadFromJsonAsync<List<EvidenceResponse>>();
-        Assert.Contains(listed!, item => item.Id == evidenceA.Id);
-        Assert.DoesNotContain(listed!, item => item.Id == evidenceB.Id);
+        var listed = await ok.Content.ReadFromJsonAsync<PagedResponse<EvidenceResponse>>();
+        Assert.Contains(listed!.Items, item => item.Id == evidenceA.Id);
+        Assert.DoesNotContain(listed.Items, item => item.Id == evidenceB.Id);
     }
 
     private async Task AssertDeniedAsync(string method, string path, string userId, Guid tenantId)

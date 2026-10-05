@@ -52,6 +52,9 @@ export default function AssessmentsPage() {
   const [tree, setTree] = useState<CurriculumTree | null>(null);
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessmentsHasMore, setAssessmentsHasMore] = useState(false);
+  const [assessmentsCursor, setAssessmentsCursor] = useState<string | null>(null);
+  const [loadingMoreAssessments, setLoadingMoreAssessments] = useState(false);
 
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -141,13 +144,42 @@ export default function AssessmentsPage() {
   useEffect(() => {
     if (!token || !organisationId || !selectedClassId) {
       setAssessments([]);
+      setAssessmentsHasMore(false);
+      setAssessmentsCursor(null);
       return;
     }
 
     listAssessments(token, organisationId, selectedClassId)
-      .then(setAssessments)
-      .catch(() => setAssessments([]));
+      .then((page) => {
+        setAssessments(page.items);
+        setAssessmentsHasMore(page.hasMore);
+        setAssessmentsCursor(page.nextCursor);
+      })
+      .catch(() => {
+        setAssessments([]);
+        setAssessmentsHasMore(false);
+        setAssessmentsCursor(null);
+      });
   }, [token, organisationId, selectedClassId, message]);
+
+  async function loadMoreAssessments() {
+    if (!token || !organisationId || !selectedClassId || !assessmentsCursor || loadingMoreAssessments) {
+      return;
+    }
+    setLoadingMoreAssessments(true);
+    try {
+      const page = await listAssessments(token, organisationId, selectedClassId, {
+        cursor: assessmentsCursor,
+      });
+      setAssessments((current) => [...current, ...page.items]);
+      setAssessmentsHasMore(page.hasMore);
+      setAssessmentsCursor(page.nextCursor);
+    } catch {
+      setError(t("common.requestFailed"));
+    } finally {
+      setLoadingMoreAssessments(false);
+    }
+  }
 
   useEffect(() => {
     const schoolClass = classes.find((item) => item.id === selectedClassId) ?? null;
@@ -448,6 +480,16 @@ export default function AssessmentsPage() {
               ))}
             </ul>
           )}
+          {assessmentsHasMore ? (
+            <button
+              type="button"
+              disabled={loadingMoreAssessments}
+              onClick={loadMoreAssessments}
+              className="text-sm underline disabled:opacity-50"
+            >
+              {loadingMoreAssessments ? t("common.loading") : t("common.loadMore")}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

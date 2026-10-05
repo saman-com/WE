@@ -1,4 +1,5 @@
 import { readApiError } from "@/lib/api-error";
+import type { Paged } from "@/lib/paging";
 
 const assessmentApiUrl =
   process.env.NEXT_PUBLIC_ASSESSMENT_API_URL ?? "http://localhost:8085";
@@ -65,13 +66,23 @@ async function assessmentRequest<T>(
 export function listAssessments(
   token: string,
   organisationId: string,
-  classId: string
-): Promise<Assessment[]> {
+  classId: string,
+  options?: { pageSize?: number; cursor?: string | null; page?: number }
+): Promise<Paged<Assessment>> {
   const params = new URLSearchParams({
     organisationId,
     classId,
   });
-  return assessmentRequest<Assessment[]>(
+  if (options?.pageSize) {
+    params.set("pageSize", String(options.pageSize));
+  }
+  if (options?.page) {
+    params.set("page", String(options.page));
+  }
+  if (options?.cursor) {
+    params.set("cursor", options.cursor);
+  }
+  return assessmentRequest<Paged<Assessment>>(
     token,
     `/api/v1/assessments?${params.toString()}`
   );

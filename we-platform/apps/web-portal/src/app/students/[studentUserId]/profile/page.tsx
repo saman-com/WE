@@ -32,6 +32,9 @@ export default function StudentProfilePage() {
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [evidenceHasMore, setEvidenceHasMore] = useState(false);
+  const [evidenceCursor, setEvidenceCursor] = useState<string | null>(null);
+  const [loadingMoreEvidence, setLoadingMoreEvidence] = useState(false);
   const [diagnostics, setDiagnostics] = useState<StudentDiagnostics | null>(null);
   const [gaps, setGaps] = useState<StudentLearningGaps | null>(null);
   const [interventions, setInterventions] = useState<StudentInterventions | null>(null);
@@ -69,6 +72,8 @@ export default function StudentProfilePage() {
         setViewer(loaded);
         const studentProfile = await fetchStudentProfile(stored, studentUserId);
         setProfile(studentProfile);
+        setEvidenceHasMore(studentProfile.hasMore);
+        setEvidenceCursor(studentProfile.nextCursor);
 
         const isTeacherOrAdmin =
           loaded.roles.includes("SystemAdministrator") || loaded.roles.includes("Teacher");
@@ -119,6 +124,32 @@ export default function StudentProfilePage() {
         setError(t("student.profile.loadError"));
       });
   }, [router, studentUserId, t]);
+
+  async function loadMoreEvidence() {
+    if (!token || !evidenceCursor || loadingMoreEvidence) {
+      return;
+    }
+    setLoadingMoreEvidence(true);
+    try {
+      const next = await fetchStudentProfile(token, studentUserId, { cursor: evidenceCursor });
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              evidenceTimeline: [...current.evidenceTimeline, ...next.evidenceTimeline],
+              hasMore: next.hasMore,
+              nextCursor: next.nextCursor,
+            }
+          : next
+      );
+      setEvidenceHasMore(next.hasMore);
+      setEvidenceCursor(next.nextCursor);
+    } catch {
+      setError(t("student.profile.loadError"));
+    } finally {
+      setLoadingMoreEvidence(false);
+    }
+  }
 
   async function handleRequestProgressReport() {
     if (!token || !profile || profile.enrollments.length === 0) {
@@ -246,6 +277,16 @@ export default function StudentProfilePage() {
               ))}
             </ul>
           )}
+          {evidenceHasMore ? (
+            <button
+              type="button"
+              disabled={loadingMoreEvidence}
+              onClick={loadMoreEvidence}
+              className="text-sm underline disabled:opacity-50"
+            >
+              {loadingMoreEvidence ? t("common.loading") : t("common.loadMore")}
+            </button>
+          ) : null}
         </div>
 
         {isTeacherViewer ? (

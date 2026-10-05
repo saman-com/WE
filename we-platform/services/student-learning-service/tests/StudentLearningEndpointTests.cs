@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using StudentLearningService.Application;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 namespace StudentLearningService.Tests;
@@ -181,6 +182,59 @@ public class StudentLearningEndpointTests : IClassFixture<StudentLearningWebAppl
         Assert.Single(profile.EvidenceTimeline);
         Assert.Equal(evidenceId, profile.EvidenceTimeline[0].Id);
         Assert.Equal("Quiz 1 evidence", profile.EvidenceTimeline[0].Title);
+    }
+
+    [Fact]
+    public async Task Student_CanPageThroughAllProfileEvidence_WhenMoreThanOnePage()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        await SyncEnrollmentAsync(adminId, studentId, DefaultTenant.Id, Guid.NewGuid(), "7A", "7A");
+        _accessChecker.Allow(teacherId, studentId);
+
+        for (var i = 0; i < 120; i++)
+        {
+            using var request = TestJwt.Authorized(
+                HttpMethod.Post,
+                $"/api/v1/students/{studentId}/profile/evidence",
+                teacherId,
+                TestJwt.TeacherRole);
+            request.Content = JsonContent.Create(new RecordProfileEvidenceRequest(
+                Guid.CreateVersion7(),
+                Guid.CreateVersion7(),
+                [Guid.CreateVersion7()],
+                $"Evidence {i}",
+                DateTimeOffset.UtcNow.AddMinutes(i)));
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        var seen = new HashSet<Guid>();
+        string? cursor = null;
+        var pages = 0;
+        do
+        {
+            var query = cursor is null
+                ? $"/api/v1/students/{studentId}/profile?pageSize=50"
+                : $"/api/v1/students/{studentId}/profile?pageSize=50&cursor={cursor}";
+            var page = await SendAsAsync<StudentProfileResponse>(
+                HttpMethod.Get,
+                query,
+                studentId,
+                TestJwt.StudentRole);
+            Assert.InRange(page.EvidenceTimeline.Count, 1, 50);
+            foreach (var item in page.EvidenceTimeline)
+            {
+                Assert.True(seen.Add(item.Id));
+            }
+
+            pages++;
+            cursor = page.HasMore ? page.NextCursor : null;
+        } while (cursor is not null);
+
+        Assert.Equal(120, seen.Count);
+        Assert.True(pages >= 3);
     }
 
     [Fact]

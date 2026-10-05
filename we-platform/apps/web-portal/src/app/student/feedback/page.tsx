@@ -4,10 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
-import {
-  fetchStudentWorkspace,
-  type StudentWorkspaceFeedback,
-} from "@/lib/student-workspace";
+import { listStudentFeedback, type StudentFeedback } from "@/lib/evidence";
 import { LearningFrame } from "@/components/learning-frame";
 import { levelFromMark } from "@/lib/student-focus";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -20,30 +17,54 @@ export default function StudentFeedbackPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [feedback, setFeedback] = useState<StudentWorkspaceFeedback[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<StudentFeedback[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("we_access_token");
-    if (!token) {
+    const stored = localStorage.getItem("we_access_token");
+    if (!stored) {
       router.replace("/login");
       return;
     }
 
-    fetchProfile(token)
+    setToken(stored);
+    fetchProfile(stored)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
           router.replace("/dashboard");
           return;
         }
         setProfile(loaded);
-        const workspace = await fetchStudentWorkspace(token, loaded.id);
-        setFeedback(workspace.feedback);
+        const page = await listStudentFeedback(stored);
+        setFeedback(page.items);
+        setHasMore(page.hasMore);
+        setCursor(page.nextCursor);
       })
       .catch(() => {
         setError(t("student.feedback.loadError"));
       });
   }, [router, t]);
+
+  async function loadMore() {
+    if (!token || !cursor || loadingMore) {
+      return;
+    }
+    setLoadingMore(true);
+    try {
+      const page = await listStudentFeedback(token, { cursor });
+      setFeedback((current) => [...current, ...page.items]);
+      setHasMore(page.hasMore);
+      setCursor(page.nextCursor);
+    } catch {
+      setError(t("student.feedback.loadError"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   if (error) {
     return (
@@ -77,7 +98,7 @@ export default function StudentFeedbackPage() {
         ) : (
           <ul className="space-y-6">
             {feedback.map((item) => (
-              <li key={item.evidenceId} className="space-y-3">
+              <li key={item.id} className="space-y-3">
                 <div>
                   <p className="font-semibold">{item.title}</p>
                   <p className="text-sm text-black/60">
@@ -100,6 +121,16 @@ export default function StudentFeedbackPage() {
             ))}
           </ul>
         )}
+        {hasMore ? (
+          <button
+            type="button"
+            disabled={loadingMore}
+            onClick={loadMore}
+            className="text-sm underline disabled:opacity-50"
+          >
+            {loadingMore ? t("common.loading") : t("common.loadMore")}
+          </button>
+        ) : null}
       </div>
     </LearningFrame>
   );

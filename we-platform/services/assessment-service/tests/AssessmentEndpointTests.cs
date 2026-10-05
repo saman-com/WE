@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using AssessmentService.Application;
 using AssessmentService.Domain;
+using WePlatform.AspNetCore;
 using WePlatform.Events;
-
 using WePlatform.Tenancy;
 
 namespace AssessmentService.Tests;
@@ -206,15 +206,15 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             TestJwt.TeacherRole,
             organisationId);
 
-        var visible = await SendAsAsync<List<AssessmentResponse>>(
+        var visible = await SendAsAsync<PagedResponse<AssessmentResponse>>(
             HttpMethod.Get,
             $"/api/v1/assessments?organisationId={organisationId}&classId={classId}",
             studentId,
             TestJwt.StudentRole,
             organisationId);
 
-        Assert.Single(visible);
-        Assert.Equal(published.Id, visible[0].Id);
+        Assert.Single(visible.Items);
+        Assert.Equal(published.Id, visible.Items[0].Id);
     }
 
     [Fact]
@@ -425,20 +425,20 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
         submitRequest.Content = JsonContent.Create(new SubmitAssessmentRequest("Done."));
         Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(submitRequest)).StatusCode);
 
-        var summaries = await SendAsAsync<List<StudentAssessmentSummaryResponse>>(
+        var summaries = await SendAsAsync<PagedResponse<StudentAssessmentSummaryResponse>>(
             HttpMethod.Get,
             $"/api/v1/assessments/student-summary?organisationId={organisationId}&classId={classId}",
             studentId,
             TestJwt.StudentRole,
             organisationId);
 
-        Assert.Equal(2, summaries.Count);
-        var pendingSummary = Assert.Single(summaries, item => item.Id == pending.Id);
+        Assert.Equal(2, summaries.Items.Count);
+        var pendingSummary = Assert.Single(summaries.Items, item => item.Id == pending.Id);
         Assert.False(pendingSummary.HasSubmitted);
         Assert.Null(pendingSummary.SubmittedAt);
         Assert.Contains(learningObjectiveId, pendingSummary.LearningObjectiveIds);
 
-        var completedSummary = Assert.Single(summaries, item => item.Id == completed.Id);
+        var completedSummary = Assert.Single(summaries.Items, item => item.Id == completed.Id);
         Assert.True(completedSummary.HasSubmitted);
         Assert.NotNull(completedSummary.SubmittedAt);
     }

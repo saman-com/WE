@@ -70,20 +70,9 @@ public sealed class HttpEvidenceDashboardClient(
             response.EnsureSuccessStatusCode();
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<List<StudentFeedbackPayload>>(
+        var payload = await response.Content.ReadFromJsonAsync<PagedPayload<StudentFeedbackPayload>>(
             cancellationToken: cancellationToken);
-        return payload?.Select(item => new StudentEvidenceFeedbackData(
-            item.Id,
-            item.AssessmentId,
-            item.Title,
-            item.ApprovedAt,
-            item.MicroSkillMarks
-                .Select(mark => new StudentEvidenceFeedbackMarkData(
-                    mark.MicroSkillId,
-                    mark.Mark,
-                    mark.Feedback))
-                .ToList())).ToList()
-            ?? [];
+        return MapFeedback(payload?.Items);
     }
 
     public async Task<IReadOnlyList<StudentEvidenceFeedbackData>> ListStudentFeedbackForStudentAsync(
@@ -113,9 +102,14 @@ public sealed class HttpEvidenceDashboardClient(
             response.EnsureSuccessStatusCode();
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<List<StudentFeedbackPayload>>(
+        var payload = await response.Content.ReadFromJsonAsync<PagedPayload<StudentFeedbackPayload>>(
             cancellationToken: cancellationToken);
-        return payload?.Select(item => new StudentEvidenceFeedbackData(
+        return MapFeedback(payload?.Items);
+    }
+
+    private static IReadOnlyList<StudentEvidenceFeedbackData> MapFeedback(
+        IReadOnlyList<StudentFeedbackPayload>? payload) =>
+        payload?.Select(item => new StudentEvidenceFeedbackData(
             item.Id,
             item.AssessmentId,
             item.Title,
@@ -126,8 +120,9 @@ public sealed class HttpEvidenceDashboardClient(
                     mark.Mark,
                     mark.Feedback))
                 .ToList())).ToList()
-            ?? [];
-    }
+        ?? [];
+
+    private sealed record PagedPayload<T>(IReadOnlyList<T> Items, bool HasMore, string? NextCursor);
 
     private sealed record ClassEvidenceSummaryPayload(Guid AssessmentId, int ReviewedCount);
 

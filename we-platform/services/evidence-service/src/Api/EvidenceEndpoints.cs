@@ -5,6 +5,7 @@ using EvidenceService.Application;
 using EvidenceService.Domain;
 using EvidenceService.Infrastructure.Data;
 using EvidenceService.Infrastructure.Messaging;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 namespace EvidenceService.Api;
@@ -114,6 +115,9 @@ public static class EvidenceEndpoints
 
     private static async Task<IResult> ListEvidence(
         Guid? assessmentId,
+        int? page,
+        int? pageSize,
+        string? cursor,
         ClaimsPrincipal principal,
         EvidenceDbContext db,
         IClassAccessChecker accessChecker,
@@ -129,28 +133,34 @@ public static class EvidenceEndpoints
             return Results.BadRequest();
         }
 
-        var items = await db.Evidence
+        var size = Paging.ClampPageSize(pageSize);
+        var pageNumber = Paging.ResolvePage(cursor, page);
+
+        var window = await db.Evidence
+            .AsNoTracking()
             .Include(e => e.MicroSkillMarks)
             .Where(e => e.AssessmentId == assessmentId.Value)
             .OrderBy(e => e.ApprovedAt)
+            .Skip((pageNumber - 1) * size)
+            .Take(size + 1)
             .ToListAsync();
 
-        var visible = new List<EducationalEvidence>();
-        foreach (var evidence in items)
+        if (window.Count > 0 && !principal.IsAdmin())
         {
+            var sample = window[0];
             var access = await EvaluateTeacherClassAccessAsync(
                 principal,
-                evidence.OrganisationId,
-                evidence.ClassId,
+                sample.OrganisationId,
+                sample.ClassId,
                 accessChecker,
                 httpContext.Request.Headers.Authorization.ToString());
-            if (access is null)
+            if (access is not null)
             {
-                visible.Add(evidence);
+                return access;
             }
         }
 
-        return Results.Ok(visible.Select(ToResponse).ToList());
+        return Results.Ok(Paging.ToPage(window.Select(ToResponse).ToList(), pageNumber, size));
     }
 
     private static async Task<IResult> ListClassEvidenceSummary(
@@ -188,6 +198,9 @@ public static class EvidenceEndpoints
 
     private static async Task<IResult> ListStudentFeedback(
         string? studentUserId,
+        int? page,
+        int? pageSize,
+        string? cursor,
         ClaimsPrincipal principal,
         EvidenceDbContext db,
         IParentAccessChecker parentAccessChecker,
@@ -227,12 +240,16 @@ public static class EvidenceEndpoints
             return Results.Forbid();
         }
 
+        var size = Paging.ClampPageSize(pageSize);
+        var pageNumber = Paging.ResolvePage(cursor, page);
+
         var items = await db.Evidence
             .AsNoTracking()
             .Include(e => e.MicroSkillMarks)
             .Where(e => e.StudentUserId == targetStudentUserId && e.Status == EvidenceStatuses.Approved)
             .OrderByDescending(e => e.ApprovedAt)
-            .Take(50)
+            .Skip((pageNumber - 1) * size)
+            .Take(size + 1)
             .ToListAsync();
 
         var feedback = items
@@ -246,7 +263,7 @@ public static class EvidenceEndpoints
                     .ToList()))
             .ToList();
 
-        return Results.Ok(feedback);
+        return Results.Ok(Paging.ToPage(feedback, pageNumber, size));
     }
 
     private static async Task<IResult> GetEvidence(

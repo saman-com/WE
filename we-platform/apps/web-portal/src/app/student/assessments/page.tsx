@@ -47,6 +47,9 @@ export default function StudentAssessmentsPage() {
   const [classScopes, setClassScopes] = useState<ClassScope[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessmentsHasMore, setAssessmentsHasMore] = useState(false);
+  const [assessmentsCursor, setAssessmentsCursor] = useState<string | null>(null);
+  const [loadingMoreAssessments, setLoadingMoreAssessments] = useState(false);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
   const [submission, setSubmission] = useState<AssessmentSubmission | null>(null);
   const [responses, setResponses] = useState("");
@@ -106,22 +109,48 @@ export default function StudentAssessmentsPage() {
   useEffect(() => {
     if (!token || !selectedScope) {
       setAssessments([]);
+      setAssessmentsHasMore(false);
+      setAssessmentsCursor(null);
       setSelectedAssessmentId("");
       return;
     }
 
     listAssessments(token, selectedScope.organisationId, selectedScope.schoolClass.id)
-      .then((loaded) => {
-        setAssessments(loaded);
+      .then((page) => {
+        setAssessments(page.items);
+        setAssessmentsHasMore(page.hasMore);
+        setAssessmentsCursor(page.nextCursor);
         const initial =
-          loaded.find((item) => item.id === requestedParam("assessmentId")) ?? loaded[0];
+          page.items.find((item) => item.id === requestedParam("assessmentId")) ?? page.items[0];
         setSelectedAssessmentId(initial?.id ?? "");
       })
       .catch(() => {
         setAssessments([]);
+        setAssessmentsHasMore(false);
+        setAssessmentsCursor(null);
         setSelectedAssessmentId("");
       });
   }, [token, selectedScope, message]);
+
+  async function loadMoreAssessments() {
+    if (!token || !selectedScope || !assessmentsCursor || loadingMoreAssessments) {
+      return;
+    }
+    setLoadingMoreAssessments(true);
+    try {
+      const page = await listAssessments(
+        token,
+        selectedScope.organisationId,
+        selectedScope.schoolClass.id,
+        { cursor: assessmentsCursor }
+      );
+      setAssessments((current) => [...current, ...page.items]);
+      setAssessmentsHasMore(page.hasMore);
+      setAssessmentsCursor(page.nextCursor);
+    } finally {
+      setLoadingMoreAssessments(false);
+    }
+  }
 
   useEffect(() => {
     if (!token || !selectedAssessmentId) {
@@ -243,6 +272,16 @@ export default function StudentAssessmentsPage() {
               ))}
             </ul>
           )}
+          {assessmentsHasMore ? (
+            <button
+              type="button"
+              disabled={loadingMoreAssessments}
+              onClick={loadMoreAssessments}
+              className="text-sm underline disabled:opacity-50"
+            >
+              {loadingMoreAssessments ? t("common.loading") : t("common.loadMore")}
+            </button>
+          ) : null}
         </div>
 
         {selectedAssessment ? (
