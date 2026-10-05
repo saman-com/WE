@@ -188,15 +188,15 @@ echo "Algebra check (due soon)"
 published_assessment "Algebra check" "$(utc_days +4)" >/dev/null
 
 echo "Federation school and policy for federation@ministry.local"
-# Identity puts this id on the FederationAdmin token. Insert directly: the
-# create-school API provisions regional configuration with no service credential
-# and that call is rejected.
+# Identity puts this id on the FederationAdmin token. Upsert directly: the
+# create-school API provisions regional configuration with no service credential.
+# An existing DFED row, including one left by a failed provision, is updated in place.
 FED_ID=00000000-0000-4000-8000-0000000000f1
 psql -d we_federation <<SQL
 insert into federation_schools (
   id, tenant_id, federation_id, name, code, enrollment_count, average_progress_percent,
   has_default_configuration, created_at)
-select
+values (
   '00000000-0000-4000-8000-0000000000f3',
   '00000000-0000-4000-8000-0000000000f2',
   '$FED_ID',
@@ -206,9 +206,12 @@ select
   68.5,
   true,
   now()
-where not exists (
-  select 1 from federation_schools where federation_id = '$FED_ID' and code = 'DFED'
-);
+)
+on conflict (federation_id, code) do update set
+  name = excluded.name,
+  enrollment_count = excluded.enrollment_count,
+  average_progress_percent = excluded.average_progress_percent,
+  has_default_configuration = true;
 insert into federation_policies (id, federation_id, policy_key, policy_value, updated_at)
 select
   '00000000-0000-4000-8000-0000000000f4',

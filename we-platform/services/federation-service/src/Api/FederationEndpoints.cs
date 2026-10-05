@@ -62,6 +62,17 @@ public static class FederationEndpoints
         }
 
         var tenantId = Guid.CreateVersion7();
+        try
+        {
+            await provisioner.ProvisionDefaultConfigurationAsync(tenantId);
+        }
+        catch (HttpRequestException)
+        {
+            return Results.Json(
+                new { error = "configuration_provision_failed" },
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
         var school = new FederationSchool
         {
             Id = Guid.CreateVersion7(),
@@ -71,22 +82,21 @@ public static class FederationEndpoints
             Code = normalizedCode,
             EnrollmentCount = 0,
             AverageProgressPercent = 0m,
-            HasDefaultConfiguration = false,
+            HasDefaultConfiguration = true,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         db.FederationSchools.Add(school);
-        await db.SaveChangesAsync();
-
         try
         {
-            await provisioner.ProvisionDefaultConfigurationAsync(tenantId);
-            school.HasDefaultConfiguration = true;
             await db.SaveChangesAsync();
         }
-        catch (HttpRequestException)
+        catch (DbUpdateException)
         {
-            school.HasDefaultConfiguration = false;
+            db.Entry(school).State = EntityState.Detached;
+            return Results.Json(
+                new { error = "configuration_provision_failed" },
+                statusCode: StatusCodes.Status502BadGateway);
         }
 
         return Results.Created(

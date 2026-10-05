@@ -82,9 +82,16 @@ internal static class TestJwt
 public sealed class FakeRegionalConfigurationProvisioner : IRegionalConfigurationProvisioner
 {
     public List<Guid> ProvisionedTenantIds { get; } = [];
+    public bool FailNext { get; set; }
 
     public Task ProvisionDefaultConfigurationAsync(Guid schoolTenantId, CancellationToken cancellationToken = default)
     {
+        if (FailNext)
+        {
+            FailNext = false;
+            throw new HttpRequestException("configuration unavailable");
+        }
+
         ProvisionedTenantIds.Add(schoolTenantId);
         return Task.CompletedTask;
     }

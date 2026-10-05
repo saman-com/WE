@@ -131,6 +131,43 @@ public class FederationEndpointTests : IClassFixture<FederationWebApplicationFac
     }
 
     [Fact]
+    public async Task CreateSchool_WhenProvisioningFails_LeavesNoSchool()
+    {
+        var federationId = Guid.CreateVersion7();
+        var adminId = Guid.NewGuid().ToString();
+        var code = UniqueCode("FAIL");
+        _factory.Provisioner.FailNext = true;
+
+        using var createRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Post,
+            "/api/v1/federation/schools",
+            adminId,
+            federationId);
+        createRequest.Content = JsonContent.Create(new CreateFederationSchoolRequest("Broken School", code));
+
+        var createResponse = await _client.SendAsync(createRequest);
+
+        Assert.Equal(HttpStatusCode.BadGateway, createResponse.StatusCode);
+        var body = await createResponse.Content.ReadAsStringAsync();
+        Assert.Contains("configuration_provision_failed", body);
+
+        using var listRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Get,
+            "/api/v1/federation/schools",
+            adminId,
+            federationId);
+        var listResponse = await _client.SendAsync(listRequest);
+        listResponse.EnsureSuccessStatusCode();
+        var schools = await listResponse.Content.ReadFromJsonAsync<List<FederationSchoolResponse>>();
+        Assert.NotNull(schools);
+        Assert.DoesNotContain(schools, school => school.Code == code);
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<FederationDbContext>();
+        Assert.DoesNotContain(db.FederationSchools, school => school.FederationId == federationId && school.Code == code);
+    }
+
+    [Fact]
     public async Task SchoolProvisioning_CreatesDefaultRegionalConfiguration()
     {
         var federationId = Guid.CreateVersion7();

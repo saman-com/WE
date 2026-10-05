@@ -329,7 +329,7 @@
   "organisation.manage.classLabel": "الصف",
 
   "admin.federation.provisioned": "تم تجهيز حساب المدرسة بالإعدادات الافتراضية.",
-  "admin.federation.provisionFailed": "فشل تجهيز حساب المدرسة.",
+  "admin.federation.provisionFailed": "لم تُضف المدرسة. تعذّر حفظ الإعدادات.",
   "admin.federation.adminAssigned": "تم تعيين مسؤول المدرسة.",
   "admin.federation.assignFailed": "فشل تعيين مسؤول المدرسة.",
   "admin.federation.policyUpdated": "تم تحديث سياسة الاتحاد.",

@@ -329,7 +329,7 @@
   "organisation.manage.classLabel": "Class",
 
   "admin.federation.provisioned": "School tenant provisioned with default configuration.",
-  "admin.federation.provisionFailed": "Failed to provision school tenant.",
+  "admin.federation.provisionFailed": "The school was not added. Configuration could not be saved.",
   "admin.federation.adminAssigned": "School admin assigned.",
   "admin.federation.assignFailed": "Failed to assign school admin.",
   "admin.federation.policyUpdated": "Federation policy updated.",
