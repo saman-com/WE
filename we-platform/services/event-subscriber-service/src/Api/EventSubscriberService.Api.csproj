@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\aspnet\WePlatform.AspNetCore.csproj" />
     <ProjectReference Include="..\..\..\..\shared\events\WePlatform.Events.csproj" />
   </ItemGroup>
 

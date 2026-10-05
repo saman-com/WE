@@ -8,6 +8,7 @@ using NationalReportingService.Api;
 using NationalReportingService.Api.Auth;
 using NationalReportingService.Infrastructure;
 using NationalReportingService.Infrastructure.Data;
+using WePlatform.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,13 +76,7 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("WebPortal", policy =>
-        policy.WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+builder.Services.AddWePlatformCors(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -91,7 +86,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
-app.UseCors("WebPortal");
+app.UseWePlatformSecurityHeaders();
+app.UseWePlatformCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

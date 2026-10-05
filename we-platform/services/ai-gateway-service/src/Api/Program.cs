@@ -7,6 +7,7 @@ using AiGatewayService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,13 +40,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+builder.Services.AddWePlatformCors(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -56,7 +51,8 @@ using (var scope = app.Services.CreateScope())
     await db.BackfillTenantIdsAsync<AiAuditLog>(_ => DefaultTenant.Id);
 }
 
-app.UseCors();
+app.UseWePlatformSecurityHeaders();
+app.UseWePlatformCors();
 app.UseAuthentication();
 app.UseWePlatformTenancy();
 app.UseAuthorization();

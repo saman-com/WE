@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\aspnet\WePlatform.AspNetCore.csproj" />
     <ProjectReference Include="..\Application\EiService.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\EiService.Infrastructure.csproj" />
   </ItemGroup>

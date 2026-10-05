@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\aspnet\WePlatform.AspNetCore.csproj" />
     <ProjectReference Include="..\Application\OrganisationService.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\OrganisationService.Infrastructure.csproj" />
   </ItemGroup>

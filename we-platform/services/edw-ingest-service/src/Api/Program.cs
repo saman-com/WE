@@ -1,6 +1,7 @@
 using EdwIngestService.Domain;
 using EdwIngestService.Infrastructure;
 using EdwIngestService.Infrastructure.Data;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,8 @@ using (var scope = app.Services.CreateScope())
     await db.BackfillTenantIdsAsync<AssessmentFact>(TenantBackfill.ResolveOrganisationTenant);
     await db.BackfillTenantIdsAsync<InterventionFact>(TenantBackfill.ResolveOrganisationTenant);
 }
+
+app.UseWePlatformSecurityHeaders();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 

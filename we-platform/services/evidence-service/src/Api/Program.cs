@@ -7,6 +7,7 @@ using EvidenceService.Domain;
 using EvidenceService.Infrastructure;
 using EvidenceService.Infrastructure.Data;
 using WePlatform.Messaging;
+using WePlatform.AspNetCore;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,13 +41,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("WebPortal", policy =>
-        policy.WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+builder.Services.AddWePlatformCors(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -63,7 +58,8 @@ using (var scope = app.Services.CreateScope())
     });
 }
 
-app.UseCors("WebPortal");
+app.UseWePlatformSecurityHeaders();
+app.UseWePlatformCors();
 app.UseAuthentication();
 app.UseWePlatformTenancy();
 app.UseAuthorization();

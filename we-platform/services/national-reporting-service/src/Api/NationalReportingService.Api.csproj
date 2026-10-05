@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\shared\aspnet\WePlatform.AspNetCore.csproj" />
     <ProjectReference Include="..\Application\NationalReportingService.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\NationalReportingService.Infrastructure.csproj" />
   </ItemGroup>

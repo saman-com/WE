@@ -87,29 +87,21 @@ Source scan of `services/*/src/Api/Program.cs` and related middleware: **no** `U
 
 | Header / control | Status |
 |------------------|--------|
-| HSTS | Missing |
-| X-Content-Type-Options | Missing |
-| X-Frame-Options / CSP frame-ancestors | Missing |
-| Content-Security-Policy | Missing |
-| Referrer-Policy | Missing |
-| Permissions-Policy | Missing |
+| HSTS | Set outside Development/Testing (`max-age=31536000; includeSubDomains`) |
+| X-Content-Type-Options | `nosniff` via `UseWePlatformSecurityHeaders` |
+| X-Frame-Options | `DENY` |
+| Referrer-Policy | `strict-origin-when-cross-origin` |
+| Permissions-Policy / full CSP | Not set (frame denial via X-Frame-Options) |
 
-No product header middleware was added in this batch (not already patterned).
+Portal: matching headers in `apps/web-portal/next.config.ts`.
 
 ### CORS
 
-Present on portal-facing APIs:
-
-- Named policy `"WebPortal"` (most services) or default policy (`ai-gateway-service`).
-- Origin allow-list: **`http://localhost:3000` only**.
-- `AllowAnyHeader()` + `AllowAnyMethod()`.
-- No `AllowCredentials()` / `AllowAnyOrigin()`.
-
-**No CORS** on worker-style hosts: `edw-ingest-service`, `event-subscriber-service` (health only / no portal CORS).
+Shared `AddWePlatformCors` / `UseWePlatformCors` (`Cors:AllowedOrigins`). Development defaults to `http://localhost:3000` when unset; non-Development with empty config denies all origins. Workers (edw-ingest, event-subscriber) have no CORS.
 
 ### Verdict
 
-**Covered** (inspection). CORS is origin-scoped for local portal; OWASP response headers are absent across APIs.
+**Covered.** Security headers on all APIs + portal; CORS configurable per environment.
 
 ---
 
@@ -229,7 +221,7 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 |------|--------|-------------------|
 | Load / latency | partial | p95 **12 ms** / **1 ms** vs 500 ms claim (TestHost); **no k6** |
 | Dependency vulns | covered | .NET: SSH.NET High (tests only); Node prod: **0 critical/high** (`next@15.5.27`) |
-| Headers / CORS | covered | CORS localhost:3000; **OWASP headers missing** |
+| Headers / CORS | covered | Shared middleware + portal next.config; Cors:AllowedOrigins |
 | Secrets | covered | No committed private keys / `.env`; local `we_dev` placeholders only |
 | Backup / restore | partial | **19/19 dumps OK**; restore + e2e not run |
 | Health | covered* | **21/21** `/health` OK; *no compose-wide script / app healthchecks |

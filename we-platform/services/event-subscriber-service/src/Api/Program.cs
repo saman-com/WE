@@ -2,6 +2,7 @@ using EventSubscriberService.Api.Consumers;
 using MassTransit;
 using RabbitMQ.Client;
 using WePlatform.Events;
+using WePlatform.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,8 @@ builder.Services.AddMassTransit(bus =>
 });
 
 var app = builder.Build();
+
+app.UseWePlatformSecurityHeaders();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
