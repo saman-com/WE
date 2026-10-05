@@ -234,6 +234,7 @@
   "teacher.interventions.detail.noAccess": "ليس لديك صلاحية الوصول إلى هذا التدخل.",
   "teacher.interventions.detail.loadError": "تعذّر تحميل التدخل.",
   "teacher.interventions.detail.saveNotesError": "تعذّر حفظ الملاحظات.",
+  "teacher.interventions.detail.saveNotesSuccess": "تم حفظ الملاحظات.",
   "teacher.interventions.detail.updateStatusError": "تعذّر تحديث الحالة.",
   "teacher.interventions.detail.backToInterventions": "العودة إلى التدخلات",
   "teacher.interventions.detail.loading": "جارٍ تحميل التدخل...",

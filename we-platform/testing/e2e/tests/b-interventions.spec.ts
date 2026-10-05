@@ -23,6 +23,7 @@ test.describe("b. Interventions", () => {
     await createLink.click();
 
     await expect(teacherPage.getByRole("heading", { name: "Create intervention" })).toBeVisible();
+    await expect(teacherPage.getByLabel("Planned actions")).not.toHaveValue("");
     await teacherPage.getByLabel("Notes (optional)").fill(note);
     await teacherPage.getByRole("button", { name: "Create intervention" }).click();
 
@@ -57,6 +58,7 @@ test.describe("b. Interventions", () => {
     await createLink.click();
 
     await expect(page.getByRole("heading", { name: "Create intervention" })).toBeVisible();
+    await expect(page.getByLabel("Planned actions")).not.toHaveValue("");
     await page.getByLabel("Notes (optional)").fill(note);
     await page.getByRole("button", { name: "Create intervention" }).click();
     await expect(page).toHaveURL(/\/teacher\/interventions\//);
@@ -80,6 +82,32 @@ test.describe("b. Interventions", () => {
 
     await page.getByRole("button", { name: "All" }).click();
     await expect(page.getByText(note).first()).toBeVisible();
+
+    await teacher.close();
+  });
+
+  test("saved note is kept after reload", async ({ browser }) => {
+    const note = uniqueTitle("E2E saved note");
+
+    const teacher = await browser.newContext({ storageState: storagePath("teacher") });
+    const page = await teacher.newPage();
+
+    await page.goto(`/teacher/classes/${CLASS_A}?organisationId=${ORG_A}`);
+    const createLink = page.getByRole("link", { name: "Create intervention" }).first();
+    await expect(createLink).toBeVisible({ timeout: 60_000 });
+    await createLink.click();
+
+    await expect(page.getByRole("heading", { name: "Create intervention" })).toBeVisible();
+    await expect(page.getByLabel("Planned actions")).not.toHaveValue("");
+    await page.getByRole("button", { name: "Create intervention" }).click();
+    await expect(page).toHaveURL(/\/teacher\/interventions\/[0-9a-f-]+$/i);
+
+    await page.getByRole("textbox", { name: "Notes" }).fill(note);
+    await page.getByRole("button", { name: "Save notes" }).click();
+    await expect(page.getByRole("status")).toHaveText("Notes saved.");
+
+    await page.reload();
+    await expect(page.getByRole("textbox", { name: "Notes" })).toHaveValue(note);
 
     await teacher.close();
   });

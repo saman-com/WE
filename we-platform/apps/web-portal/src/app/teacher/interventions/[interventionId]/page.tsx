@@ -29,6 +29,8 @@ export default function InterventionDetailPage() {
   const [notes, setNotes] = useState("");
   const [outcome, setOutcome] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,11 +69,16 @@ export default function InterventionDetailPage() {
     }
 
     setSaving(true);
+    setFeedback(null);
+    setFeedbackError(false);
     try {
       const updated = await patchIntervention(token, intervention.id, { notes });
       setIntervention(updated);
+      setNotes(updated.notes ?? "");
+      setFeedback(t("teacher.interventions.detail.saveNotesSuccess"));
     } catch {
-      setError(t("teacher.interventions.detail.saveNotesError"));
+      setFeedbackError(true);
+      setFeedback(t("teacher.interventions.detail.saveNotesError"));
     } finally {
       setSaving(false);
     }
@@ -89,6 +96,8 @@ export default function InterventionDetailPage() {
     }
 
     setSaving(true);
+    setFeedback(null);
+    setFeedbackError(false);
     try {
       const payload =
         status === "Completed" && outcome.trim()
@@ -96,8 +105,11 @@ export default function InterventionDetailPage() {
           : { status };
       const updated = await patchIntervention(token, intervention.id, payload);
       setIntervention(updated);
+      setNotes(updated.notes ?? "");
+      setOutcome(updated.outcome ?? "");
     } catch {
-      setError(t("teacher.interventions.detail.updateStatusError"));
+      setFeedbackError(true);
+      setFeedback(t("teacher.interventions.detail.updateStatusError"));
     } finally {
       setSaving(false);
     }
@@ -176,10 +188,13 @@ export default function InterventionDetailPage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
-          <h2 className="font-medium">{t("teacher.interventions.detail.notes")}</h2>
+          <h2 id="intervention-notes-label" className="font-medium">
+            {t("teacher.interventions.detail.notes")}
+          </h2>
           {canModify ? (
             <>
               <textarea
+                aria-labelledby="intervention-notes-label"
                 className="w-full min-h-28 border border-black/20 rounded p-3 text-sm"
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -196,6 +211,14 @@ export default function InterventionDetailPage() {
           ) : (
             <p className="text-sm">{intervention.notes || t("teacher.interventions.detail.noNotesRecorded")}</p>
           )}
+          {feedback ? (
+            <p
+              role="status"
+              className={`text-sm ${feedbackError ? "text-red-600" : "text-green-700"}`}
+            >
+              {feedback}
+            </p>
+          ) : null}
         </div>
 
         {canModify && nextStatus[intervention.status] ? (

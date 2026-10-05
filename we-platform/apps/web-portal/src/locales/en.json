@@ -234,6 +234,7 @@
   "teacher.interventions.detail.noAccess": "You do not have access to this intervention.",
   "teacher.interventions.detail.loadError": "Unable to load intervention.",
   "teacher.interventions.detail.saveNotesError": "Unable to save notes.",
+  "teacher.interventions.detail.saveNotesSuccess": "Notes saved.",
   "teacher.interventions.detail.updateStatusError": "Unable to update status.",
   "teacher.interventions.detail.backToInterventions": "Back to interventions",
   "teacher.interventions.detail.loading": "Loading intervention...",
