@@ -19,4 +19,7 @@ public sealed class StudentLearningWebApplicationFactory : WebApplicationFactory
             services.AddSingleton<IOrganisationAccessChecker>(AccessChecker);
         });
     }
+
+    public IProfileEvidenceProcessor GetProcessor() =>
+        Services.GetRequiredService<IProfileEvidenceProcessor>();
 }

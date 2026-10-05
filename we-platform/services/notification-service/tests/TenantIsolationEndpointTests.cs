@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using NotificationService.Application;
 using NotificationService.Domain;
 using NotificationService.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WePlatform.Tenancy;
 
@@ -21,43 +20,66 @@ public class TenantIsolationEndpointTests : IClassFixture<NotificationWebApplica
     }
 
     [Fact]
-    public async Task User_FromDifferentTenant_CannotMarkNotificationAsRead()
+    public async Task CrossSchool_NotificationList_BothDirections_NeverReturnsOtherSchoolData()
     {
-        var tenantA = Guid.CreateVersion7();
-        var tenantB = Guid.CreateVersion7();
-        var recipientId = Guid.NewGuid().ToString();
-        var notificationId = await SeedNotificationAsync(recipientId, tenantB);
-
-        using var request = TestJwt.Authorized(
-            HttpMethod.Patch,
-            $"/api/v1/notifications/{notificationId}/read",
-            recipientId,
-            tenantA,
-            TestJwt.StudentRole);
-        var response = await _client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task User_FromDifferentTenant_DoesNotSeeOtherTenantNotifications()
-    {
-        var tenantA = Guid.CreateVersion7();
-        var tenantB = Guid.CreateVersion7();
+        // Probe: notification-service:notification-list
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
         var userId = Guid.NewGuid().ToString();
-        await SeedNotificationAsync(userId, tenantB, "Cross-tenant notification");
+        await SeedNotificationAsync(userId, schoolA, "School A notification");
+        await SeedNotificationAsync(userId, schoolB, "School B notification");
 
-        using var request = TestJwt.Authorized(
+        using var listA = TestJwt.Authorized(
             HttpMethod.Get,
             "/api/v1/notifications",
             userId,
-            tenantA,
+            schoolA,
+            TestJwt.StudentRole);
+        var okA = await _client.SendAsync(listA);
+        okA.EnsureSuccessStatusCode();
+        var itemsA = await okA.Content.ReadFromJsonAsync<NotificationListResponse>();
+        Assert.Single(itemsA!.Notifications);
+        Assert.Contains(itemsA.Notifications, n => n.Title == "School A notification");
+        Assert.DoesNotContain(itemsA.Notifications, n => n.Title == "School B notification");
+
+        using var listB = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/notifications",
+            userId,
+            schoolB,
+            TestJwt.StudentRole);
+        var okB = await _client.SendAsync(listB);
+        okB.EnsureSuccessStatusCode();
+        var itemsB = await okB.Content.ReadFromJsonAsync<NotificationListResponse>();
+        Assert.Single(itemsB!.Notifications);
+        Assert.Contains(itemsB.Notifications, n => n.Title == "School B notification");
+        Assert.DoesNotContain(itemsB.Notifications, n => n.Title == "School A notification");
+    }
+
+    [Fact]
+    public async Task CrossSchool_NotificationResource_BothDirections_Denied()
+    {
+        // Probe: notification-service:notification-resource
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
+        var userId = Guid.NewGuid().ToString();
+        var notificationA = await SeedNotificationAsync(userId, schoolA);
+        var notificationB = await SeedNotificationAsync(userId, schoolB);
+
+        await AssertMarkReadDeniedAsync(userId, schoolB, notificationA);
+        await AssertMarkReadDeniedAsync(userId, schoolA, notificationB);
+    }
+
+    private async Task AssertMarkReadDeniedAsync(string userId, Guid callerTenant, Guid notificationId)
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Patch,
+            $"/api/v1/notifications/{notificationId}/read",
+            userId,
+            callerTenant,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var list = await response.Content.ReadFromJsonAsync<NotificationListResponse>();
-        Assert.Empty(list!.Notifications);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     private async Task<Guid> SeedNotificationAsync(

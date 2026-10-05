@@ -1,0 +1,1889 @@
+{
+  "generatedFrom": "services/*/src/Api",
+  "entries": [
+    {
+      "service": "ai-gateway-service",
+      "method": "GET",
+      "route": "/api/v1/ai/audit-logs",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/ai-gateway-service/src/Api/AiGatewayEndpoints.cs",
+      "probe": "ai-gateway-service:ai"
+    },
+    {
+      "service": "ai-gateway-service",
+      "method": "POST",
+      "route": "/api/v1/ai/complete",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/ai-gateway-service/src/Api/AiGatewayEndpoints.cs",
+      "probe": "ai-gateway-service:ai"
+    },
+    {
+      "service": "ai-gateway-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/ai-gateway-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-list"
+    },
+    {
+      "service": "assessment-service",
+      "method": "POST",
+      "route": "/api/v1/assessments",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-list"
+    },
+    {
+      "service": "assessment-service",
+      "method": "POST",
+      "route": "/api/v1/assessments/ai-feedback-audit/{auditLogId:guid}/finalize",
+      "ids": [
+        "auditLogId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/class-summary",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-list"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/student-summary",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-list"
+    },
+    {
+      "service": "assessment-service",
+      "method": "DELETE",
+      "route": "/api/v1/assessments/{assessmentId:guid}",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/{assessmentId:guid}",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "PUT",
+      "route": "/api/v1/assessments/{assessmentId:guid}",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "POST",
+      "route": "/api/v1/assessments/{assessmentId:guid}/publish",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/{assessmentId:guid}/submissions",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "POST",
+      "route": "/api/v1/assessments/{assessmentId:guid}/submissions",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/{assessmentId:guid}/submissions/me",
+      "ids": [
+        "assessmentId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/{assessmentId:guid}/submissions/{submissionId:guid}",
+      "ids": [
+        "assessmentId",
+        "submissionId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "POST",
+      "route": "/api/v1/assessments/{assessmentId:guid}/submissions/{submissionId:guid}/ai-feedback-draft",
+      "ids": [
+        "assessmentId",
+        "submissionId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
+      "probe": "assessment-service:assessment-resource"
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/assessment-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "communication-service",
+      "method": "POST",
+      "route": "/api/v1/messages",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "probe": "communication-service:messages"
+    },
+    {
+      "service": "communication-service",
+      "method": "GET",
+      "route": "/api/v1/messages/conversation",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "probe": "communication-service:messages"
+    },
+    {
+      "service": "communication-service",
+      "method": "GET",
+      "route": "/api/v1/messages/inbox",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
+      "probe": "communication-service:messages"
+    },
+    {
+      "service": "communication-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/communication-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "configuration-service",
+      "method": "GET",
+      "route": "/api/v1/regional-configuration",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/configuration-service/src/Api/ConfigurationEndpoints.cs",
+      "probe": "configuration-service:regional-config"
+    },
+    {
+      "service": "configuration-service",
+      "method": "PUT",
+      "route": "/api/v1/regional-configuration",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/configuration-service/src/Api/ConfigurationEndpoints.cs",
+      "probe": "configuration-service:regional-config"
+    },
+    {
+      "service": "configuration-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/configuration-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-list"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-list"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units",
+      "ids": [
+        "curriculumId",
+        "subjectId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units",
+      "ids": [
+        "curriculumId",
+        "subjectId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId",
+        "microSkillId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId",
+        "microSkillId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/learning-objectives/{learningObjectiveId:guid}/micro-skills/{microSkillId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "learningObjectiveId",
+        "microSkillId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "DELETE",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "topicId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "topicId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "PUT",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/subjects/{subjectId:guid}/units/{unitId:guid}/topics/{topicId:guid}",
+      "ids": [
+        "curriculumId",
+        "subjectId",
+        "unitId",
+        "topicId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/tree",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/api/v1/curriculum/{curriculumId:guid}/variant-links",
+      "ids": [
+        "curriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "POST",
+      "route": "/api/v1/curriculum/{parentCurriculumId:guid}/inherit",
+      "ids": [
+        "parentCurriculumId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
+      "probe": "curriculum-service:curriculum-resource"
+    },
+    {
+      "service": "curriculum-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/curriculum-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "diagnostic-service",
+      "method": "GET",
+      "route": "/api/v1/diagnostics/students/{studentUserId}",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/diagnostic-service/src/Api/DiagnosticEndpoints.cs",
+      "probe": "diagnostic-service:person-resource"
+    },
+    {
+      "service": "diagnostic-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/diagnostic-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "edw-ingest-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/edw-ingest-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "ei-service",
+      "method": "POST",
+      "route": "/api/v1/ei/ai-summary-audit/{auditLogId:guid}/finalize",
+      "ids": [
+        "auditLogId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/ei-service/src/Api/EiEndpoints.cs",
+      "probe": "ei-service:audit-resource"
+    },
+    {
+      "service": "ei-service",
+      "method": "GET",
+      "route": "/api/v1/ei/organisations/{organisationId:guid}/classes/{classId:guid}/insights",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/ei-service/src/Api/EiEndpoints.cs",
+      "probe": "ei-service:organisation-path"
+    },
+    {
+      "service": "ei-service",
+      "method": "POST",
+      "route": "/api/v1/ei/organisations/{organisationId:guid}/classes/{classId:guid}/lesson-summary-draft",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/ei-service/src/Api/EiEndpoints.cs",
+      "probe": "ei-service:organisation-path"
+    },
+    {
+      "service": "ei-service",
+      "method": "POST",
+      "route": "/api/v1/ei/students/{studentUserId}/progress-report-draft",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/ei-service/src/Api/EiEndpoints.cs",
+      "probe": "ei-service:person-resource"
+    },
+    {
+      "service": "ei-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/ei-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "event-subscriber-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/event-subscriber-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "evidence-service",
+      "method": "GET",
+      "route": "/api/v1/evidence",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-list"
+    },
+    {
+      "service": "evidence-service",
+      "method": "POST",
+      "route": "/api/v1/evidence",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-list"
+    },
+    {
+      "service": "evidence-service",
+      "method": "GET",
+      "route": "/api/v1/evidence/class-summary",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-list"
+    },
+    {
+      "service": "evidence-service",
+      "method": "GET",
+      "route": "/api/v1/evidence/student-feedback",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-list"
+    },
+    {
+      "service": "evidence-service",
+      "method": "DELETE",
+      "route": "/api/v1/evidence/{evidenceId:guid}",
+      "ids": [
+        "evidenceId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-resource"
+    },
+    {
+      "service": "evidence-service",
+      "method": "GET",
+      "route": "/api/v1/evidence/{evidenceId:guid}",
+      "ids": [
+        "evidenceId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-resource"
+    },
+    {
+      "service": "evidence-service",
+      "method": "PUT",
+      "route": "/api/v1/evidence/{evidenceId:guid}",
+      "ids": [
+        "evidenceId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
+      "probe": "evidence-service:evidence-resource"
+    },
+    {
+      "service": "evidence-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/evidence-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "GET",
+      "route": "/api/v1/federation/metrics",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "federation-scoped-not-school-resource",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "GET",
+      "route": "/api/v1/federation/policies",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "federation-scoped-not-school-resource",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "PUT",
+      "route": "/api/v1/federation/policies",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "federation-scoped-not-school-resource",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "GET",
+      "route": "/api/v1/federation/schools",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "federation-scoped-not-school-resource",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "POST",
+      "route": "/api/v1/federation/schools",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "federation-scoped-not-school-resource",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "federation-service",
+      "method": "POST",
+      "route": "/api/v1/federation/schools/{schoolTenantId:guid}/admins",
+      "ids": [
+        "schoolTenantId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/federation-service/src/Api/FederationEndpoints.cs",
+      "probe": "federation-service:federation-school"
+    },
+    {
+      "service": "federation-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/federation-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
+      "route": "/api/v1/auth/admin",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "identity-self",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "identity-service",
+      "method": "POST",
+      "route": "/api/v1/auth/login",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "public-auth",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
+      "route": "/api/v1/auth/me",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "identity-self",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "intervention-service",
+      "method": "GET",
+      "route": "/api/v1/interventions",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:intervention-list"
+    },
+    {
+      "service": "intervention-service",
+      "method": "POST",
+      "route": "/api/v1/interventions",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:intervention-list"
+    },
+    {
+      "service": "intervention-service",
+      "method": "GET",
+      "route": "/api/v1/interventions/parent-summary",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:intervention-list"
+    },
+    {
+      "service": "intervention-service",
+      "method": "GET",
+      "route": "/api/v1/interventions/{interventionId:guid}",
+      "ids": [
+        "interventionId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:intervention-resource"
+    },
+    {
+      "service": "intervention-service",
+      "method": "PATCH",
+      "route": "/api/v1/interventions/{interventionId:guid}",
+      "ids": [
+        "interventionId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:intervention-resource"
+    },
+    {
+      "service": "intervention-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/interventions",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
+      "probe": "intervention-service:organisation-path"
+    },
+    {
+      "service": "intervention-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/intervention-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "learning-gap-service",
+      "method": "GET",
+      "route": "/api/v1/gaps/students/{studentUserId}",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/learning-gap-service/src/Api/GapEndpoints.cs",
+      "probe": "learning-gap-service:person-resource"
+    },
+    {
+      "service": "learning-gap-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/learning-gap-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "mastery-service",
+      "method": "GET",
+      "route": "/api/v1/mastery/students/{studentUserId}",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
+      "probe": "mastery-service:person-resource"
+    },
+    {
+      "service": "mastery-service",
+      "method": "GET",
+      "route": "/api/v1/mastery/students/{studentUserId}/parent-summary",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
+      "probe": "mastery-service:person-resource"
+    },
+    {
+      "service": "mastery-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/mastery-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/national/curriculum-coverage",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/NationalReportingEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/national/enrollment",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/NationalReportingEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/national/mastery-benchmarks",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/NationalReportingEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/policy-dashboards/curriculum-effectiveness",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/PolicyDashboardEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/policy-dashboards/equity",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/PolicyDashboardEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/policy-dashboards/intervention-impact",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/PolicyDashboardEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/policy-dashboards/trends",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "national-api-key-scope",
+      "file": "services/national-reporting-service/src/Api/PolicyDashboardEndpoints.cs",
+      "probe": null
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/national-reporting-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "notification-service",
+      "method": "GET",
+      "route": "/api/v1/notifications",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/notification-service/src/Api/NotificationEndpoints.cs",
+      "probe": "notification-service:notification-list"
+    },
+    {
+      "service": "notification-service",
+      "method": "PATCH",
+      "route": "/api/v1/notifications/{notificationId:guid}/read",
+      "ids": [
+        "notificationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/notification-service/src/Api/NotificationEndpoints.cs",
+      "probe": "notification-service:notification-resource"
+    },
+    {
+      "service": "notification-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/notification-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/access/parent/{parentUserId}/student/{studentUserId}",
+      "ids": [
+        "parentUserId",
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}",
+      "ids": [
+        "teacherUserId",
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-list"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-list"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "PUT",
+      "route": "/api/v1/organisations/{organisationId:guid}",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "PUT",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/dashboard",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/enrollments",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/enrollments",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/enrollments/{userId}",
+      "ids": [
+        "organisationId",
+        "classId",
+        "userId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/leadership/summary",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/teachers",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/teachers",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}/classes/{classId:guid}/teachers/{userId}",
+      "ids": [
+        "organisationId",
+        "classId",
+        "userId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations/{organisationId:guid}/leaders",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}/leaders/{userId}",
+      "ids": [
+        "organisationId",
+        "userId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/leadership/dashboard",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/leadership/interventions",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels/{yearLevelId:guid}",
+      "ids": [
+        "organisationId",
+        "yearLevelId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels/{yearLevelId:guid}",
+      "ids": [
+        "organisationId",
+        "yearLevelId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "PUT",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels/{yearLevelId:guid}",
+      "ids": [
+        "organisationId",
+        "yearLevelId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations/{organisationId:guid}/year-levels/{yearLevelId:guid}/leadership/dashboard",
+      "ids": [
+        "organisationId",
+        "yearLevelId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
+      "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/parents/me/children",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:organisation-list"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/parents/me/children/{studentUserId}/progress",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/parents/{parentUserId}/children",
+      "ids": [
+        "parentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "POST",
+      "route": "/api/v1/parents/{parentUserId}/children",
+      "ids": [
+        "parentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "DELETE",
+      "route": "/api/v1/parents/{parentUserId}/children/{studentUserId}",
+      "ids": [
+        "parentUserId",
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/students/{studentUserId}/workspace",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/StudentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/organisation-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/api/v1/analytics/organisations/{organisationId:guid}/effectiveness",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/EffectivenessAnalyticsEndpoints.cs",
+      "probe": "reporting-service:organisation-path"
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/api/v1/analytics/organisations/{organisationId:guid}/longitudinal",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/LongitudinalAnalyticsEndpoints.cs",
+      "probe": "reporting-service:organisation-path"
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/api/v1/analytics/organisations/{organisationId:guid}/students/{studentUserId}/longitudinal",
+      "ids": [
+        "organisationId",
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/LongitudinalAnalyticsEndpoints.cs",
+      "probe": "reporting-service:organisation-path"
+    },
+    {
+      "service": "reporting-service",
+      "method": "POST",
+      "route": "/api/v1/reports/organisations/{organisationId:guid}/classes/{classId:guid}/class-progress",
+      "ids": [
+        "organisationId",
+        "classId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "probe": "reporting-service:organisation-path"
+    },
+    {
+      "service": "reporting-service",
+      "method": "POST",
+      "route": "/api/v1/reports/organisations/{organisationId:guid}/school-summary",
+      "ids": [
+        "organisationId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "probe": "reporting-service:organisation-path"
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/api/v1/reports/{reportId:guid}",
+      "ids": [
+        "reportId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "probe": "reporting-service:report-resource"
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/api/v1/reports/{reportId:guid}/pdf",
+      "ids": [
+        "reportId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
+      "probe": "reporting-service:report-resource"
+    },
+    {
+      "service": "reporting-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/reporting-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "student-learning-service",
+      "method": "GET",
+      "route": "/api/v1/students/{studentUserId}/profile",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "probe": "student-learning-service:person-resource"
+    },
+    {
+      "service": "student-learning-service",
+      "method": "POST",
+      "route": "/api/v1/students/{studentUserId}/profile/enrollments",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "probe": "student-learning-service:person-resource"
+    },
+    {
+      "service": "student-learning-service",
+      "method": "POST",
+      "route": "/api/v1/students/{studentUserId}/profile/evidence",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "probe": "student-learning-service:person-resource"
+    },
+    {
+      "service": "student-learning-service",
+      "method": "GET",
+      "route": "/api/v1/students/{studentUserId}/profile/summary",
+      "ids": [
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "probe": "student-learning-service:person-resource"
+    },
+    {
+      "service": "student-learning-service",
+      "method": "GET",
+      "route": "/health",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "liveness",
+      "file": "services/student-learning-service/src/Api/Program.cs",
+      "probe": null
+    }
+  ]
+}

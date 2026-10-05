@@ -3,7 +3,7 @@
 Coverage map for delivery feature checks. Paths are relative to the repo root (`edu_app/`).  
 Status: `covered` | `partial` | `missing` | `linked`.
 
-Generated: 2026-10-05 (Step 1 — map only; no new tests yet).
+Updated: 2026-10-05 (batch 2 school isolation complete).
 
 ---
 
@@ -25,7 +25,7 @@ Generated: 2026-10-05 (Step 1 — map only; no new tests yet).
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| School isolation | School B user with School A org/class/student/resource IDs gets 403/404 and never data — **every** ID-bearing endpoint, table-driven per service or cross-service suite | backend | Sample-only `TenantIsolationEndpointTests.cs` in 17 services (typically 1–2 endpoints each); e2e spot-checks in `we-platform/testing/e2e/tests/g-access-control.spec.ts`. **Not** exhaustive / table-driven for all endpoints. Federation / national-reporting use separate auth models. | partial |
+| School isolation | School B user with School A org/class/student/resource IDs gets 403/404 and never data — **every** ID-bearing endpoint, table-driven per service or cross-service suite | backend | Source-scanned catalog + coverage guard: `we-platform/testing/SchoolIsolation.Tests/` (`EndpointCoverageGuardTests`, `isolation-catalog.json`). Table-driven both-direction probes in each service’s `TenantIsolationEndpointTests.cs` (incl. federation). Consumer isolation covered in diagnostic/gaps/mastery/learning/edw/notification suites. e2e spot-checks remain in `testing/e2e/tests/g-access-control.spec.ts`. | covered |
 
 Services with at least one isolation test today: ai-gateway, assessment, communication, configuration, curriculum, diagnostic, edw-ingest, ei, evidence, identity, intervention, learning-gap, mastery, notification, organisation, reporting, student-learning.
 
@@ -101,7 +101,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | Parent | Parent blocked from child not linked to them | backend | `organisation-service/tests/ParentWorkspaceEndpointTests.cs` (`Parent_CannotViewUnlinkedChildProgress`, `Parent_CannotViewOtherStudentsLinkedChildProgress`); intervention parent unlinked cases | covered |
 | Messages | Parent ↔ teacher messaging scoped to student / class | backend / e2e | `communication-service/tests/CommunicationEndpointTests.cs`; `testing/e2e/tests/c-messages.spec.ts` | covered |
 | Notifications | Mark as read | backend / e2e | `notification-service/tests/NotificationEndpointTests.cs` (`User_CanMarkNotificationAsRead`); e2e `c-messages.spec.ts` | covered |
-| Notifications | Unread count | backend / e2e | missing (`NotificationListResponse` has no unread-count field; e2e marks read but does not assert a count) | missing |
+| Notifications | Unread count | — | not required (absent from UX-001 / SP-001) | not required |
 
 ## 14. Leadership
 
@@ -133,7 +133,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | National API | Revoked / inactive API key → unauthorized | backend | `NationalReportingEndpointTests.InactiveApiKey_IsUnauthorized` | covered |
 | National API | Rate limit returns 429 | backend | `NationalReportingEndpointTests.NationalEndpoints_AreRateLimited` | covered |
 | National API | All seven aggregate endpoints | backend | 3 national (`enrollment`, `mastery-benchmarks`, `curriculum-coverage`) + 4 policy (`trends`, `equity`, `curriculum-effectiveness`, `intervention-impact`) in `NationalReportingEndpointTests` / `PolicyDashboardEndpointTests` | covered |
-| National API | Small counts suppressed (min group size per SP-001) | backend | missing — **SP-001 Ch.22 requires anonymised/aggregated reporting but does not define a numeric minimum group size**; treat as product gap unless EP/ADR elsewhere defines one | missing |
+| National API | Small counts suppressed (min group size &lt; 5) | backend | planned batch 17: `NationalReporting:MinimumGroupSize` (default 5); hidden cells `{ value: null, suppressed: true }`; totals must not allow subtraction recovery; add rule to SP-001 Ch.22 | missing |
 | National API | OpenAPI document matches the endpoints | backend | `NationalReportingEndpointTests.OpenApiDocumentation_IsPublishedAtApiV1Docs` (presence only; does not assert all seven paths) | partial |
 
 ## 18. Arabic

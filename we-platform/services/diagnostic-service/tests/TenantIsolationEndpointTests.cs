@@ -21,7 +21,8 @@ public class TenantIsolationEndpointTests : IClassFixture<DiagnosticWebApplicati
     [Fact]
     public async Task CrossSchool_Diagnostics_BothDirections_Denied_AndConsumerRowsStayIsolated()
     {
-        // Probe: diagnostic-service:person-resource (+ EvidenceCreated consumer isolation)
+        // Probe: diagnostic-service:person-resource
+        // Consumer: consumers:evidence-created-diagnostic
         var schoolA = Guid.CreateVersion7();
         var schoolB = Guid.CreateVersion7();
         var teacherA = Guid.NewGuid().ToString();
