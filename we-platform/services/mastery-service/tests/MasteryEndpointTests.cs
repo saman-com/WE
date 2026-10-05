@@ -195,6 +195,7 @@ public class EvidenceCreatedConsumerTests
         var consumerHarness = harness.Consumer(() =>
             new EvidenceCreatedConsumer(
                 processor,
+                new TenantContext(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<EvidenceCreatedConsumer>.Instance));
 
         await harness.Start();

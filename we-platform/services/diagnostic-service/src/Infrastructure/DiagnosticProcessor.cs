@@ -1,6 +1,7 @@
 using DiagnosticService.Application;
 using DiagnosticService.Domain;
 using DiagnosticService.Infrastructure.Data;
+using DiagnosticService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
 
@@ -43,6 +44,13 @@ public sealed class DiagnosticProcessor(
             });
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (UniqueConstraint.IsViolation(ex))
+        {
+            db.ChangeTracker.Clear();
+        }
     }
 }

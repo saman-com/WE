@@ -1,4 +1,5 @@
 using MasteryService.Domain;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Tenancy;
 
@@ -49,6 +50,10 @@ public sealed class MasteryDbContext(
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.StudentUserId, e.MicroSkillId }).IsUnique();
         });
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         base.OnModelCreating(modelBuilder);
     }

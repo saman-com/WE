@@ -61,8 +61,25 @@ A release is deployable only when both jobs are green.
 | Service unhealthy / 500 on start | Postgres not ready | Wait for `postgres` healthcheck; restart dependent service |
 | Auth 401/403 after deploy | JWT key mismatch | Align `Jwt__Key` / `JWT_KEY` across identity and APIs |
 | Events not flowing | RabbitMQ down | `docker compose restart rabbitmq` then restart publishers/consumers |
+| Evidence approved but profile/EI not updated on upgraded volume | Missing MassTransit outbox/inbox tables (`EnsureCreated` is a no-op on existing DBs) | Apply `databases/<service>/V00*__masstransit_outbox_inbox.sql` (or restart the service — startup runs the same SQL idempotently), then republish/retry |
 | National API unauthorized | Missing/invalid API key | Provision active ministry key with required scopes |
 | Portal blank after login | API URL env misconfigured | Verify `NEXT_PUBLIC_*` URLs in `.env.local` |
+
+## Schema upgrades (existing Postgres volumes)
+
+`EnsureCreated` does **not** add new tables to databases that already exist. For evidence, diagnostic, gaps, mastery, and student-learning services, MassTransit requires `InboxState`, `OutboxState`, and `OutboxMessage`.
+
+On startup those services run the idempotent SQL in `WePlatform.Messaging.MassTransitOutboxInboxSchema` (mirrors `databases/<service>/V00*__masstransit_outbox_inbox.sql`). Operators can also apply the scripts manually:
+
+```bash
+psql "$EVIDENCE_DB_URL" -f databases/evidence/V002__masstransit_outbox_inbox.sql
+psql "$DIAGNOSTIC_DB_URL" -f databases/diagnostic/V002__masstransit_outbox_inbox.sql
+psql "$GAPS_DB_URL" -f databases/gaps/V002__masstransit_outbox_inbox.sql
+psql "$MASTERY_DB_URL" -f databases/mastery/V002__masstransit_outbox_inbox.sql
+psql "$LEARNING_DB_URL" -f databases/learning/V003__masstransit_outbox_inbox.sql
+```
+
+RabbitMQ must include the `rabbitmq_delayed_message_exchange` plugin (compose uses `heidiks/rabbitmq-delayed-message-exchange:3.13.3-management`) so consumer delayed redelivery works.
 
 ## Escalation
 

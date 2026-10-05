@@ -1,6 +1,7 @@
 using MasteryService.Application;
 using MasteryService.Domain;
 using MasteryService.Infrastructure.Data;
+using MasteryService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
 using WePlatform.Tenancy;
@@ -16,8 +17,6 @@ public sealed class MasteryProcessor(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
-        var now = DateTimeOffset.UtcNow;
-
         foreach (var result in evidence.MicroSkillMarks)
         {
             var markExists = await db.EvidenceMarks.AnyAsync(
@@ -42,11 +41,18 @@ public sealed class MasteryProcessor(
                 AssessmentId = evidence.AssessmentId,
                 Mark = result.Mark,
                 Weight = thresholds.DefaultEvidenceWeight,
-                RecordedAt = now
+                RecordedAt = evidence.ApprovedAt
             });
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (UniqueConstraint.IsViolation(ex))
+        {
+            db.ChangeTracker.Clear();
+        }
 
         var microSkillIds = evidence.MicroSkillMarks
             .Select(mark => mark.MicroSkillId)
@@ -59,7 +65,7 @@ public sealed class MasteryProcessor(
                 evidence.StudentUserId,
                 evidence.OrganisationId,
                 microSkillId,
-                now,
+                evidence.ApprovedAt,
                 cancellationToken);
         }
     }
@@ -115,6 +121,13 @@ public sealed class MasteryProcessor(
             existing.CalculatedAt = calculatedAt;
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (UniqueConstraint.IsViolation(ex))
+        {
+            db.ChangeTracker.Clear();
+        }
     }
 }

@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\EvidenceService.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\EvidenceService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\messaging\WePlatform.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

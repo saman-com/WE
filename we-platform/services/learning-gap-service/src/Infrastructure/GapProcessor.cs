@@ -1,6 +1,7 @@
 using LearningGapService.Application;
 using LearningGapService.Domain;
 using LearningGapService.Infrastructure.Data;
+using LearningGapService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
 using WePlatform.Tenancy;
@@ -54,6 +55,13 @@ public sealed class GapProcessor(
             });
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (UniqueConstraint.IsViolation(ex))
+        {
+            db.ChangeTracker.Clear();
+        }
     }
 }

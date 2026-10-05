@@ -32,6 +32,7 @@
     "classId": { "type": "string", "format": "uuid" },
     "approvedByTeacherUserId": { "type": "string" },
     "approvedAt": { "type": "string", "format": "date-time" },
+    "title": { "type": ["string", "null"] },
     "microSkillMarks": {
       "type": "array",
       "minItems": 1,

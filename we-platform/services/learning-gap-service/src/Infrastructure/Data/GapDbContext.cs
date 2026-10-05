@@ -1,4 +1,5 @@
 using LearningGapService.Domain;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Tenancy;
 
@@ -34,6 +35,10 @@ public sealed class GapDbContext(
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.EvidenceId, e.MicroSkillId }).IsUnique();
         });
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         base.OnModelCreating(modelBuilder);
     }

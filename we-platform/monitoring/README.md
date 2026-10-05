@@ -26,8 +26,18 @@ Compose healthchecks already cover PostgreSQL (`pg_isready`), Redis (`PING`), an
 | Portal page load | Browser / RUM or synthetic check | &gt; 2s for primary dashboards |
 | Auth failures | Identity + API 401/403 rates | Sudden spike vs baseline |
 | Queue depth | RabbitMQ management (15672) | Growing without consumers |
+| `*_error` queue depth | RabbitMQ queues ending in `_error` (e.g. `student-learning-service-evidence-created_error`, `diagnostic-service-evidence-created_error`, `learning-gap-service-evidence-created_error`, `mastery-service-evidence-created_error`) | Depth &gt; 0 for &gt; 5 minutes (messages exhausted immediate retry + delayed redelivery of 1/5/15 minutes) |
 | DB connectivity | Postgres healthcheck / service errors | Unhealthy or connection storms |
 | National API rate limits | HTTP 429 on `/api/v1/national/*` | Sustained 429 for valid clients |
+
+## Evidence consumer retries
+
+Diagnostic, learning-gap, mastery, and student-learning `EvidenceCreated` endpoints use:
+
+1. Immediate `UseMessageRetry` intervals (200ms–5s)
+2. `UseDelayedRedelivery` at 1, 5, and 15 minutes (requires delayed-message exchange plugin)
+
+After those attempts fail, MassTransit moves the message to the matching `*_error` queue. Alert on those queues and investigate (missing profile, poison payload, downstream outage) before replaying.
 
 ## Synthetic checks (minimum)
 

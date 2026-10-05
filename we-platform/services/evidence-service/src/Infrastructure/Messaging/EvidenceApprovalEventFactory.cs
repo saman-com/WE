@@ -1,4 +1,3 @@
-using EvidenceService.Application;
 using EvidenceService.Domain;
 using WePlatform.Events;
 
@@ -24,7 +23,8 @@ public static class EvidenceApprovalEventFactory
             evidence.ApprovedAt,
             evidence.MicroSkillMarks
                 .Select(mark => new MicroSkillResult(mark.MicroSkillId, mark.Mark, mark.Feedback))
-                .ToList());
+                .ToList(),
+            evidence.Title);
     }
 
     public static AssessmentApproved CreateAssessmentApproved(EducationalEvidence evidence)

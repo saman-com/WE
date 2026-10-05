@@ -16,7 +16,8 @@ public sealed record EvidenceCreated(
     Guid ClassId,
     string ApprovedByTeacherUserId,
     DateTimeOffset ApprovedAt,
-    IReadOnlyList<MicroSkillResult> MicroSkillMarks)
+    IReadOnlyList<MicroSkillResult> MicroSkillMarks,
+    string? Title = null)
 {
     public const int CurrentVersion = 1;
     public const string EventType = nameof(EvidenceCreated);

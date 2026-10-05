@@ -49,6 +49,7 @@ public class DomainEventPublishingTests : IClassFixture<EvidenceWebApplicationFa
         Assert.Equal(organisationId, published.OrganisationId);
         Assert.Equal(teacherId, published.ApprovedByTeacherUserId);
         Assert.Equal(EvidenceCreated.CurrentVersion, published.Version);
+        Assert.Equal("Event evidence", published.Title);
         Assert.NotEqual(Guid.Empty, published.EventId);
         Assert.NotEqual(Guid.Empty, published.CorrelationId);
         Assert.Single(published.MicroSkillMarks);

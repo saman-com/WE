@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using StudentLearningService.Domain;
 using WePlatform.Tenancy;
@@ -67,6 +68,10 @@ public sealed class StudentLearningDbContext(
             entity.Property(e => e.EvidenceEntryId).HasColumnName("evidence_entry_id");
             entity.Property(e => e.MicroSkillId).HasColumnName("micro_skill_id");
         });
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         base.OnModelCreating(modelBuilder);
     }

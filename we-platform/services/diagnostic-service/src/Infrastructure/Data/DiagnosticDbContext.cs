@@ -1,4 +1,5 @@
 using DiagnosticService.Domain;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Tenancy;
 
@@ -30,6 +31,10 @@ public sealed class DiagnosticDbContext(
             entity.HasIndex(e => e.StudentUserId);
             entity.HasIndex(e => new { e.EvidenceId, e.MicroSkillId }).IsUnique();
         });
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         base.OnModelCreating(modelBuilder);
     }

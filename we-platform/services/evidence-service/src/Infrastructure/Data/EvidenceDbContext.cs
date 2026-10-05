@@ -1,4 +1,5 @@
 using EvidenceService.Domain;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Tenancy;
 
@@ -58,6 +59,10 @@ public sealed class EvidenceDbContext(
             entity.Property(e => e.Mark).HasColumnName("mark");
             entity.Property(e => e.Feedback).HasColumnName("feedback").IsRequired();
         });
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         base.OnModelCreating(modelBuilder);
     }

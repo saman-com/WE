@@ -1,3 +1,4 @@
+using EvidenceService.Infrastructure.Data;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,13 +22,23 @@ public static class MessagingDependencyInjection
 
         services.AddMassTransit(bus =>
         {
+            bus.AddEntityFrameworkOutbox<EvidenceDbContext>(outbox =>
+            {
+                outbox.QueryDelay = TimeSpan.FromSeconds(1);
+                outbox.UsePostgres();
+                outbox.UseBusOutbox();
+            });
+
             bus.UsingRabbitMq((context, cfg) =>
             {
                 var host = configuration["RabbitMQ:Host"] ?? "localhost";
                 var username = configuration["RabbitMQ:Username"] ?? "we";
                 var password = configuration["RabbitMQ:Password"] ?? "we_dev";
+                var port = ushort.TryParse(configuration["RabbitMQ:Port"], out var parsedPort)
+                    ? parsedPort
+                    : (ushort)5672;
 
-                cfg.Host(host, "/", h =>
+                cfg.Host(host, port, "/", h =>
                 {
                     h.Username(username);
                     h.Password(password);
@@ -35,8 +46,10 @@ public static class MessagingDependencyInjection
 
                 cfg.MessageTopology.SetEntityNameFormatter(new PlatformEventEntityNameFormatter());
 
-                cfg.Publish<WePlatform.Events.EvidenceCreated>(publish => publish.ExchangeType = RabbitMQ.Client.ExchangeType.Topic);
-                cfg.Publish<WePlatform.Events.AssessmentApproved>(publish => publish.ExchangeType = RabbitMQ.Client.ExchangeType.Topic);
+                cfg.Publish<WePlatform.Events.EvidenceCreated>(publish =>
+                    publish.ExchangeType = RabbitMQ.Client.ExchangeType.Topic);
+                cfg.Publish<WePlatform.Events.AssessmentApproved>(publish =>
+                    publish.ExchangeType = RabbitMQ.Client.ExchangeType.Topic);
 
                 cfg.ConfigureEndpoints(context);
             });

@@ -5,11 +5,12 @@ using StudentLearningService.Api;
 using StudentLearningService.Domain;
 using StudentLearningService.Infrastructure;
 using StudentLearningService.Infrastructure.Data;
+using WePlatform.Messaging;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddStudentLearningInfrastructure(builder.Configuration);
+builder.Services.AddStudentLearningInfrastructure(builder.Configuration, builder.Environment);
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["Key"]
@@ -52,6 +53,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<StudentLearningDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await MassTransitOutboxInboxSchema.EnsureTablesAsync(db);
     await db.BackfillTenantIdsAsync<StudentLearningProfile>(_ => DefaultTenant.Id);
     await db.BackfillTenantIdsAsync<ProfileClassEnrollment>(TenantBackfill.ResolveOrganisationTenant);
 }

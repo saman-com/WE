@@ -29,7 +29,6 @@ public static class EvidenceEndpoints
         ClaimsPrincipal principal,
         EvidenceDbContext db,
         IClassAccessChecker accessChecker,
-        IStudentLearningProfileClient profileClient,
         IDomainEventPublisher eventPublisher,
         ITenantContext tenantContext,
         HttpContext httpContext)
@@ -102,20 +101,12 @@ public static class EvidenceEndpoints
             });
         }
 
+        // Bus outbox: publish into the same DbContext, then commit once so broker delivery
+        // happens after the evidence row is durable (even if RabbitMQ is down at approve time).
         db.Evidence.Add(evidence);
-        await db.SaveChangesAsync();
-
         await eventPublisher.PublishEvidenceCreatedAsync(EvidenceApprovalEventFactory.CreateEvidenceCreated(evidence));
         await eventPublisher.PublishAssessmentApprovedAsync(EvidenceApprovalEventFactory.CreateAssessmentApproved(evidence));
-
-        await profileClient.RecordEvidenceAsync(
-            evidence.StudentUserId,
-            evidence.Id,
-            evidence.AssessmentId,
-            evidence.MicroSkillMarks.Select(m => m.MicroSkillId).ToList(),
-            evidence.Title,
-            evidence.ApprovedAt,
-            token);
+        await db.SaveChangesAsync();
 
         var saved = await LoadEvidenceAsync(db, evidence.Id);
         return Results.Created($"/api/v1/evidence/{evidence.Id}", ToResponse(saved!));

@@ -44,7 +44,8 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    # Includes rabbitmq_delayed_message_exchange (required for MassTransit UseDelayedRedelivery).
+    image: heidiks/rabbitmq-delayed-message-exchange:3.13.3-management
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -132,6 +133,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__StudentLearningDb: Host=postgres;Port=5432;Database=we_learning;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -140,6 +144,8 @@ services:
         condition: service_healthy
       organisation-service:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   assessment-service:
     build:
@@ -178,7 +184,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__EvidenceDb: Host=postgres;Port=5432;Database=we_evidence;Username=we;Password=we_dev
       Organisation__BaseUrl: http://organisation-service:8080
-      StudentLearning__BaseUrl: http://student-learning-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
       RabbitMQ__Password: we_dev
@@ -189,8 +194,6 @@ services:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
-      student-learning-service:
         condition: service_started
       rabbitmq:
         condition: service_healthy

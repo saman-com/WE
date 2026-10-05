@@ -15,6 +15,7 @@ All product, architecture, and engineering documentation for the WE Platform.
 | Code | Document | Description |
 |------|----------|-------------|
 | TD-001 | [`architecture/TD-001-technical-architecture.md`](architecture/TD-001-technical-architecture.md) | Technical architecture and system design |
+| — | [`architecture/evidence-approval-flow.md`](architecture/evidence-approval-flow.md) | Evidence approval → SLP / EI / EDW event flow |
 | EP-001 | [`engineering/EP-001-engineering-package.md`](engineering/EP-001-engineering-package.md) | Engineering implementation package |
 
 ## Architecture Decision Records

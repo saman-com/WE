@@ -10,13 +10,13 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
 {
     private readonly HttpClient _client;
     private readonly FakeClassAccessChecker _accessChecker;
-    private readonly FakeStudentLearningProfileClient _profileClient;
+    private readonly FakeDomainEventPublisher _eventPublisher;
 
     public EvidenceEndpointTests(EvidenceWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         _accessChecker = factory.AccessChecker;
-        _profileClient = factory.ProfileClient;
+        _eventPublisher = factory.EventPublisher;
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
     }
 
     [Fact]
-    public async Task Approval_CreatesEvidenceLinkedToSlpAssessmentAndMicroSkills()
+    public async Task Approval_CreatesEvidenceLinkedToAssessmentAndMicroSkills()
     {
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
@@ -79,11 +79,15 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             3,
             "Developing.");
 
-        var recorded = Assert.Single(_profileClient.Recorded, item => item.EvidenceId == evidence.Id);
-        Assert.Equal(studentId, recorded.StudentUserId);
-        Assert.Equal(assessmentId, recorded.AssessmentId);
-        Assert.Equal(microSkillId, recorded.MicroSkillIds[0]);
-        Assert.Equal("Linked evidence", recorded.Title);
+        Assert.Equal(assessmentId, evidence.AssessmentId);
+        Assert.Equal(submissionId, evidence.SubmissionId);
+        Assert.Equal(studentId, evidence.StudentUserId);
+        Assert.Equal(microSkillId, evidence.MicroSkillMarks[0].MicroSkillId);
+
+        var published = Assert.Single(_eventPublisher.EvidenceCreatedEvents, e => e.EvidenceId == evidence.Id);
+        Assert.Equal("Linked evidence", published.Title);
+        Assert.Equal(assessmentId, published.AssessmentId);
+        Assert.Equal(microSkillId, published.MicroSkillMarks[0].MicroSkillId);
     }
 
     [Fact]
@@ -184,11 +188,11 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             "Student self-approval",
             [new MicroSkillMarkRequest(Guid.CreateVersion7(), 5, "I did well.")]));
 
-        var recordedBefore = _profileClient.Recorded.Count;
+        var eventsBefore = _eventPublisher.EvidenceCreatedEvents.Count;
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        Assert.Equal(recordedBefore, _profileClient.Recorded.Count);
+        Assert.Equal(eventsBefore, _eventPublisher.EvidenceCreatedEvents.Count);
     }
 
     [Fact]
@@ -215,11 +219,11 @@ public class EvidenceEndpointTests : IClassFixture<EvidenceWebApplicationFactory
             "AI approval",
             [new MicroSkillMarkRequest(Guid.CreateVersion7(), 5, "Generated mark.")]));
 
-        var recordedBefore = _profileClient.Recorded.Count;
+        var eventsBefore = _eventPublisher.EvidenceCreatedEvents.Count;
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        Assert.Equal(recordedBefore, _profileClient.Recorded.Count);
+        Assert.Equal(eventsBefore, _eventPublisher.EvidenceCreatedEvents.Count);
     }
 
     [Fact]

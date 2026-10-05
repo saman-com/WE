@@ -6,6 +6,7 @@ using EvidenceService.Api;
 using EvidenceService.Domain;
 using EvidenceService.Infrastructure;
 using EvidenceService.Infrastructure.Data;
+using WePlatform.Messaging;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +54,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EvidenceDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await MassTransitOutboxInboxSchema.EnsureTablesAsync(db);
     await db.BackfillTenantIdsAsync<EducationalEvidence>(TenantBackfill.ResolveOrganisationTenant);
     await db.BackfillTenantIdsAsync<EvidenceMicroSkillMark>(m =>
     {

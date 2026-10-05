@@ -6,7 +6,6 @@ using EvidenceService.Application;
 using EvidenceService.Infrastructure.Data;
 using EvidenceService.Infrastructure.Messaging;
 using EvidenceService.Infrastructure.Organisation;
-using EvidenceService.Infrastructure.StudentLearning;
 using WePlatform.Tenancy;
 
 namespace EvidenceService.Infrastructure;
@@ -34,7 +33,6 @@ public static class DependencyInjection
 
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
         services.AddHttpClient<IParentAccessChecker, HttpParentAccessChecker>();
-        services.AddHttpClient<IStudentLearningProfileClient, HttpStudentLearningProfileClient>();
         services.AddEvidenceMessaging(configuration, environment);
         return services;
     }

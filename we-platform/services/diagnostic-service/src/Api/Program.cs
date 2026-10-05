@@ -5,6 +5,7 @@ using DiagnosticService.Infrastructure;
 using DiagnosticService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Messaging;
 using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +53,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DiagnosticDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await MassTransitOutboxInboxSchema.EnsureTablesAsync(db);
     await db.BackfillTenantIdsAsync<MicroSkillDiagnostic>(TenantBackfill.ResolveOrganisationTenant);
 }
 
