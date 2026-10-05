@@ -244,6 +244,53 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Parent_CanConfirmTeacherAccessForLinkedChild()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var parentId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Message School", UniqueCode("MSG"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 11", 11);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "11A", UniqueCode("11A"));
+        await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await LinkParentToStudentAsync(adminId, parentId, studentId);
+
+        using var allowed = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/access/teacher/{teacherId}/student/{studentId}",
+            parentId,
+            org.Id,
+            TestJwt.ParentRole);
+        var allowedResponse = await _client.SendAsync(allowed);
+        Assert.Equal(HttpStatusCode.OK, allowedResponse.StatusCode);
+
+        using var denied = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/access/teacher/{Guid.NewGuid()}/student/{studentId}",
+            parentId,
+            org.Id,
+            TestJwt.ParentRole);
+        var deniedResponse = await _client.SendAsync(denied);
+        Assert.Equal(HttpStatusCode.Forbidden, deniedResponse.StatusCode);
+    }
+
+    private async Task AssignTeacherAsync(string adminId, Guid organisationId, Guid classId, string teacherId)
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{organisationId}/classes/{classId}/teachers",
+            adminId,
+            organisationId,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new AssignTeacherRequest(teacherId));
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
     private async Task LinkParentToStudentAsync(string adminId, string parentId, string studentId)
     {
         using var request = TestJwt.Authorized(

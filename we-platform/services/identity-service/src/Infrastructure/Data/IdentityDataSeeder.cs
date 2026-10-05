@@ -10,6 +10,7 @@ public static class IdentityDataSeeder
 {
     public const string TeacherEmail = "teacher@school.local";
     public const string TeacherPassword = "Password123!";
+    public const string TeacherUserId = "11111111-1111-1111-1111-111111111111";
     public const string AdminEmail = "admin@school.local";
     public const string AdminPassword = "Password123!";
     public const string StudentEmail = "student@school.local";
@@ -50,7 +51,13 @@ public static class IdentityDataSeeder
             }
         }
 
-        await EnsureUserAsync(userManager, TeacherEmail, TeacherPassword, "Demo Teacher", PlatformRoles.Teacher);
+        await EnsureUserAsync(
+            userManager,
+            TeacherEmail,
+            TeacherPassword,
+            "Demo Teacher",
+            PlatformRoles.Teacher,
+            TeacherUserId);
         await EnsureUserAsync(userManager, AdminEmail, AdminPassword, "Demo Admin", PlatformRoles.SystemAdministrator);
         await EnsureUserAsync(
             userManager,

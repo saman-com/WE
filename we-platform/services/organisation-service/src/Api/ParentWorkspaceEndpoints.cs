@@ -21,6 +21,8 @@ public static class ParentWorkspaceEndpoints
 
         app.MapGet("/api/v1/access/parent/{parentUserId}/student/{studentUserId}", CheckParentAccess)
             .RequireAuthorization();
+        app.MapGet("/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}", CheckTeacherAccess)
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> LinkParentToStudent(
@@ -239,8 +241,69 @@ public static class ParentWorkspaceEndpoints
             return linked ? Results.Ok() : Results.Forbid();
         }
 
+        // Teachers of the student may verify a parent link when messaging.
+        if (principal.IsTeacher())
+        {
+            var teachesStudent = await TeacherIsAssignedToStudentAsync(db, principal.UserId(), studentUserId);
+            if (!teachesStudent)
+            {
+                return Results.Forbid();
+            }
+
+            var linked = await db.ParentStudentLinks.AnyAsync(link =>
+                link.ParentUserId == parentUserId && link.StudentUserId == studentUserId);
+            return linked ? Results.Ok() : Results.Forbid();
+        }
+
         return Results.Forbid();
     }
+
+    private static async Task<IResult> CheckTeacherAccess(
+        string teacherUserId,
+        string studentUserId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db)
+    {
+        if (string.IsNullOrWhiteSpace(teacherUserId) || string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        var assigned = await TeacherIsAssignedToStudentAsync(db, teacherUserId, studentUserId);
+        if (!assigned)
+        {
+            return Results.Forbid();
+        }
+
+        if (principal.IsAdmin())
+        {
+            return Results.Ok();
+        }
+
+        if (principal.IsTeacher() && principal.UserId() == teacherUserId)
+        {
+            return Results.Ok();
+        }
+
+        // Linked parents may confirm a recipient is a teacher of their child.
+        if (principal.IsParent())
+        {
+            var linked = await db.ParentStudentLinks.AnyAsync(link =>
+                link.ParentUserId == principal.UserId() && link.StudentUserId == studentUserId);
+            return linked ? Results.Ok() : Results.Forbid();
+        }
+
+        return Results.Forbid();
+    }
+
+    private static Task<bool> TeacherIsAssignedToStudentAsync(
+        OrganisationDbContext db,
+        string teacherUserId,
+        string studentUserId) =>
+        db.ClassTeachers.AnyAsync(teacher =>
+            teacher.TeacherUserId == teacherUserId
+            && db.ClassEnrollments.Any(enrollment =>
+                enrollment.ClassId == teacher.ClassId && enrollment.StudentUserId == studentUserId));
 
     private static bool CanViewParentLinks(ClaimsPrincipal principal, string parentUserId) =>
         principal.IsAdmin() || (principal.IsParent() && principal.UserId() == parentUserId);
@@ -258,6 +321,9 @@ public static class ParentWorkspaceEndpoints
 
     private static bool IsParent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Parent);
+
+    private static bool IsTeacher(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Teacher);
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

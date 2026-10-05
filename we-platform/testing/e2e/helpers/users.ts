@@ -6,6 +6,7 @@ export const users = {
     role: "Teacher",
     home: "/teacher",
     storageFile: "teacher.json",
+    userId: "11111111-1111-1111-1111-111111111111",
   },
   student: {
     email: "student@school.local",
