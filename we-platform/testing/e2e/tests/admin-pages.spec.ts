@@ -34,7 +34,7 @@ test("AI audit lists a real gateway entry", async ({ browser }) => {
     await page.goto("/admin/ai-audit");
     await expect(page.getByRole("heading", { name: /AI audit/i })).toBeVisible();
     await expect(page.getByLabel("Prompt id")).toHaveValue("");
-    await expect(page.getByRole("status")).toHaveText(/Showing \d+ entries\./, { timeout: 30_000 });
+    await expect(page.getByRole("status")).toHaveText(/Showing \d+ entr(y|ies)\./, { timeout: 30_000 });
     await expect(page.getByRole("button", { name: "Apply filters" })).toBeVisible();
   });
 });

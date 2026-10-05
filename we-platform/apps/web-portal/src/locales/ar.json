@@ -384,7 +384,11 @@
   "admin.aiAudit.col.provider": "المزوّد",
   "admin.aiAudit.col.blockReason": "سبب الحظر",
   "admin.aiAudit.noEntries": "لم يتم العثور على إدخالات في السجل.",
-  "admin.aiAudit.shown": "يُعرض {count} من السجلات.",
+  "admin.aiAudit.shown": "{count, plural, zero {لا تُعرض سجلات.} one {يُعرض سجل واحد.} two {يُعرض سجلان.} few {تُعرض # سجلات.} many {يُعرض # سجلاً.} other {يُعرض # سجل.}}",
+  "admin.aiAudit.outcome.success": "نجاح",
+  "admin.aiAudit.outcome.blocked": "محظور",
+  "admin.aiAudit.outcome.failed": "فشل",
+  "admin.aiAudit.outcome.validation_failed": "فشل التحقق",
   "admin.aiAudit.unknownCaller": "شخص غير معروف",
 
   "admin.regional.saved": "تم حفظ الإعدادات الإقليمية لمدرستك.",

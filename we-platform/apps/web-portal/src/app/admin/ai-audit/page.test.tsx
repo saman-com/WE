@@ -72,5 +72,8 @@ describe("AI audit callers", () => {
 
     expect((await screen.findAllByText("Demo Teacher")).length).toBeGreaterThan(0);
     expect(screen.queryByText(callerId)).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 1 entry.");
+    expect(screen.getAllByText("Succeeded").length).toBeGreaterThan(0);
+    expect(screen.queryByText("success")).not.toBeInTheDocument();
   });
 });

@@ -62,7 +62,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       locale,
       setLocale,
       messages,
-      t: (key, params) => translate(messages, key, params, fallback),
+      t: (key, params) => translate(messages, key, params, fallback, locale),
       translateError: (code, fallbackKey = "errors.unknown") => {
         if (!code) {
           return translate(messages, fallbackKey, undefined, fallback);

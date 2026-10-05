@@ -384,7 +384,11 @@
   "admin.aiAudit.col.provider": "Provider",
   "admin.aiAudit.col.blockReason": "Block reason",
   "admin.aiAudit.noEntries": "No audit log entries found.",
-  "admin.aiAudit.shown": "Showing {count} entries.",
+  "admin.aiAudit.shown": "{count, plural, one {Showing # entry.} other {Showing # entries.}}",
+  "admin.aiAudit.outcome.success": "Succeeded",
+  "admin.aiAudit.outcome.blocked": "Blocked",
+  "admin.aiAudit.outcome.failed": "Failed",
+  "admin.aiAudit.outcome.validation_failed": "Validation failed",
   "admin.aiAudit.unknownCaller": "Unknown person",
 
   "admin.regional.saved": "Regional configuration saved for your school.",

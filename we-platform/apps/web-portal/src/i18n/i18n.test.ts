@@ -72,6 +72,19 @@ describe("i18n translate", () => {
       "Hello, Ava"
     );
   });
+
+  it("uses English and Arabic plural categories for counts", () => {
+    const key = "admin.aiAudit.shown";
+    expect(translate(enMessages, key, { count: 1 }, undefined, "en")).toBe("Showing 1 entry.");
+    expect(translate(enMessages, key, { count: 0 }, undefined, "en")).toBe("Showing 0 entries.");
+    expect(translate(enMessages, key, { count: 4 }, undefined, "en")).toBe("Showing 4 entries.");
+    expect(translate(arMessages, key, { count: 0 }, undefined, "ar")).toBe("لا تُعرض سجلات.");
+    expect(translate(arMessages, key, { count: 1 }, undefined, "ar")).toBe("يُعرض سجل واحد.");
+    expect(translate(arMessages, key, { count: 2 }, undefined, "ar")).toBe("يُعرض سجلان.");
+    expect(translate(arMessages, key, { count: 5 }, undefined, "ar")).toBe("تُعرض 5 سجلات.");
+    expect(translate(arMessages, key, { count: 15 }, undefined, "ar")).toBe("يُعرض 15 سجلاً.");
+    expect(translate(arMessages, key, { count: 100 }, undefined, "ar")).toBe("يُعرض 100 سجل.");
+  });
 });
 
 describe("i18n locale preference and RTL", () => {

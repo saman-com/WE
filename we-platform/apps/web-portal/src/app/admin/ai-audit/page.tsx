@@ -22,6 +22,12 @@ export default function AiAuditAdminPage() {
   const [outcome, setOutcome] = useState("");
   const [search, setSearch] = useState("");
 
+  function outcomeLabel(value: string) {
+    const key = `admin.aiAudit.outcome.${value}`;
+    const label = t(key);
+    return label === key ? value : label;
+  }
+
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
     if (!token) {
@@ -41,7 +47,7 @@ export default function AiAuditAdminPage() {
         try {
           const entries = await searchAiAuditLogs(token);
           setLogs(entries);
-          setNotice(t("admin.aiAudit.shown", { count: String(entries.length) }));
+          setNotice(t("admin.aiAudit.shown", { count: entries.length }));
         } catch {
           setNoticeError(true);
           setNotice(t("admin.aiAudit.loadError"));
@@ -73,7 +79,7 @@ export default function AiAuditAdminPage() {
         search: search.trim() || undefined,
       });
       setLogs(entries);
-      setNotice(t("admin.aiAudit.shown", { count: String(entries.length) }));
+      setNotice(t("admin.aiAudit.shown", { count: entries.length }));
     } catch {
       setNoticeError(true);
       setNotice(t("admin.aiAudit.loadError"));
@@ -143,9 +149,10 @@ export default function AiAuditAdminPage() {
                 onChange={(event) => setOutcome(event.target.value)}
               >
                 <option value="">{t("admin.aiAudit.all")}</option>
-                <option value="success">success</option>
-                <option value="blocked">blocked</option>
-                <option value="validation_failed">validation_failed</option>
+                <option value="success">{outcomeLabel("success")}</option>
+                <option value="blocked">{outcomeLabel("blocked")}</option>
+                <option value="failed">{outcomeLabel("failed")}</option>
+                <option value="validation_failed">{outcomeLabel("validation_failed")}</option>
               </select>
             </label>
             <label className="block space-y-1 text-sm">
@@ -172,7 +179,7 @@ export default function AiAuditAdminPage() {
                   <FocusCard>
                     <p className="font-medium">{entry.promptId}</p>
                     <p className="text-sm">{personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}</p>
-                    <p className="text-sm">{entry.outcome}</p>
+                    <p className="text-sm">{outcomeLabel(entry.outcome)}</p>
                     <p className="text-sm text-black/60">{entry.providerName}</p>
                     <p className="text-sm text-black/60">
                       {new Date(entry.createdAt).toLocaleString()}
@@ -203,7 +210,7 @@ export default function AiAuditAdminPage() {
                         {personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}
                       </td>
                       <td className="p-3">{entry.promptId}</td>
-                      <td className="p-3">{entry.outcome}</td>
+                      <td className="p-3">{outcomeLabel(entry.outcome)}</td>
                       <td className="p-3">{entry.providerName}</td>
                       <td className="p-3 text-black/70">{entry.blockReason ?? "—"}</td>
                     </tr>
