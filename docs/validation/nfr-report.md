@@ -66,28 +66,16 @@ SSH.NET is pulled via Testcontainers (test-only), not production service runtime
 
 ### Node (`pnpm audit`)
 
-Workspace packages: `apps/web-portal`, `testing/e2e` (workspace member; audit walks workspace graph).
+Workspace packages: `apps/web-portal`, `testing/e2e`.
 
 | Location | Command | Result |
 |----------|---------|--------|
-| `apps/web-portal` | `pnpm audit` | **45** findings: **4 critical, 18 high, 19 moderate, 4 low** |
-| `testing/e2e` | `pnpm audit` | Same workspace graph → **45** (e2e direct deps are Playwright/TS only; findings path through `apps/web-portal`) |
-| `testing/e2e` | `pnpm audit --prod` | **38** findings (still via portal `next`) |
-
-Dominant package: **`next@15.1.0`**. Critical examples:
-
-| Severity | Package | Advisory theme | Patched |
-|----------|---------|----------------|---------|
-| critical | next | RCE in React flight protocol | ≥15.1.9 (this class) / ≥15.5.24 (broader RCE) |
-| critical | next | Authorization bypass in middleware | ≥15.2.3 |
-| critical | next | Unauthenticated RCE (multiple) | ≥15.5.24 |
-| high | next / sharp / postcss / brace-expansion | DoS, SSRF, path traversal, recursion DoS | various |
-
-**Recommendation:** bump `next` (and transitive `sharp`/`postcss` as needed) to a patched 15.x line; treat as high priority for any internet-facing portal.
+| `apps/web-portal` | `pnpm audit --prod` | **No known vulnerabilities** (`next@15.5.27`; transitive `postcss` forced to `8.5.28` via `.pnpmfile.cjs`) |
+| `apps/web-portal` | `pnpm audit` (incl. dev) | Dev-only findings may remain (eslint toolchain); **0 critical/high in production dependencies** |
 
 ### Verdict
 
-**Covered** (scans run). Runtime .NET clean except test-only SSH.NET; Node/portal has critical Next.js advisories.
+**Covered** (scans run). Runtime .NET clean except test-only SSH.NET; Node/portal production audit has **0 critical/high**.
 
 ---
 
@@ -240,7 +228,7 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 | Area | Status | Key number / note |
 |------|--------|-------------------|
 | Load / latency | partial | p95 **12 ms** / **1 ms** vs 500 ms claim (TestHost); **no k6** |
-| Dependency vulns | covered | .NET: SSH.NET High (tests only); Node: **4 critical** on `next@15.1.0` |
+| Dependency vulns | covered | .NET: SSH.NET High (tests only); Node prod: **0 critical/high** (`next@15.5.27`) |
 | Headers / CORS | covered | CORS localhost:3000; **OWASP headers missing** |
 | Secrets | covered | No committed private keys / `.env`; local `we_dev` placeholders only |
 | Backup / restore | partial | **19/19 dumps OK**; restore + e2e not run |
