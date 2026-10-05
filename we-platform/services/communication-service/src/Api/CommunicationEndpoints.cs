@@ -245,13 +245,17 @@ public static class CommunicationEndpoints
         }
 
         var userId = principal.UserId();
+        var tenantId = tenantContext.TenantId!.Value;
+        // Explicit tenant predicate: do not rely on EF global filters alone.
         var messages = principal.IsTeacher()
             ? await db.Messages
-                .Where(m => m.TeacherUserId == userId)
+                .IgnoreQueryFilters()
+                .Where(m => m.TenantId == tenantId && m.TeacherUserId == userId)
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync()
             : await db.Messages
-                .Where(m => m.ParentUserId == userId)
+                .IgnoreQueryFilters()
+                .Where(m => m.TenantId == tenantId && m.ParentUserId == userId)
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
 
