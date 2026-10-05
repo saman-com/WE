@@ -4,17 +4,21 @@ using DiagnosticService.Infrastructure.Data;
 using DiagnosticService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace DiagnosticService.Infrastructure;
 
 public sealed class DiagnosticProcessor(
     DiagnosticDbContext db,
-    IDiagnosticAnalysisEngine analysisEngine) : IDiagnosticProcessor
+    IDiagnosticAnalysisEngine analysisEngine,
+    ITenantContext tenantContext) : IDiagnosticProcessor
 {
     public async Task ProcessEvidenceCreatedAsync(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(evidence.OrganisationId);
+
         var analyzed = analysisEngine.Analyze(evidence);
         var now = DateTimeOffset.UtcNow;
 

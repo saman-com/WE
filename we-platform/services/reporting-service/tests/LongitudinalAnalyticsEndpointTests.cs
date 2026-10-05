@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ReportingService.Application;
 using ReportingService.Infrastructure.Data.Edw;
@@ -199,7 +200,7 @@ public class LongitudinalAnalyticsEndpointTests : IClassFixture<ReportingWebAppl
     {
         foreach (var dateKey in dateKeys)
         {
-            if (db.DimTimes.Any(d => d.DateKey == dateKey))
+            if (db.DimTimes.IgnoreQueryFilters().Any(d => d.DateKey == dateKey))
             {
                 continue;
             }

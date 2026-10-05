@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -276,7 +277,7 @@ public class AiSummaryDraftEndpointTests : IClassFixture<EiWebApplicationFactory
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<EiDbContext>();
-        return await db.AiSummaryAuditLogs.FindAsync(auditLogId);
+        return await db.AiSummaryAuditLogs.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == auditLogId);
     }
 
     private async Task<AiSummaryDraftResponse> RequestLessonSummaryDraftAsync(

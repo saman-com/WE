@@ -57,8 +57,10 @@ public class NotificationEndpointTests : IClassFixture<NotificationWebApplicatio
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
-        var persisted = await db.Notifications.FindAsync(notificationId);
-        Assert.NotNull(persisted!.ReadAt);
+        var persisted = await db.Notifications
+            .IgnoreQueryFilters()
+            .SingleAsync(n => n.Id == notificationId);
+        Assert.NotNull(persisted.ReadAt);
     }
 
     [Fact]

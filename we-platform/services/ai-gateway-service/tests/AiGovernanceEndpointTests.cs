@@ -46,7 +46,7 @@ public class AiGovernanceEndpointTests : IClassFixture<AiGatewayWebApplicationFa
 
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AiGatewayDbContext>();
-        var auditLog = db.AiAuditLogs.Single(entry => entry.CallerUserId == serviceId);
+        var auditLog = db.AiAuditLogs.IgnoreQueryFilters().Single(entry => entry.CallerUserId == serviceId);
 
         Assert.Equal(serviceId, auditLog.CallerUserId);
         Assert.Equal("assessment-feedback", auditLog.PromptId);
@@ -82,7 +82,7 @@ public class AiGovernanceEndpointTests : IClassFixture<AiGatewayWebApplicationFa
 
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AiGatewayDbContext>();
-        var auditLog = db.AiAuditLogs.Single(entry => entry.CallerUserId == serviceId);
+        var auditLog = db.AiAuditLogs.IgnoreQueryFilters().Single(entry => entry.CallerUserId == serviceId);
 
         Assert.Equal(AiAuditOutcomes.Blocked, auditLog.Outcome);
         Assert.Contains("PII", auditLog.BlockReason, StringComparison.OrdinalIgnoreCase);
@@ -120,6 +120,7 @@ public class AiGovernanceEndpointTests : IClassFixture<AiGatewayWebApplicationFa
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AiGatewayDbContext>();
         var auditLog = db.AiAuditLogs
+            .IgnoreQueryFilters()
             .Where(entry => entry.CallerUserId == serviceId)
             .OrderByDescending(entry => entry.CreatedAt)
             .First();
@@ -184,9 +185,10 @@ public class AiGovernanceEndpointTests : IClassFixture<AiGatewayWebApplicationFa
         await db.SaveChangesAsync();
 
         var existingId = (await db.AiAuditLogs
+            .IgnoreQueryFilters()
             .OrderByDescending(entry => entry.CreatedAt)
             .FirstAsync()).Id;
-        var existing = await db.AiAuditLogs.FindAsync(existingId);
+        var existing = await db.AiAuditLogs.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == existingId);
         Assert.NotNull(existing);
         existing!.Outcome = AiAuditOutcomes.Success;
 

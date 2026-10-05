@@ -10,12 +10,15 @@ namespace LearningGapService.Infrastructure;
 
 public sealed class GapProcessor(
     GapDbContext db,
-    IGapCalculationEngine calculationEngine) : IGapProcessor
+    IGapCalculationEngine calculationEngine,
+    ITenantContext tenantContext) : IGapProcessor
 {
     public async Task ProcessEvidenceCreatedAsync(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(evidence.OrganisationId);
+
         var diagnostics = evidence.MicroSkillMarks
             .Select(mark => DiagnosticClassifier.ToDiagnosticInput(evidence, mark))
             .ToList();

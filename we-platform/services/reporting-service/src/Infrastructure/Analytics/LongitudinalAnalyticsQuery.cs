@@ -20,7 +20,7 @@ public sealed class LongitudinalAnalyticsQuery(EdwAnalyticsDbContext db) : ILong
         var evidenceFacts = await db.EvidenceFacts.AsNoTracking()
             .Where(f => f.OrganisationId == organisationId && f.StudentUserId == studentUserId)
             .Join(
-                db.DimTimes.AsNoTracking(),
+                db.DimTimes.IgnoreQueryFilters().AsNoTracking(),
                 fact => fact.TimeKey,
                 dim => dim.DateKey,
                 (fact, dim) => new { fact.MicroSkillCount, dim.Year, dim.Month })
@@ -57,7 +57,7 @@ public sealed class LongitudinalAnalyticsQuery(EdwAnalyticsDbContext db) : ILong
         var evidenceFacts = await db.EvidenceFacts.AsNoTracking()
             .Where(f => f.OrganisationId == organisationId)
             .Join(
-                db.DimTimes.AsNoTracking(),
+                db.DimTimes.IgnoreQueryFilters().AsNoTracking(),
                 fact => fact.TimeKey,
                 dim => dim.DateKey,
                 (fact, dim) => new { fact.StudentUserId, fact.MicroSkillCount, dim.Year, dim.Month })

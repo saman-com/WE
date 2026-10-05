@@ -34,7 +34,7 @@ public class NotificationConsumerTests
 
             await using var scope = provider.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
-            var notification = await db.Notifications.SingleAsync();
+            var notification = await db.Notifications.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(studentId, notification.RecipientUserId);
             Assert.Equal(NotificationTypes.AssessmentPublished, notification.Type);
             Assert.Equal(domainEvent.EventId, notification.SourceEventId);
@@ -70,7 +70,7 @@ public class NotificationConsumerTests
 
             await using var scope = provider.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
-            var notification = await db.Notifications.SingleAsync();
+            var notification = await db.Notifications.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(studentId, notification.RecipientUserId);
             Assert.Equal(NotificationTypes.FeedbackAvailable, notification.Type);
             Assert.Equal(domainEvent.AssessmentId, notification.RelatedEntityId);
@@ -103,7 +103,7 @@ public class NotificationConsumerTests
 
             await using var scope = provider.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
-            var notification = await db.Notifications.SingleAsync();
+            var notification = await db.Notifications.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(recipientId, notification.RecipientUserId);
             Assert.Equal(NotificationTypes.NewMessage, notification.Type);
             Assert.Equal(domainEvent.MessageId, notification.RelatedEntityId);

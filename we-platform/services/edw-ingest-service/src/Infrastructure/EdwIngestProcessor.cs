@@ -7,12 +7,14 @@ using WePlatform.Tenancy;
 
 namespace EdwIngestService.Infrastructure;
 
-public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
+public sealed class EdwIngestProcessor(EdwDbContext db, ITenantContext tenantContext) : IEdwIngestProcessor
 {
     public async Task ProcessEvidenceCreatedAsync(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(evidence.OrganisationId);
+
         if (await db.EvidenceFacts.AnyAsync(f => f.EventId == evidence.EventId, cancellationToken))
         {
             return;
@@ -45,6 +47,8 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
         AssessmentApproved assessment,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(assessment.OrganisationId);
+
         if (await db.AssessmentFacts.AnyAsync(f => f.EventId == assessment.EventId, cancellationToken))
         {
             return;
@@ -76,6 +80,8 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
         InterventionCreated intervention,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(intervention.OrganisationId);
+
         if (await db.InterventionFacts.AnyAsync(f => f.EventId == intervention.EventId, cancellationToken))
         {
             return;
@@ -112,11 +118,19 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
         }
 
         var ingestedAt = DateTimeOffset.UtcNow;
-        var existingEventIds = await db.EvidenceFacts
-            .Where(f => events.Select(e => e.EventId).Contains(f.EventId))
-            .Select(f => f.EventId)
-            .ToListAsync(cancellationToken);
-        var existingSet = existingEventIds.ToHashSet();
+        var existingSet = new HashSet<Guid>();
+        foreach (var organisationId in events.Select(e => e.OrganisationId).Distinct())
+        {
+            tenantContext.SetTenant(organisationId);
+            var existingEventIds = await db.EvidenceFacts
+                .Where(f => events.Select(e => e.EventId).Contains(f.EventId))
+                .Select(f => f.EventId)
+                .ToListAsync(cancellationToken);
+            foreach (var id in existingEventIds)
+            {
+                existingSet.Add(id);
+            }
+        }
 
         foreach (var evidence in events)
         {
@@ -125,6 +139,7 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
                 continue;
             }
 
+            tenantContext.SetTenant(evidence.OrganisationId);
             var timeKey = await EnsureTimeDimensionAsync(evidence.ApprovedAt, cancellationToken);
             db.EvidenceFacts.Add(new EvidenceFact
             {
@@ -155,7 +170,10 @@ public sealed class EdwIngestProcessor(EdwDbContext db) : IEdwIngestProcessor
         var date = DateOnly.FromDateTime(timestamp.UtcDateTime);
         var dateKey = date.Year * 10_000 + date.Month * 100 + date.Day;
 
-        var exists = await db.DimTimes.AnyAsync(d => d.DateKey == dateKey, cancellationToken);
+        // Shared calendar dimension is stored under DefaultTenant, not the school tenant.
+        var exists = await db.DimTimes
+            .IgnoreQueryFilters()
+            .AnyAsync(d => d.DateKey == dateKey, cancellationToken);
         if (!exists)
         {
             db.DimTimes.Add(new DimTime

@@ -111,7 +111,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Get,
             $"/api/v1/parents/me/children/{studentId}/progress",
             parentId,
-            null,
+            org.Id,
             TestJwt.ParentRole);
 
         Assert.Equal(studentId, progress.StudentUserId);

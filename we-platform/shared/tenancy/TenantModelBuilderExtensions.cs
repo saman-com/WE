@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WePlatform.Tenancy;
 
+/// <summary>
+/// Legacy helpers. Prefer filters applied by <see cref="TenantAwareDbContext"/> which bind
+/// <see cref="TenantAwareDbContext.CurrentTenantId"/> so EF re-evaluates per context instance.
+/// </summary>
 public static class TenantModelBuilderExtensions
 {
     public static void ApplyTenantQueryFilters(this ModelBuilder modelBuilder, ITenantContext tenantContext)
@@ -33,6 +37,7 @@ public static class TenantModelBuilderExtensions
     private static Expression<Func<TEntity, bool>> CreateTenantFilter<TEntity>(ITenantContext tenantContext)
         where TEntity : class, ITenantEntity
     {
-        return entity => !tenantContext.TenantId.HasValue || entity.TenantId == tenantContext.TenantId;
+        // Fail-closed. Prefer TenantAwareDbContext.CurrentTenantId filters for correct EF binding.
+        return entity => tenantContext.TenantId.HasValue && entity.TenantId == tenantContext.TenantId;
     }
 }

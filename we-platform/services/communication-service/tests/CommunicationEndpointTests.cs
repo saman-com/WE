@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using CommunicationService.Application;
 using CommunicationService.Domain;
 using CommunicationService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WePlatform.Events;
 
@@ -258,7 +259,7 @@ public class CommunicationEndpointTests : IClassFixture<CommunicationWebApplicat
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CommunicationDbContext>();
-        var persisted = await db.Messages.FindAsync(created.Id);
+        var persisted = await db.Messages.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == created.Id);
 
         Assert.NotNull(persisted);
         Assert.Equal(parentId, persisted!.SenderUserId);

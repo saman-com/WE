@@ -11,12 +11,15 @@ namespace MasteryService.Infrastructure;
 public sealed class MasteryProcessor(
     MasteryDbContext db,
     IMasteryCalculationEngine calculationEngine,
-    MasteryThresholds thresholds) : IMasteryProcessor
+    MasteryThresholds thresholds,
+    ITenantContext tenantContext) : IMasteryProcessor
 {
     public async Task ProcessEvidenceCreatedAsync(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(evidence.OrganisationId);
+
         foreach (var result in evidence.MicroSkillMarks)
         {
             var markExists = await db.EvidenceMarks.AnyAsync(

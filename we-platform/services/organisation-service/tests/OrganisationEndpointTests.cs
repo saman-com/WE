@@ -480,7 +480,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             $"/api/v1/students/{studentId}/workspace",
             studentId,
-            null,
+            org.Id,
             TestJwt.StudentRole);
 
         Assert.Equal(studentId, workspace.StudentUserId);

@@ -16,13 +16,12 @@ public class EdwIngestProcessorTests
     [Fact]
     public async Task ProcessEvidenceCreated_PersistsEvidenceFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
+        await using var harness = CreateHarness();
         var evidence = CreateEvidenceCreated();
 
-        await processor.ProcessEvidenceCreatedAsync(evidence);
+        await harness.Processor.ProcessEvidenceCreatedAsync(evidence);
 
-        var fact = await context.EvidenceFacts.SingleAsync();
+        var fact = await harness.Db.EvidenceFacts.IgnoreQueryFilters().SingleAsync();
         Assert.Equal(evidence.EventId, fact.EventId);
         Assert.Equal(evidence.EvidenceId, fact.EvidenceId);
         Assert.Equal(evidence.StudentUserId, fact.StudentUserId);
@@ -32,13 +31,12 @@ public class EdwIngestProcessorTests
     [Fact]
     public async Task ProcessAssessmentApproved_PersistsAssessmentFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
+        await using var harness = CreateHarness();
         var assessment = CreateAssessmentApproved();
 
-        await processor.ProcessAssessmentApprovedAsync(assessment);
+        await harness.Processor.ProcessAssessmentApprovedAsync(assessment);
 
-        var fact = await context.AssessmentFacts.SingleAsync();
+        var fact = await harness.Db.AssessmentFacts.IgnoreQueryFilters().SingleAsync();
         Assert.Equal(assessment.EventId, fact.EventId);
         Assert.Equal(assessment.AssessmentId, fact.AssessmentId);
         Assert.Equal(assessment.StudentUserId, fact.StudentUserId);
@@ -48,13 +46,12 @@ public class EdwIngestProcessorTests
     [Fact]
     public async Task ProcessInterventionCreated_PersistsInterventionFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
+        await using var harness = CreateHarness();
         var intervention = CreateInterventionCreated();
 
-        await processor.ProcessInterventionCreatedAsync(intervention);
+        await harness.Processor.ProcessInterventionCreatedAsync(intervention);
 
-        var fact = await context.InterventionFacts.SingleAsync();
+        var fact = await harness.Db.InterventionFacts.IgnoreQueryFilters().SingleAsync();
         Assert.Equal(intervention.EventId, fact.EventId);
         Assert.Equal(intervention.InterventionId, fact.InterventionId);
         Assert.Equal(intervention.StudentUserId, fact.StudentUserId);
@@ -64,41 +61,50 @@ public class EdwIngestProcessorTests
     [Fact]
     public async Task ProcessingSameEventTwice_DoesNotDuplicateFacts()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
+        await using var harness = CreateHarness();
         var evidence = CreateEvidenceCreated();
 
-        await processor.ProcessEvidenceCreatedAsync(evidence);
-        await processor.ProcessEvidenceCreatedAsync(evidence);
+        await harness.Processor.ProcessEvidenceCreatedAsync(evidence);
+        await harness.Processor.ProcessEvidenceCreatedAsync(evidence);
 
-        Assert.Equal(1, await context.EvidenceFacts.CountAsync());
+        Assert.Equal(1, await harness.Db.EvidenceFacts.IgnoreQueryFilters().CountAsync());
     }
 
     [Fact]
     public async Task ProcessEvidenceBatch_PersistsMultipleFactsInOneTransaction()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
+        await using var harness = CreateHarness();
         var first = CreateEvidenceCreated();
         var second = CreateEvidenceCreated();
 
-        await processor.ProcessEvidenceBatchAsync([first, second]);
+        await harness.Processor.ProcessEvidenceBatchAsync([first, second]);
 
-        Assert.Equal(2, await context.EvidenceFacts.CountAsync());
-        Assert.Contains(await context.EvidenceFacts.ToListAsync(), fact => fact.EventId == first.EventId);
-        Assert.Contains(await context.EvidenceFacts.ToListAsync(), fact => fact.EventId == second.EventId);
+        Assert.Equal(2, await harness.Db.EvidenceFacts.IgnoreQueryFilters().CountAsync());
+        Assert.Contains(
+            await harness.Db.EvidenceFacts.IgnoreQueryFilters().ToListAsync(),
+            fact => fact.EventId == first.EventId);
+        Assert.Contains(
+            await harness.Db.EvidenceFacts.IgnoreQueryFilters().ToListAsync(),
+            fact => fact.EventId == second.EventId);
     }
 
-    private static EdwDbContext CreateDbContext()
+    private static TestHarness CreateHarness()
     {
+        var tenantContext = new TenantContext();
         var options = new DbContextOptionsBuilder<EdwDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EdwDbContext(options, new TenantContext());
+        var db = new EdwDbContext(options, tenantContext);
+        return new TestHarness(db, new EdwIngestProcessor(db, tenantContext));
     }
 
-    private static IEdwIngestProcessor CreateProcessor(EdwDbContext context) =>
-        new EdwIngestProcessor(context);
+    private sealed class TestHarness(EdwDbContext db, IEdwIngestProcessor processor) : IAsyncDisposable
+    {
+        public EdwDbContext Db { get; } = db;
+        public IEdwIngestProcessor Processor { get; } = processor;
+
+        public ValueTask DisposeAsync() => Db.DisposeAsync();
+    }
 
     private static EvidenceCreated CreateEvidenceCreated()
     {
@@ -160,94 +166,98 @@ public class EdwIngestConsumerTests
     [Fact]
     public async Task EvidenceCreatedConsumer_PersistsEvidenceFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
-        var harness = new InMemoryTestHarness();
-        var consumerHarness = harness.Consumer(() =>
+        await using var harness = CreateHarness();
+        var testHarness = new InMemoryTestHarness();
+        var consumerHarness = testHarness.Consumer(() =>
             new EvidenceCreatedConsumer(
-                processor,
+                harness.Processor,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<EvidenceCreatedConsumer>.Instance));
 
-        await harness.Start();
+        await testHarness.Start();
         try
         {
             var domainEvent = CreateEvidenceCreated();
-            await harness.Bus.Publish(domainEvent);
+            await testHarness.Bus.Publish(domainEvent);
 
             Assert.True(await consumerHarness.Consumed.Any<EvidenceCreated>());
-            var fact = await context.EvidenceFacts.SingleAsync();
+            var fact = await harness.Db.EvidenceFacts.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(domainEvent.EventId, fact.EventId);
         }
         finally
         {
-            await harness.Stop();
+            await testHarness.Stop();
         }
     }
 
     [Fact]
     public async Task AssessmentApprovedConsumer_PersistsAssessmentFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
-        var harness = new InMemoryTestHarness();
-        var consumerHarness = harness.Consumer(() =>
+        await using var harness = CreateHarness();
+        var testHarness = new InMemoryTestHarness();
+        var consumerHarness = testHarness.Consumer(() =>
             new AssessmentApprovedConsumer(
-                processor,
+                harness.Processor,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<AssessmentApprovedConsumer>.Instance));
 
-        await harness.Start();
+        await testHarness.Start();
         try
         {
             var domainEvent = CreateAssessmentApproved();
-            await harness.Bus.Publish(domainEvent);
+            await testHarness.Bus.Publish(domainEvent);
 
             Assert.True(await consumerHarness.Consumed.Any<AssessmentApproved>());
-            var fact = await context.AssessmentFacts.SingleAsync();
+            var fact = await harness.Db.AssessmentFacts.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(domainEvent.EventId, fact.EventId);
         }
         finally
         {
-            await harness.Stop();
+            await testHarness.Stop();
         }
     }
 
     [Fact]
     public async Task InterventionCreatedConsumer_PersistsInterventionFact()
     {
-        await using var context = CreateDbContext();
-        var processor = CreateProcessor(context);
-        var harness = new InMemoryTestHarness();
-        var consumerHarness = harness.Consumer(() =>
+        await using var harness = CreateHarness();
+        var testHarness = new InMemoryTestHarness();
+        var consumerHarness = testHarness.Consumer(() =>
             new InterventionCreatedConsumer(
-                processor,
+                harness.Processor,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<InterventionCreatedConsumer>.Instance));
 
-        await harness.Start();
+        await testHarness.Start();
         try
         {
             var domainEvent = CreateInterventionCreated();
-            await harness.Bus.Publish(domainEvent);
+            await testHarness.Bus.Publish(domainEvent);
 
             Assert.True(await consumerHarness.Consumed.Any<InterventionCreated>());
-            var fact = await context.InterventionFacts.SingleAsync();
+            var fact = await harness.Db.InterventionFacts.IgnoreQueryFilters().SingleAsync();
             Assert.Equal(domainEvent.EventId, fact.EventId);
         }
         finally
         {
-            await harness.Stop();
+            await testHarness.Stop();
         }
     }
 
-    private static EdwDbContext CreateDbContext()
+    private static TestHarness CreateHarness()
     {
+        var tenantContext = new TenantContext();
         var options = new DbContextOptionsBuilder<EdwDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EdwDbContext(options, new TenantContext());
+        var db = new EdwDbContext(options, tenantContext);
+        return new TestHarness(db, new EdwIngestProcessor(db, tenantContext));
     }
 
-    private static IEdwIngestProcessor CreateProcessor(EdwDbContext context) =>
-        new EdwIngestProcessor(context);
+    private sealed class TestHarness(EdwDbContext db, IEdwIngestProcessor processor) : IAsyncDisposable
+    {
+        public EdwDbContext Db { get; } = db;
+        public IEdwIngestProcessor Processor { get; } = processor;
+
+        public ValueTask DisposeAsync() => Db.DisposeAsync();
+    }
 
     private static EvidenceCreated CreateEvidenceCreated()
     {

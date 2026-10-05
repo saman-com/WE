@@ -2,12 +2,14 @@ using NotificationService.Application;
 using NotificationService.Domain;
 using NotificationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace NotificationService.Infrastructure;
 
 public sealed class NotificationCreator(
     NotificationDbContext db,
-    IEmailNotifier emailNotifier) : INotificationCreator
+    IEmailNotifier emailNotifier,
+    ITenantContext tenantContext) : INotificationCreator
 {
     public async Task CreateAsync(
         string recipientUserId,
@@ -24,6 +26,8 @@ public sealed class NotificationCreator(
         {
             throw new ArgumentException($"Unsupported notification type: {type}", nameof(type));
         }
+
+        tenantContext.SetTenant(tenantId);
 
         var exists = await db.Notifications.AnyAsync(
             n => n.SourceEventId == sourceEventId && n.RecipientUserId == recipientUserId,

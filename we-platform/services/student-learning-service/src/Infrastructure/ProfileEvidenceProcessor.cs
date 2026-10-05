@@ -4,15 +4,20 @@ using StudentLearningService.Domain;
 using StudentLearningService.Infrastructure.Data;
 using StudentLearningService.Infrastructure.Persistence;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace StudentLearningService.Infrastructure;
 
-public sealed class ProfileEvidenceProcessor(StudentLearningDbContext db) : IProfileEvidenceProcessor
+public sealed class ProfileEvidenceProcessor(
+    StudentLearningDbContext db,
+    ITenantContext tenantContext) : IProfileEvidenceProcessor
 {
     public async Task ProcessEvidenceCreatedAsync(
         EvidenceCreated evidence,
         CancellationToken cancellationToken = default)
     {
+        tenantContext.SetTenant(evidence.OrganisationId);
+
         var profile = await db.Profiles
             .Include(p => p.EvidenceEntries)
             .FirstOrDefaultAsync(p => p.StudentUserId == evidence.StudentUserId, cancellationToken);
