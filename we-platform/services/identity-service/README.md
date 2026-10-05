@@ -18,6 +18,12 @@ Built-in authentication for the WE Platform (issue 003).
 | `teacher@school.local` | `Password123!` | Teacher |
 | `admin@school.local` | `Password123!` | SystemAdministrator |
 | `student@school.local` | `Password123!` | Student (id `22222222-2222-2222-2222-222222222222`) |
+| `parent@school.local` | `Password123!` | Parent (id `33333333-3333-3333-3333-333333333333`) |
+| `authority@ministry.local` | `Password123!` | EducationAuthorityOfficer |
+| `leader@school.local` | `Password123!` | SchoolLeader |
+| `federation@ministry.local` | `Password123!` | FederationAdmin |
+| `teacher-b@schoolb.local` | `Password123!` | Teacher (School B tenant) |
+| `student-b@schoolb.local` | `Password123!` | Student (School B tenant) |
 
 ## Configuration
 

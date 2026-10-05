@@ -6,6 +6,9 @@
     "dev": "pnpm --filter web-portal dev",
     "build": "pnpm --filter web-portal build",
     "lint": "pnpm --filter web-portal lint",
-    "test": "pnpm --filter web-portal test"
+    "test": "pnpm --filter web-portal test",
+    "e2e": "bash testing/e2e/scripts/run-e2e.sh",
+    "e2e:test": "pnpm --filter e2e e2e",
+    "e2e:ui": "pnpm --filter e2e e2e:ui"
   }
 }
