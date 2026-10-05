@@ -14,7 +14,19 @@ API responses under concurrent load should meet **p95 / max ≤ 500 ms** (monito
 
 ### Compose-wide k6
 
-**Missing.** No `k6` scripts or compose-wide load suite exists under `we-platform/`.
+Scripts: `we-platform/testing/load/` (`./run-load.sh`). Executed 2026-10-05 against local compose (DURATION=20s).
+
+| Scenario | VU=25 p95 | VU=100 p95 | vs 500 ms |
+|----------|-----------|------------|-----------|
+| login | 93 ms | 400 ms | OK |
+| student-home | 112 ms | **3269 ms** | **MISS @100** |
+| teacher-class | 39 ms | **507 ms** | **MISS @100** |
+| approve-evidence | 23 ms | 260 ms | OK |
+| leadership | 15 ms | 441 ms | OK |
+| authority | 30 ms | 320 ms | OK |
+
+Summary artifact: `testing/load/results/run-summary-20261005T085457Z.txt`.
+Misses filed as delivery bugs (no optimisation in this pass).
 
 ### Unit / TestHost SLA results (executed)
 
@@ -47,7 +59,7 @@ pnpm exec vitest run src/lib/policy-dashboards.sla.test.ts
 
 ### Verdict
 
-**Partial.** Unit SLA comfortably under 500 ms (p95 12 ms / 1 ms). Compose-wide k6 against live endpoints not available.
+**Partial.** Unit SLA OK; compose k6 executed — **2 scenarios miss p95 at 100 VU** (student-home, teacher-class).
 
 ---
 
@@ -159,13 +171,15 @@ docker exec -i we-platform-postgres-1 \
 
 | Step | Status |
 |------|--------|
-| `pg_dump` all 19 service DBs | **Executed** — 19/19 OK (sizes ~2.5–20 KB each into `/tmp/we-platform-nfr-backup/`) |
-| `pg_restore` into running cluster | **Not executed** (would disrupt live compose used by other work) |
-| Post-restore `pnpm e2e` | **Not executed** |
+| `pg_dump` all 19 service DBs | **Executed** — 19/19 into `/tmp/we-platform-restore-drill-dumps/` |
+| Fresh Postgres volume | **Executed** — `docker compose down`; removed `we-platform_postgres_data`; `up -d postgres` |
+| `pg_restore --clean` all 19 | **Executed** — 19/19 OK (`we_notifications` created manually; no init.sql mount) |
+| Post-restore stack + `pnpm e2e` | **Executed** — login smoke OK; **40 passed** (incl. admin Arabic RTL) in ~1.2 m |
+| Wall-clock restore drill | **~3 minutes** (down → fresh volume → restore → up → e2e) |
 
 ### Verdict
 
-**Partial.** Dump path validated; restore + e2e remain a manual ops checklist item.
+**Covered.** Full dump → fresh-volume restore → e2e green.
 
 ---
 
@@ -219,11 +233,11 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 
 | Area | Status | Key number / note |
 |------|--------|-------------------|
-| Load / latency | partial | p95 **12 ms** / **1 ms** vs 500 ms claim (TestHost); **no k6** |
+| Load / latency | partial | k6 @25 OK; **student-home & teacher-class p95 miss @100 VU** |
 | Dependency vulns | covered | .NET: SSH.NET High (tests only); Node prod: **0 critical/high** (`next@15.5.27`) |
 | Headers / CORS | covered | Shared middleware + portal next.config; Cors:AllowedOrigins |
 | Secrets | covered | No committed private keys / `.env`; local `we_dev` placeholders only |
-| Backup / restore | partial | **19/19 dumps OK**; restore + e2e not run |
+| Backup / restore | covered | 19/19 restore + e2e 40 passed (~3 min drill) |
 | Health | covered* | **21/21** `/health` OK; *no compose-wide script / app healthchecks |
 
 Report path: `docs/validation/nfr-report.md`.

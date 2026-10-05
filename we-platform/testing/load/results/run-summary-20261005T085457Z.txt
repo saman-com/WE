@@ -1,0 +1,54 @@
+WE Platform load summary — 20261005T085457Z
+duration=20s vus=25 100
+
+login vu=25 exit=0 OK
+  http_req_duration p95=93.34559999999999ms (target <500)
+  thresholds: OK
+
+student-home vu=25 exit=0 OK
+  http_req_duration p95=111.54199999999997ms (target <500)
+  thresholds: OK
+
+teacher-class vu=25 exit=0 OK
+  http_req_duration p95=39.382ms (target <500)
+  thresholds: OK
+
+approve-evidence vu=25 exit=0 OK
+  http_req_duration p95=23.327749999999945ms (target <500)
+  thresholds: OK
+
+leadership vu=25 exit=0 OK
+  http_req_duration p95=15.140099999999999ms (target <500)
+  thresholds: OK
+
+authority vu=25 exit=0 OK
+  http_req_duration p95=29.907ms (target <500)
+  thresholds: OK
+
+login vu=100 exit=0 OK
+  http_req_duration p95=399.53475ms (target <500)
+  thresholds: OK
+
+student-home vu=100 exit=99 THRESHOLD_MISS
+  http_req_duration p95=3269.2255ms (target <500)
+  thresholds: OK
+
+teacher-class vu=100 exit=99 THRESHOLD_MISS
+  http_req_duration p95=507.2184999999995ms (target <500)
+  thresholds: OK
+
+approve-evidence vu=100 exit=0 OK
+  http_req_duration p95=259.92179999999996ms (target <500)
+  thresholds: OK
+
+leadership vu=100 exit=0 OK
+  http_req_duration p95=441.3082999999994ms (target <500)
+  thresholds: OK
+
+authority vu=100 exit=0 OK
+  http_req_duration p95=319.895ms (target <500)
+  thresholds: OK
+
+----
+threshold_misses=2
+hard_failures=0

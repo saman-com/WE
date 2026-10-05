@@ -153,11 +153,11 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | Report: `docs/validation/nfr-report.md` §1. Compose-wide k6 still missing. Unit SLA executed: `national-reporting-service/tests/PlatformSlaLoadTests.cs` (enrollment p95=12ms, trends p95=1ms, max≤500ms); portal `policy-dashboards.sla.test.ts` | partial |
+| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | `testing/load/` + `nfr-report.md` §1 — VU25 all OK; VU100 **student-home p95=3269ms** and **teacher-class p95=507ms** miss 500ms target | partial |
 | Security | Dependency vulnerability scan (`dotnet list package --vulnerable`, `pnpm audit`) | manual / script | `docs/validation/nfr-report.md` §2 — .NET clean except test-only SSH.NET High; portal `next@15.5.27` + postcss `8.5.28` via `.pnpmfile.cjs`; `pnpm audit --prod` 0 critical/high | covered |
 | Security | Basic OWASP header and CORS checks | backend / portal | Shared `WePlatform.AspNetCore` middleware on all APIs; portal `next.config.ts` headers; `Cors:AllowedOrigins` via `AddWePlatformCors` (Dev default localhost:3000); `SecurityHeadersEndpointTests` per service; `CorsExtensionsTests` | covered |
 | Security | Confirm no secrets committed | manual / script | `docs/validation/nfr-report.md` §4 — no committed `.env`/keys; local-dev `Password=we_dev` + JWT placeholders only | covered |
-| Backup / restore | Dump + restore all service DBs then `pnpm e2e` | manual / script | Checklist + dump probe in `docs/validation/nfr-report.md` §5 — 19/19 `pg_dump` OK; restore + e2e not executed | partial |
+| Backup / restore | Dump + restore all service DBs then `pnpm e2e` | manual / script | Fresh-volume restore drill 19/19 + e2e **40 passed** (~3 min); see `nfr-report.md` §5 | covered |
 | Health | Every compose service `/health` returns OK | manual / script | Live sample 21/21 OK (`nfr-report.md` §6); unit: `examples/sample-service/tests/HealthEndpointTests.cs`; no compose-wide health script / app Docker healthchecks | covered |
 
 ---
@@ -193,3 +193,11 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 | Web portal unit | `we-platform/apps/web-portal` (`pnpm test`) | i18n, teacher home, focus helpers |
 | Playwright | `we-platform/testing/e2e` (`pnpm e2e`) | Core loop, interventions, messages, AI, leadership, authority, access, wording, Arabic, smoke |
 | Demo users | Identity `IdentityDataSeeder` (School A / School B, all roles) | Seeded for e2e and isolation scenarios |
+
+## Known follow-ups (deferred)
+
+| Item | Status |
+|------|--------|
+| Real AI provider (non-Mock) | deferred — see §11 |
+| Email delivery (non-Mock) | deferred — see §13 |
+| Outbox for assessment-service and communication-service | listed follow-up (not in this delivery-readiness batch) |
