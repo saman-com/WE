@@ -138,8 +138,7 @@ export default function InterventionDetailPage() {
 
   const canModify =
     viewer.roles.includes("SystemAdministrator") ||
-    viewer.roles.includes("SchoolLeader") ||
-    viewer.id === intervention.assignedTeacherUserId;
+    (viewer.roles.includes("Teacher") && viewer.id === intervention.assignedTeacherUserId);
 
   return (
     <div className="min-h-screen p-8">

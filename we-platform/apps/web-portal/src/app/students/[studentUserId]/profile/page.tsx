@@ -198,6 +198,7 @@ export default function StudentProfilePage() {
 
   const isTeacherViewer =
     viewer?.roles.includes("SystemAdministrator") || viewer?.roles.includes("Teacher");
+  const canEditProgressReport = viewer?.roles.includes("Teacher") ?? false;
 
   if (error) {
     return (
@@ -289,7 +290,7 @@ export default function StudentProfilePage() {
           ) : null}
         </div>
 
-        {isTeacherViewer ? (
+        {canEditProgressReport ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-4">
             <div>
               <h2 className="font-medium">{t("student.profile.report.title")}</h2>
