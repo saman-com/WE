@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LearningFrame } from "@/components/learning-frame";
+import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchRegionalConfiguration,
@@ -71,6 +71,7 @@ export default function RegionalConfigurationAdminPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState("calendar");
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -156,11 +157,19 @@ export default function RegionalConfigurationAdminPage() {
         router.push("/login");
       }}
       signOutLabel={t("common.signOut")}
+      tabs={[
+        { id: "calendar", label: t("admin.regional.calendarTitle") },
+        { id: "grading", label: t("admin.regional.gradingTitle") },
+        { id: "models", label: t("admin.regional.modelsTitle") },
+        { id: "templates", label: t("admin.regional.templatesTitle") },
+        { id: "locale", label: t("admin.regional.localeTitle") },
+      ]}
+      activeTab={tab}
+      onTabChange={setTab}
     >
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">{t("dashboard.nav.regionalConfiguration")}</h1>
-          <p className="text-sm text-black/70">{t("admin.regional.subtitle")}</p>
           {hasRealUpdate(updatedAt) ? (
             <p className="mt-1 text-xs text-black/50">
               {t("admin.regional.lastUpdated", {
@@ -170,11 +179,15 @@ export default function RegionalConfigurationAdminPage() {
           ) : null}
         </div>
 
-        {error ? <p className="text-red-600 text-sm">{error}</p> : null}
-        {success ? <p className="text-green-700 text-sm">{success}</p> : null}
+        {error || success ? (
+          <p role="status" className={`text-sm ${error ? "text-red-700" : "text-green-800"}`}>
+            {error ?? success}
+          </p>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-lg border border-black/10 p-4 space-y-3">
+          {tab === "calendar" ? (
+          <FocusCard>
             <h2 className="font-medium">{t("admin.regional.calendarTitle")}</h2>
             <label className="text-sm space-y-1 block">
               <span>{t("admin.regional.firstTermName")}</span>
@@ -286,9 +299,11 @@ export default function RegionalConfigurationAdminPage() {
                 }
               />
             </label>
-          </section>
+          </FocusCard>
+          ) : null}
 
-          <section className="rounded-lg border border-black/10 p-4 space-y-3">
+          {tab === "grading" ? (
+          <FocusCard>
             <h2 className="font-medium">{t("admin.regional.gradingTitle")}</h2>
             <label className="text-sm space-y-1 block">
               <span>{t("admin.regional.scaleName")}</span>
@@ -303,9 +318,11 @@ export default function RegionalConfigurationAdminPage() {
                 }
               />
             </label>
-          </section>
+          </FocusCard>
+          ) : null}
 
-          <section className="rounded-lg border border-black/10 p-4 space-y-3">
+          {tab === "models" ? (
+          <FocusCard>
             <h2 className="font-medium">{t("admin.regional.modelsTitle")}</h2>
             <label className="text-sm space-y-1 block">
               <span>{t("admin.regional.modelName")}</span>
@@ -337,9 +354,11 @@ export default function RegionalConfigurationAdminPage() {
                 }
               />
             </label>
-          </section>
+          </FocusCard>
+          ) : null}
 
-          <section className="rounded-lg border border-black/10 p-4 space-y-3">
+          {tab === "templates" ? (
+          <FocusCard>
             <h2 className="font-medium">{t("admin.regional.templatesTitle")}</h2>
             <label className="text-sm space-y-1 block">
               <span>{t("admin.regional.templateName")}</span>
@@ -356,9 +375,11 @@ export default function RegionalConfigurationAdminPage() {
                 }
               />
             </label>
-          </section>
+          </FocusCard>
+          ) : null}
 
-          <section className="rounded-lg border border-black/10 p-4 space-y-3">
+          {tab === "locale" ? (
+          <FocusCard>
             <h2 className="font-medium">{t("admin.regional.localeTitle")}</h2>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm space-y-1">
@@ -426,15 +447,12 @@ export default function RegionalConfigurationAdminPage() {
                 />
               </label>
             </div>
-          </section>
+          </FocusCard>
+          ) : null}
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded border border-black/20 px-4 py-2 text-sm disabled:opacity-50"
-          >
+          <PrimaryButton type="submit" disabled={saving}>
             {saving ? t("common.saving") : t("admin.regional.saveConfiguration")}
-          </button>
+          </PrimaryButton>
         </form>
       </div>
     </LearningFrame>

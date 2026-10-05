@@ -105,7 +105,7 @@ function TabButton({
 }
 
 export function FocusCard({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl bg-black/[0.04] p-4">{children}</div>;
+  return <div className="space-y-3 rounded-xl bg-black/[0.04] p-4">{children}</div>;
 }
 
 export function PrimaryLink({
