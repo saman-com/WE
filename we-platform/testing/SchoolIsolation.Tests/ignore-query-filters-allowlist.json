@@ -1,295 +1,412 @@
 {
-  "generatedFrom": "services/*/src IgnoreQueryFilters() scan",
+  "generatedFrom": "services/*/src IgnoreQueryFilters() scan (file::method#occurrence)",
+  "keyFormat": "file::method#occurrence",
   "entries": [
     {
       "file": "services/assessment-service/src/Api/AssessmentEndpoints.cs",
-      "line": 853,
-      "reason": "lookup-by-id-then-TenantAccess-on-callers"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess-on-callers",
+      "line": 853
     },
     {
       "file": "services/assessment-service/src/Api/Program.cs",
-      "line": 59,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "startup-backfill",
+      "line": 54
     },
     {
       "file": "services/assessment-service/src/Api/Program.cs",
-      "line": 64,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 2,
+      "reason": "startup-backfill",
+      "line": 59
     },
     {
       "file": "services/assessment-service/src/Api/Program.cs",
-      "line": 69,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 3,
+      "reason": "startup-backfill",
+      "line": 64
     },
     {
       "file": "services/assessment-service/src/Api/Program.cs",
-      "line": 74,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 4,
+      "reason": "startup-backfill",
+      "line": 69
     },
     {
       "file": "services/assessment-service/src/Infrastructure/Ai/AiFeedbackDraftService.cs",
-      "line": 95,
-      "reason": "finalize-audit-teacher-and-TenantAccess"
+      "method": "FinalizeAuditAsync",
+      "occurrence": 1,
+      "reason": "finalize-audit-teacher-and-TenantAccess",
+      "line": 96
     },
     {
       "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
-      "line": 196,
-      "reason": "conversation-then-TenantAccess"
+      "method": "GetConversation",
+      "occurrence": 1,
+      "reason": "conversation-then-TenantAccess",
+      "line": 196
     },
     {
       "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
-      "line": 252,
-      "reason": "inbox-explicit-tenant-predicate"
+      "method": "GetInbox",
+      "occurrence": 1,
+      "reason": "inbox-explicit-tenant-predicate",
+      "line": 252
     },
     {
       "file": "services/communication-service/src/Api/CommunicationEndpoints.cs",
-      "line": 257,
-      "reason": "inbox-explicit-tenant-predicate"
+      "method": "GetInbox",
+      "occurrence": 2,
+      "reason": "inbox-explicit-tenant-predicate",
+      "line": 257
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 183,
-      "reason": "inherit-regional-parent-tree"
+      "method": "InheritCurriculum",
+      "occurrence": 1,
+      "reason": "inherit-regional-parent-tree",
+      "line": 183
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 343,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetCurriculum",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 343
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 365,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "UpdateCurriculum",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 365
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 402,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "DeleteCurriculum",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 402
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 431,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetTree",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 431
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1309,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindSubjectAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1309
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1327,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindUnitAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1327
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1349,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindTopicAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1349
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1372,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindLearningObjectiveAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1372
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1396,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindMicroSkillAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1396
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1416,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindCurriculumAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 1416
     },
     {
       "file": "services/curriculum-service/src/Api/CurriculumEndpoints.cs",
-      "line": 1500,
-      "reason": "variant-scope-after-Find-TenantAccess"
+      "method": "IsSchoolVariantAsync",
+      "occurrence": 1,
+      "reason": "variant-scope-after-Find-TenantAccess",
+      "line": 1500
     },
     {
       "file": "services/curriculum-service/src/Api/Program.cs",
-      "line": 59,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "startup-backfill",
+      "line": 54
     },
     {
       "file": "services/curriculum-service/src/Api/Program.cs",
-      "line": 64,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 2,
+      "reason": "startup-backfill",
+      "line": 59
     },
     {
       "file": "services/curriculum-service/src/Api/Program.cs",
-      "line": 70,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 3,
+      "reason": "startup-backfill",
+      "line": 65
     },
     {
       "file": "services/curriculum-service/src/Api/Program.cs",
-      "line": 76,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 4,
+      "reason": "startup-backfill",
+      "line": 71
     },
     {
       "file": "services/curriculum-service/src/Api/Program.cs",
-      "line": 82,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 5,
+      "reason": "startup-backfill",
+      "line": 77
     },
     {
       "file": "services/diagnostic-service/src/Api/DiagnosticEndpoints.cs",
-      "line": 50,
-      "reason": "list-forbid-foreign-then-filter-tenant"
+      "method": "GetStudentDiagnostics",
+      "occurrence": 1,
+      "reason": "list-forbid-foreign-then-filter-tenant",
+      "line": 50
     },
     {
       "file": "services/edw-ingest-service/src/Infrastructure/EdwIngestProcessor.cs",
-      "line": 175,
-      "reason": "shared-calendar-dim-default-tenant"
+      "method": "EnsureTimeDimensionAsync",
+      "occurrence": 1,
+      "reason": "shared-calendar-dim-default-tenant",
+      "line": 175
     },
     {
       "file": "services/ei-service/src/Infrastructure/Ai/AiSummaryDraftService.cs",
-      "line": 127,
-      "reason": "finalize-audit-teacher-and-TenantAccess"
+      "method": "FinalizeAuditAsync",
+      "occurrence": 1,
+      "reason": "finalize-audit-teacher-and-TenantAccess",
+      "line": 127
     },
     {
       "file": "services/evidence-service/src/Api/EvidenceEndpoints.cs",
-      "line": 309,
-      "reason": "lookup-by-id-then-TenantAccess-on-callers"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess-on-callers",
+      "line": 309
     },
     {
       "file": "services/evidence-service/src/Api/Program.cs",
-      "line": 61,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "startup-backfill",
+      "line": 56
     },
     {
       "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
-      "line": 129,
-      "reason": "list-forbid-foreign-then-filter-tenant"
+      "method": "ListInterventions",
+      "occurrence": 1,
+      "reason": "list-forbid-foreign-then-filter-tenant",
+      "line": 129
     },
     {
       "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
-      "line": 255,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetIntervention",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 255
     },
     {
       "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
-      "line": 289,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "PatchIntervention",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 289
     },
     {
       "file": "services/learning-gap-service/src/Api/GapEndpoints.cs",
-      "line": 49,
-      "reason": "list-forbid-foreign-then-filter-tenant"
+      "method": "GetStudentGaps",
+      "occurrence": 1,
+      "reason": "list-forbid-foreign-then-filter-tenant",
+      "line": 49
     },
     {
       "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
-      "line": 50,
-      "reason": "list-forbid-foreign-then-filter-tenant"
+      "method": "GetStudentMastery",
+      "occurrence": 1,
+      "reason": "list-forbid-foreign-then-filter-tenant",
+      "line": 50
     },
     {
       "file": "services/mastery-service/src/Api/MasteryEndpoints.cs",
-      "line": 108,
-      "reason": "list-forbid-foreign-then-filter-tenant"
+      "method": "GetParentMasterySummary",
+      "occurrence": 1,
+      "reason": "list-forbid-foreign-then-filter-tenant",
+      "line": 108
     },
     {
       "file": "services/notification-service/src/Api/NotificationEndpoints.cs",
-      "line": 47,
-      "reason": "mark-read-TenantAccess-and-recipient"
+      "method": "MarkAsRead",
+      "occurrence": 1,
+      "reason": "mark-read-TenantAccess-and-recipient",
+      "line": 47
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 105,
-      "reason": "duplicate-code-uniqueness-across-tenants"
+      "method": "CreateOrganisation",
+      "occurrence": 1,
+      "reason": "duplicate-code-uniqueness-across-tenants",
+      "line": 105
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 133,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetOrganisation",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 133
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 167,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "UpdateOrganisation",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 167
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 186,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "UpdateOrganisation",
+      "occurrence": 2,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 186
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 210,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "DeleteOrganisation",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 210
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 908,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindOrganisationAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 908
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 927,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindYearLevelAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 927
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 947,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "FindClassAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 947
     },
     {
       "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
-      "line": 56,
-      "reason": "enrollment-tenant-predicate"
+      "method": "LinkParentToStudent",
+      "occurrence": 1,
+      "reason": "enrollment-tenant-predicate",
+      "line": 56
     },
     {
       "file": "services/organisation-service/src/Api/Program.cs",
-      "line": 62,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 1,
+      "reason": "startup-backfill",
+      "line": 57
     },
     {
       "file": "services/organisation-service/src/Api/Program.cs",
-      "line": 67,
-      "reason": "startup-backfill"
+      "method": "<top-level>",
+      "occurrence": 2,
+      "reason": "startup-backfill",
+      "line": 62
     },
     {
       "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
-      "line": 150,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetReport",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 150
     },
     {
       "file": "services/reporting-service/src/Api/ReportEndpoints.cs",
-      "line": 199,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "ExportReportPdf",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 199
     },
     {
       "file": "services/reporting-service/src/Infrastructure/Analytics/LongitudinalAnalyticsQuery.cs",
-      "line": 23,
-      "reason": "shared-calendar-dim-default-tenant"
+      "method": "GetStudentLongitudinalAsync",
+      "occurrence": 1,
+      "reason": "shared-calendar-dim-default-tenant",
+      "line": 23
     },
     {
       "file": "services/reporting-service/src/Infrastructure/Analytics/LongitudinalAnalyticsQuery.cs",
-      "line": 60,
-      "reason": "shared-calendar-dim-default-tenant"
+      "method": "GetOrganisationLongitudinalAsync",
+      "occurrence": 1,
+      "reason": "shared-calendar-dim-default-tenant",
+      "line": 60
     },
     {
       "file": "services/reporting-service/src/Infrastructure/DependencyInjection.cs",
-      "line": 166,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetReportAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 166
     },
     {
       "file": "services/reporting-service/src/Infrastructure/DependencyInjection.cs",
-      "line": 185,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "ExportReportPdfAsync",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 185
     },
     {
       "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
-      "line": 52,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetProfile",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 52
     },
     {
       "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
-      "line": 100,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "GetProfileSummary",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 100
     },
     {
       "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
-      "line": 228,
-      "reason": "lookup-by-id-then-TenantAccess"
+      "method": "RecordEvidence",
+      "occurrence": 1,
+      "reason": "lookup-by-id-then-TenantAccess",
+      "line": 228
     }
   ]
 }
