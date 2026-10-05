@@ -113,7 +113,7 @@ Workspace packages: `apps/web-portal`, `testing/e2e`.
 
 ### Security headers
 
-Source scan of `services/*/src/Api/Program.cs` and related middleware: **no** `UseHsts`, `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`, or `Permissions-Policy` middleware.
+Shared middleware `UseWePlatformSecurityHeaders` sets HSTS (outside Development/Testing), `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` on all APIs. Portal mirrors these in `apps/web-portal/next.config.ts`.
 
 | Header / control | Status |
 |------------------|--------|
