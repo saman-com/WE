@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LearningFrame } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   assignTeacher,
@@ -107,14 +108,17 @@ export default function OrganisationSetupPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{t("dashboard.nav.organisationSetup")}</h1>
-          <Link href="/dashboard" className="text-sm underline">
-            {t("common.dashboard")}
-          </Link>
-        </div>
+    <LearningFrame
+      eyebrow="WE"
+      title={profile.name}
+      onSignOut={() => {
+        localStorage.removeItem("we_access_token");
+        router.push("/login");
+      }}
+      signOutLabel={t("common.signOut")}
+    >
+      <div className="mx-auto max-w-xl space-y-6">
+        <h1 className="text-2xl font-semibold">{t("dashboard.nav.organisationSetup")}</h1>
 
         <p className="text-sm text-black/60">
           {t("organisation.intro")}
@@ -330,6 +334,6 @@ export default function OrganisationSetupPage() {
           </button>
         </form>
       </div>
-    </div>
+    </LearningFrame>
   );
 }

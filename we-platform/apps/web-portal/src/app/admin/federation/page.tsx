@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LearningFrame } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -179,15 +180,22 @@ export default function FederationAdminPage() {
     );
   }
 
+  if (!profile) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{t("dashboard.nav.federationAdmin")}</h1>
-          <Link href="/dashboard" className="text-sm underline">
-            {t("common.backToDashboard")}
-          </Link>
-        </div>
+    <LearningFrame
+      eyebrow="WE"
+      title={profile.name}
+      onSignOut={() => {
+        localStorage.removeItem("we_access_token");
+        router.push("/login");
+      }}
+      signOutLabel={t("common.signOut")}
+    >
+      <div className="space-y-8">
+        <h1 className="text-2xl font-semibold">{t("dashboard.nav.federationAdmin")}</h1>
 
         {error ? <p className="text-red-600">{error}</p> : null}
         {success ? <p className="text-green-700">{success}</p> : null}
@@ -319,6 +327,6 @@ export default function FederationAdminPage() {
           </form>
         </section>
       </div>
-    </div>
+    </LearningFrame>
   );
 }

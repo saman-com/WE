@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LearningFrame } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
 import {
@@ -243,14 +244,17 @@ export default function CurriculumPage() {
     .find((objective) => objective.id === microSkillObjectiveId);
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{t("dashboard.nav.curriculum")}</h1>
-          <Link href="/dashboard" className="text-sm underline">
-            {t("common.dashboard")}
-          </Link>
-        </div>
+    <LearningFrame
+      eyebrow="WE"
+      title={profile.name}
+      onSignOut={() => {
+        localStorage.removeItem("we_access_token");
+        router.push("/login");
+      }}
+      signOutLabel={t("common.signOut")}
+    >
+      <div className="mx-auto max-w-3xl space-y-6">
+        <h1 className="text-2xl font-semibold">{t("dashboard.nav.curriculum")}</h1>
 
         <p className="text-sm text-black/60">
           {t("curriculum.intro")}
@@ -874,6 +878,6 @@ export default function CurriculumPage() {
           </button>
         </form>
       </div>
-    </div>
+    </LearningFrame>
   );
 }

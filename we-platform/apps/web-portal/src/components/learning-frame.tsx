@@ -124,3 +124,26 @@ export function PrimaryLink({
     </Link>
   );
 }
+
+export function PrimaryButton({
+  children,
+  disabled,
+  type = "button",
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  type?: "button" | "submit";
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex rounded-lg bg-[#1c1917] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}

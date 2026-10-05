@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LearningFrame } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchRegionalConfiguration,
@@ -142,26 +143,31 @@ export default function RegionalConfigurationAdminPage() {
     );
   }
 
+  if (!profile) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{t("dashboard.nav.regionalConfiguration")}</h1>
-            <p className="text-sm text-black/70">
-              {t("admin.regional.subtitle")}
+    <LearningFrame
+      eyebrow="WE"
+      title={profile.name}
+      onSignOut={() => {
+        localStorage.removeItem("we_access_token");
+        router.push("/login");
+      }}
+      signOutLabel={t("common.signOut")}
+    >
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.regionalConfiguration")}</h1>
+          <p className="text-sm text-black/70">{t("admin.regional.subtitle")}</p>
+          {hasRealUpdate(updatedAt) ? (
+            <p className="mt-1 text-xs text-black/50">
+              {t("admin.regional.lastUpdated", {
+                date: new Date(updatedAt!).toLocaleString(),
+              })}
             </p>
-            {hasRealUpdate(updatedAt) ? (
-              <p className="text-xs text-black/50 mt-1">
-                {t("admin.regional.lastUpdated", {
-                  date: new Date(updatedAt).toLocaleString(),
-                })}
-              </p>
-            ) : null}
-          </div>
-          <Link href="/dashboard" className="text-sm underline">
-            {t("common.backToDashboard")}
-          </Link>
+          ) : null}
         </div>
 
         {error ? <p className="text-red-600 text-sm">{error}</p> : null}
@@ -431,6 +437,6 @@ export default function RegionalConfigurationAdminPage() {
           </button>
         </form>
       </div>
-    </div>
+    </LearningFrame>
   );
 }

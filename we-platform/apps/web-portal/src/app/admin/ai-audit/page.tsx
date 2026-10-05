@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LearningFrame } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { searchAiAuditLogs, type AiAuditLogEntry } from "@/lib/ai-gateway";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -89,19 +90,24 @@ export default function AiAuditAdminPage() {
     );
   }
 
+  if (!profile) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{t("dashboard.nav.aiAuditLogs")}</h1>
-            <p className="text-sm text-black/70">
-              {t("admin.aiAudit.subtitle")}
-            </p>
-          </div>
-          <Link href="/dashboard" className="text-sm underline">
-            {t("common.backToDashboard")}
-          </Link>
+    <LearningFrame
+      eyebrow="WE"
+      title={profile.name}
+      onSignOut={() => {
+        localStorage.removeItem("we_access_token");
+        router.push("/login");
+      }}
+      signOutLabel={t("common.signOut")}
+    >
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("dashboard.nav.aiAuditLogs")}</h1>
+          <p className="text-sm text-black/70">{t("admin.aiAudit.subtitle")}</p>
         </div>
 
         <form onSubmit={handleSearch} className="rounded-lg border border-black/10 p-4 grid gap-3 md:grid-cols-4">
@@ -184,6 +190,6 @@ export default function AiAuditAdminPage() {
           </table>
         </div>
       </div>
-    </div>
+    </LearningFrame>
   );
 }
