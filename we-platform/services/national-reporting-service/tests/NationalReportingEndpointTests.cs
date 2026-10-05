@@ -263,6 +263,27 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
         var body = await response.Content.ReadAsStringAsync();
         Assert.False(string.IsNullOrWhiteSpace(body));
         Assert.Contains("openapi", body, StringComparison.OrdinalIgnoreCase);
+
+        using var document = System.Text.Json.JsonDocument.Parse(body);
+        Assert.True(document.RootElement.TryGetProperty("paths", out var paths), "OpenAPI document missing paths");
+
+        string[] requiredPaths =
+        [
+            "/api/v1/national/enrollment",
+            "/api/v1/national/mastery-benchmarks",
+            "/api/v1/national/curriculum-coverage",
+            "/api/v1/policy-dashboards/trends",
+            "/api/v1/policy-dashboards/equity",
+            "/api/v1/policy-dashboards/curriculum-effectiveness",
+            "/api/v1/policy-dashboards/intervention-impact"
+        ];
+
+        foreach (var path in requiredPaths)
+        {
+            Assert.True(
+                paths.TryGetProperty(path, out _),
+                $"OpenAPI paths missing required endpoint: {path}");
+        }
     }
 
     [Fact]

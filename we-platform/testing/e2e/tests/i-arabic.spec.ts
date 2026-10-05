@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { storagePath } from "../helpers/auth";
+import type { UserKey } from "../helpers/users";
 
 test.describe("i. Arabic locale", () => {
   test("student, teacher, and parent pages use RTL and keep Arabic after reload", async ({
@@ -36,6 +37,31 @@ test.describe("i. Arabic locale", () => {
       await expect
         .poll(async () => page.evaluate(() => localStorage.getItem("we_locale")))
         .toBe("ar");
+
+      await context.close();
+    }
+  });
+
+  test("admin and privileged pages use RTL", async ({ browser }) => {
+    const routes: { role: UserKey; path: string }[] = [
+      { role: "federation", path: "/admin/federation" },
+      { role: "admin", path: "/admin/ai-audit" },
+      { role: "admin", path: "/admin/regional-configuration" },
+      { role: "admin", path: "/organisation" },
+      { role: "authority", path: "/authority" },
+      { role: "leader", path: "/leadership" },
+    ];
+
+    for (const { role, path } of routes) {
+      const context = await browser.newContext({ storageState: storagePath(role) });
+      const page = await context.newPage();
+
+      await page.goto(path);
+      await page.getByRole("combobox", { name: /Language|اللغة/i }).selectOption("ar");
+
+      await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+      await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+      await expect(page).not.toHaveURL(/\/login$/);
 
       await context.close();
     }

@@ -17,7 +17,7 @@ Updated: 2026-10-05 (batch 19 NFR; batches 18 Arabic + 8–10 homes/intervention
 | Sign-in | `/me` without token returns 401 | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`Me_WithoutToken_ReturnsUnauthorized`) | covered |
 | Sign-in | `/admin` requires Admin role (403 otherwise) | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`AdminEndpoint_WithoutAdminRole_ReturnsForbidden`, `AdminEndpoint_WithAdminRole_ReturnsOk`) | covered |
 | Sign-in | Expired token rejected on protected endpoints | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`Me_WithExpiredToken_ReturnsUnauthorized`) | covered |
-| Sign-in | Each role gets 403 on other roles' endpoints (matrix across portal routes / APIs) | e2e + backend | `we-platform/testing/e2e/tests/g-access-control.spec.ts` (role×path blocked cases); identity `AdminEndpoint_NonAdminRoles_ReturnForbidden` — not every API | partial |
+| Sign-in | Each role gets 403 on other roles' endpoints (matrix across portal routes / APIs) | e2e + backend | Catalog: `we-platform/testing/RoleAccess.Tests/` (`RoleAccessMatrixTests` + `role-access-catalog.json`). Executable Theory probes: identity `RoleAccessEndpointTests` (`/auth/me`, `/auth/admin`); organisation / assessment / federation / national-reporting / configuration `RoleAccessEndpointTests`. Portal path blocks remain in `g-access-control.spec.ts`. | covered |
 | Sign-in | Token survives page refresh | e2e | `we-platform/testing/e2e/tests/signin.spec.ts` (`token survives page refresh`) | covered |
 | Sign-in | Logout clears session and blocks protected pages | e2e | `we-platform/testing/e2e/tests/signin.spec.ts` (`logout clears session…`; identity has no logout API — UI clears `localStorage`) | covered |
 
@@ -139,13 +139,13 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | National API | Rate limit returns 429 | backend | `NationalReportingEndpointTests.NationalEndpoints_AreRateLimited` | covered |
 | National API | All seven aggregate endpoints | backend | 3 national (`enrollment`, `mastery-benchmarks`, `curriculum-coverage`) + 4 policy (`trends`, `equity`, `curriculum-effectiveness`, `intervention-impact`) in `NationalReportingEndpointTests` / `PolicyDashboardEndpointTests` | covered |
 | National API | Small counts suppressed (min group size &lt; 5) | backend | `NationalReporting:MinimumGroupSize` (default 5); `CountCell` `{ value, suppressed }`; totals suppress when any child suppressed; tests in `NationalReportingEndpointTests` / `PolicyDashboardEndpointTests`; SP-001 Ch.22.10 | covered |
-| National API | OpenAPI document matches the endpoints | backend | `NationalReportingEndpointTests.OpenApiDocumentation_IsPublishedAtApiV1Docs` (presence only; does not assert all seven paths) | partial |
+| National API | OpenAPI document matches the endpoints | backend | `NationalReportingEndpointTests.OpenApiDocumentation_IsPublishedAtApiV1Docs` (parses `/api/v1/docs` JSON and asserts all seven national + policy-dashboard paths) | covered |
 
 ## 18. Arabic
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Arabic | Pages render RTL | e2e / unit | `testing/e2e/tests/i-arabic.spec.ts` (student + teacher + parent); `apps/web-portal/src/components/language-switcher.test.tsx`; `i18n/i18n.test.ts` | partial (homes covered; not every admin page) |
+| Arabic | Pages render RTL | e2e / unit | `testing/e2e/tests/i-arabic.spec.ts` (student/teacher/parent homes + admin/privileged: `/admin/federation`, `/admin/ai-audit`, `/admin/regional-configuration`, `/organisation`, `/authority`, `/leadership`); `language-switcher.test.tsx`; `i18n/i18n.test.ts` | covered |
 | Arabic | No hard-coded English in source (locale scan) | unit | `i18n/i18n.test.ts` (en↔ar key lockstep; empty-state key coverage; scan for hard-coded English catalogue literals in `app/` + `components/`, allow-listed metadata) | covered |
 | Arabic | API error codes map to translated messages | unit / backend | `i18n/i18n.test.ts` (all `errors.*` catalogue entries + `errorMessageKey`); identity `Login_WithInvalidCredentials_ReturnsTranslatableErrorCode`; assessment validation error code | covered |
 
@@ -170,8 +170,8 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 |----------------|---------------------|
 | 2 School isolation | Exhaustive table-driven isolation (batch 2 + 2b complete: endpoint guard, IgnoreQueryFilters allow-list, fail-closed filter, federation A↔B) |
 | 6 Evidence | e2e UI locked; re-verify PUT/DELETE (fix product if editable) |
-| 17 National | Small-count suppression + OpenAPI path completeness; note SP-001 missing min group size |
-| 1 Sign-in | Role×API matrix remains partial (portal + identity admin covered) |
+| 17 National | Small-count suppression + OpenAPI path completeness ✓ |
+| 1 Sign-in | Role×API matrix covered (catalog + identity + org/assessment/federation/national/config Theories; portal g-access-control) |
 | 11 AI | Student never sees draft; real provider retest deferred |
 | 12–13 | Unread count not required; email delivery deferred |
 | 3 Org | Duplicates; delete class with students; explicit assign-leader assertion | ✓ filled |
@@ -180,7 +180,7 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 | 14 Leadership | Seeded expected values vs dashboard | ✓ filled |
 | 15 Analytics | Empty chart behaviour; tighten seed aggregate assertions | ✓ filled |
 | 16 Federation / config | School-admin policy/school create completeness | ✓ filled |
-| 18 Arabic | Full-page RTL + source literal scan + error catalogue | ✓ filled (RTL homes; catalogue scan; errors.*) |
+| 18 Arabic | Full-page RTL + source literal scan + error catalogue | ✓ filled (RTL homes + admin/privileged; catalogue scan; errors.*) |
 | 8–10 Homes / interventions | Empty states, filters, status changes in e2e | ✓ filled |
 | 19 Non-functional | NFR report written; unit SLA + audits + health sample done; k6 + restore/e2e + header middleware still open |
 

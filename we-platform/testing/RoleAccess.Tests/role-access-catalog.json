@@ -1,0 +1,118 @@
+{
+  "roles": [
+    "Student",
+    "Teacher",
+    "Parent",
+    "SchoolLeader",
+    "SystemAdministrator",
+    "FederationAdmin",
+    "EducationAuthorityOfficer"
+  ],
+  "probes": [
+    {
+      "service": "identity-service",
+      "method": "GET",
+      "route": "/api/v1/auth/me",
+      "test": "IdentityService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 200,
+        "Teacher": 200,
+        "Parent": 200,
+        "SchoolLeader": 200,
+        "SystemAdministrator": 200,
+        "FederationAdmin": 200,
+        "EducationAuthorityOfficer": 200
+      }
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
+      "route": "/api/v1/auth/admin",
+      "test": "IdentityService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 403,
+        "Teacher": 403,
+        "Parent": 403,
+        "SchoolLeader": 403,
+        "SystemAdministrator": 200,
+        "FederationAdmin": 403,
+        "EducationAuthorityOfficer": 403
+      }
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/organisations",
+      "test": "OrganisationService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 200,
+        "Teacher": 200,
+        "Parent": 403,
+        "SchoolLeader": 200,
+        "SystemAdministrator": 200,
+        "FederationAdmin": 403,
+        "EducationAuthorityOfficer": 403
+      }
+    },
+    {
+      "service": "assessment-service",
+      "method": "GET",
+      "route": "/api/v1/assessments/class-summary",
+      "test": "AssessmentService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 403,
+        "Teacher": 200,
+        "Parent": 403,
+        "SchoolLeader": 200,
+        "SystemAdministrator": 200,
+        "FederationAdmin": 403,
+        "EducationAuthorityOfficer": 403
+      }
+    },
+    {
+      "service": "federation-service",
+      "method": "GET",
+      "route": "/api/v1/federation/schools",
+      "test": "FederationService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 403,
+        "Teacher": 403,
+        "Parent": 403,
+        "SchoolLeader": 403,
+        "SystemAdministrator": 403,
+        "FederationAdmin": 200,
+        "EducationAuthorityOfficer": 403
+      }
+    },
+    {
+      "service": "national-reporting-service",
+      "method": "GET",
+      "route": "/api/v1/policy-dashboards/trends",
+      "test": "NationalReportingService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 403,
+        "Teacher": 403,
+        "Parent": 403,
+        "SchoolLeader": 403,
+        "SystemAdministrator": 403,
+        "FederationAdmin": 403,
+        "EducationAuthorityOfficer": 200
+      }
+    },
+    {
+      "service": "configuration-service",
+      "method": "PUT",
+      "route": "/api/v1/regional-configuration",
+      "test": "ConfigurationService.Tests.RoleAccessEndpointTests",
+      "expected": {
+        "Student": 403,
+        "Teacher": 403,
+        "Parent": 403,
+        "SchoolLeader": 200,
+        "SystemAdministrator": 200,
+        "FederationAdmin": 403,
+        "EducationAuthorityOfficer": 403
+      }
+    }
+  ]
+}

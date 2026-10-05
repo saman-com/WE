@@ -17,3 +17,5 @@ Running log for Step 2 batches. One line per completed batch.
 | 19 Non-functional | `cf77a6c`, `6ab5f7c` | nfr-report.md + PlatformSlaLoadTests p95 output; e2e webServer restore | Next.js critical advisories; OWASP headers missing; no compose k6 |
 | Next.js upgrade | `963ed39` | next@15.5.27 + eslint-config-next; postcss→8.5.28 via .pnpmfile.cjs; build/test/e2e | pnpm audit --prod clean of critical/high |
 | Security headers + CORS | `8c8086b` | WePlatform.AspNetCore headers+Cors; per-service SecurityHeadersEndpointTests; CorsExtensionsTests; portal next.config | none |
+| Role/API + Arabic + OpenAPI | pending | RoleAccess.Tests + per-service RoleAccessEndpointTests; i-arabic admin RTL; national OpenAPI 7 paths | none |
+| Cleanup stray national stubs | pending | Removed empty root services/databases national-reporting placeholders | none |
