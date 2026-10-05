@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useRegisterFrame } from "@/components/app-shell";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export type LearningTab = {
   id: string;
@@ -27,13 +29,16 @@ export function LearningFrame({
   onTabChange?: (id: string) => void;
   children: ReactNode;
 }) {
+  useRegisterFrame();
+
   return (
     <div className="we-learning">
       <div className="mx-auto w-full max-w-5xl px-4 pt-2 md:px-8">
-        <header className="flex items-baseline justify-between gap-4">
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <p className="text-sm font-semibold tracking-wide">{eyebrow}</p>
-          <div className="flex items-baseline gap-4">
+          <div className="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2">
             <p className="text-sm text-black/60">{title}</p>
+            <LanguageSwitcher />
             {onSignOut && signOutLabel ? (
               <button
                 type="button"
