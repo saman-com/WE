@@ -1,5 +1,5 @@
 import { readApiError } from "@/lib/api-error";
-import type { Paged } from "@/lib/paging";
+import { parsePaged, type Paged } from "@/lib/paging";
 
 const assessmentApiUrl =
   process.env.NEXT_PUBLIC_ASSESSMENT_API_URL ?? "http://localhost:8085";
@@ -63,7 +63,7 @@ async function assessmentRequest<T>(
   return response.json() as Promise<T>;
 }
 
-export function listAssessments(
+export async function listAssessments(
   token: string,
   organisationId: string,
   classId: string,
@@ -82,10 +82,11 @@ export function listAssessments(
   if (options?.cursor) {
     params.set("cursor", options.cursor);
   }
-  return assessmentRequest<Paged<Assessment>>(
+  const payload = await assessmentRequest<unknown>(
     token,
     `/api/v1/assessments?${params.toString()}`
   );
+  return parsePaged<Assessment>(payload);
 }
 
 export function createAssessment(

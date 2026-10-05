@@ -123,14 +123,16 @@ export default function StudentAssessmentsPage() {
         const initial =
           page.items.find((item) => item.id === requestedParam("assessmentId")) ?? page.items[0];
         setSelectedAssessmentId(initial?.id ?? "");
+        setError(null);
       })
       .catch(() => {
         setAssessments([]);
         setAssessmentsHasMore(false);
         setAssessmentsCursor(null);
         setSelectedAssessmentId("");
+        setError(t("common.requestFailed"));
       });
-  }, [token, selectedScope, message]);
+  }, [token, selectedScope, message, t]);
 
   async function loadMoreAssessments() {
     if (!token || !selectedScope || !assessmentsCursor || loadingMoreAssessments) {

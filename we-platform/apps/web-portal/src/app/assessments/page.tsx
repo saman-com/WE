@@ -154,13 +154,15 @@ export default function AssessmentsPage() {
         setAssessments(page.items);
         setAssessmentsHasMore(page.hasMore);
         setAssessmentsCursor(page.nextCursor);
+        setError(null);
       })
       .catch(() => {
         setAssessments([]);
         setAssessmentsHasMore(false);
         setAssessmentsCursor(null);
+        setError(t("common.requestFailed"));
       });
-  }, [token, organisationId, selectedClassId, message]);
+  }, [token, organisationId, selectedClassId, message, t]);
 
   async function loadMoreAssessments() {
     if (!token || !organisationId || !selectedClassId || !assessmentsCursor || loadingMoreAssessments) {

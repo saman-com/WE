@@ -1,4 +1,4 @@
-import type { Paged } from "@/lib/paging";
+import { UnexpectedPageError } from "@/lib/paging";
 
 const studentLearningApiUrl =
   process.env.NEXT_PUBLIC_STUDENT_LEARNING_API_URL ?? "http://localhost:8084";
@@ -24,6 +24,31 @@ export type StudentProfile = {
   hasMore: boolean;
   nextCursor: string | null;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function parseStudentProfile(value: unknown): StudentProfile {
+  if (
+    !isRecord(value) ||
+    typeof value.studentUserId !== "string" ||
+    !Array.isArray(value.enrollments) ||
+    !Array.isArray(value.evidenceTimeline) ||
+    typeof value.hasMore !== "boolean" ||
+    (value.nextCursor !== null && typeof value.nextCursor !== "string")
+  ) {
+    throw new UnexpectedPageError();
+  }
+
+  return {
+    studentUserId: value.studentUserId,
+    enrollments: value.enrollments as ClassEnrollmentSummary[],
+    evidenceTimeline: value.evidenceTimeline as EvidenceTimelineEntry[],
+    hasMore: value.hasMore,
+    nextCursor: value.nextCursor,
+  };
+}
 
 export function fetchStudentProfile(
   token: string,
@@ -52,13 +77,6 @@ export function fetchStudentProfile(
     if (!response.ok) {
       throw new Error(`Student profile request failed (${response.status}).`);
     }
-    const payload = (await response.json()) as StudentProfile & Partial<Paged<EvidenceTimelineEntry>>;
-    return {
-      studentUserId: payload.studentUserId,
-      enrollments: payload.enrollments,
-      evidenceTimeline: payload.evidenceTimeline,
-      hasMore: payload.hasMore ?? false,
-      nextCursor: payload.nextCursor ?? null,
-    };
+    return parseStudentProfile(await response.json());
   });
 }

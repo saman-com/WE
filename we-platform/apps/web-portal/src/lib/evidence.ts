@@ -1,4 +1,4 @@
-import type { Paged } from "@/lib/paging";
+import { parsePaged, type Paged } from "@/lib/paging";
 
 const evidenceApiUrl =
   process.env.NEXT_PUBLIC_EVIDENCE_API_URL ?? "http://localhost:8086";
@@ -52,7 +52,7 @@ async function evidenceRequest<T>(
   return response.json() as Promise<T>;
 }
 
-export function listEvidenceForAssessment(
+export async function listEvidenceForAssessment(
   token: string,
   assessmentId: string,
   options?: { pageSize?: number; cursor?: string | null; page?: number }
@@ -67,10 +67,11 @@ export function listEvidenceForAssessment(
   if (options?.cursor) {
     params.set("cursor", options.cursor);
   }
-  return evidenceRequest<Paged<Evidence>>(
+  const payload = await evidenceRequest<unknown>(
     token,
     `/api/v1/evidence?${params.toString()}`
   );
+  return parsePaged<Evidence>(payload);
 }
 
 export type StudentFeedback = {
@@ -81,7 +82,7 @@ export type StudentFeedback = {
   microSkillMarks: MicroSkillMark[];
 };
 
-export function listStudentFeedback(
+export async function listStudentFeedback(
   token: string,
   options?: {
     studentUserId?: string;
@@ -104,10 +105,11 @@ export function listStudentFeedback(
     params.set("cursor", options.cursor);
   }
   const query = params.toString();
-  return evidenceRequest<Paged<StudentFeedback>>(
+  const payload = await evidenceRequest<unknown>(
     token,
     `/api/v1/evidence/student-feedback${query ? `?${query}` : ""}`
   );
+  return parsePaged<StudentFeedback>(payload);
 }
 
 export function approveEvidence(
