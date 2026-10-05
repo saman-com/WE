@@ -88,6 +88,40 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
         Assert.Equal(expected, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Users_ForAdministrator_ReturnsNamesWithoutRequiringTheCallerToKnowIds()
+    {
+        var adminId = await ResolveAdminUserIdAsync();
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/users",
+            adminId,
+            DefaultTenant.Id,
+            PlatformRoles.SystemAdministrator);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var users = await response.Content.ReadFromJsonAsync<List<DirectoryUserResponse>>();
+        Assert.NotNull(users);
+        Assert.Contains(users, user => user.Name == "Demo Teacher" && user.Email == IdentityDataSeeder.TeacherEmail);
+    }
+
+    [Fact]
+    public async Task Users_ForTeacher_IsForbidden()
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/users",
+            IdentityDataSeeder.TeacherUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Teacher);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private async Task<string> ResolveAdminUserIdAsync()
     {
         await using var scope = _factory.Services.CreateAsyncScope();

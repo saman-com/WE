@@ -124,6 +124,34 @@ app.MapGet("/api/v1/auth/me", [Authorize] async (
 app.MapGet("/api/v1/auth/admin", [Authorize(Roles = PlatformRoles.SystemAdministrator)]
     () => Results.Ok(new { message = "admin access granted" }));
 
+app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin}")] async (
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    if (tenantContext.TenantId is null)
+    {
+        return Results.Forbid();
+    }
+
+    var users = await userManager.Users
+        .Where(user => user.TenantId == tenantContext.TenantId)
+        .OrderBy(user => user.DisplayName)
+        .ToListAsync();
+
+    var directory = new List<DirectoryUserResponse>();
+    foreach (var user in users)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        directory.Add(new DirectoryUserResponse(
+            user.Id,
+            user.DisplayName,
+            user.Email ?? string.Empty,
+            roles.ToList()));
+    }
+
+    return Results.Ok(directory);
+});
+
 app.Run();
 
 public partial class Program;

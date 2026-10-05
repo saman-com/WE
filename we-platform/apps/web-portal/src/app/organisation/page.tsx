@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import {
   assignTeacher,
   createClass,
@@ -43,6 +43,7 @@ export default function OrganisationSetupPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [schools, setSchools] = useState<Organisation[]>([]);
+  const [directory, setDirectory] = useState<DirectoryUser[]>([]);
   const [organisationId, setOrganisationId] = useState("");
   const [years, setYears] = useState<YearLevel[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -79,6 +80,7 @@ export default function OrganisationSetupPage() {
         setProfile(loaded);
         const existing = await listOrganisations(stored);
         setSchools(existing);
+        setDirectory(await listDirectoryUsers(stored).catch(() => []));
         if (existing[0]) {
           setOrganisationId(existing[0].id);
         }
@@ -444,7 +446,7 @@ export default function OrganisationSetupPage() {
               <ul className="mt-3 space-y-2 text-sm">
                 {people.map((person) => (
                   <li key={person.userId} className="flex items-center justify-between gap-2">
-                    <span>{person.userId}</span>
+                    <span>{personName(directory, person.userId, t("organisation.manage.unknownPerson"))}</span>
                     <TextButton
                       onClick={() => {
                         void run(async () => {
@@ -480,7 +482,14 @@ export default function OrganisationSetupPage() {
                 });
               }}
             >
-              <Field label={t("organisation.manage.userId")} value={userId} onChange={setUserId} />
+              <PersonSelect
+                label={t("organisation.manage.userId")}
+                value={userId}
+                onChange={setUserId}
+                people={directory.filter((person) =>
+                  person.roles.includes(tab === "staff" ? "Teacher" : "Student")
+                )}
+              />
               <PrimaryButton type="submit" disabled={busy || !classId}>
                 {t("organisation.manage.addPerson")}
               </PrimaryButton>
@@ -501,8 +510,18 @@ export default function OrganisationSetupPage() {
                 });
               }}
             >
-              <Field label={t("organisation.manage.parentId")} value={parentId} onChange={setParentId} />
-              <Field label={t("organisation.manage.studentId")} value={studentId} onChange={setStudentId} />
+              <PersonSelect
+                label={t("organisation.manage.parentId")}
+                value={parentId}
+                onChange={setParentId}
+                people={directory.filter((person) => person.roles.includes("Parent"))}
+              />
+              <PersonSelect
+                label={t("organisation.manage.studentId")}
+                value={studentId}
+                onChange={setStudentId}
+                people={directory.filter((person) => person.roles.includes("Student"))}
+              />
               <PrimaryButton type="submit" disabled={busy}>
                 {t("organisation.manage.addPerson")}
               </PrimaryButton>
@@ -528,7 +547,9 @@ export default function OrganisationSetupPage() {
               <ul className="mt-3 space-y-2 text-sm">
                 {links.map((link) => (
                   <li key={link.studentUserId} className="flex items-center justify-between gap-2">
-                    <span>{link.studentUserId}</span>
+                    <span>
+                      {personName(directory, link.studentUserId, t("organisation.manage.unknownPerson"))}
+                    </span>
                     <TextButton
                       onClick={() => {
                         void run(async () => {
@@ -588,6 +609,37 @@ function TextButton({
     <button type={type} onClick={onClick} className="text-sm text-black/60 underline-offset-2 hover:underline">
       {children}
     </button>
+  );
+}
+
+function PersonSelect({
+  label,
+  value,
+  onChange,
+  people,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  people: DirectoryUser[];
+}) {
+  return (
+    <label className="block space-y-1 text-sm">
+      <span>{label}</span>
+      <select
+        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      >
+        <option value="">{label}</option>
+        {people.map((person) => (
+          <option key={person.id} value={person.id}>
+            {person.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

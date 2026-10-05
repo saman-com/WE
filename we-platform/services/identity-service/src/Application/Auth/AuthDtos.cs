@@ -10,4 +10,10 @@ public sealed record UserProfileResponse(
     string Name,
     IReadOnlyList<string> Roles);
 
+public sealed record DirectoryUserResponse(
+    string Id,
+    string Name,
+    string Email,
+    IReadOnlyList<string> Roles);
+
 public sealed record ApiErrorResponse(string Code);

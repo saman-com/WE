@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
 import {
   assignSchoolAdmin,
@@ -40,6 +40,7 @@ export default function FederationAdminPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("overview");
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
 
   async function reload(token: string) {
     const [loadedSchools, loadedMetrics, loadedPolicies] = await Promise.all([
@@ -78,6 +79,7 @@ export default function FederationAdminPage() {
             setError(t("common.requestFailed"));
           }
         }
+        listDirectoryUsers(token).then(setPeople).catch(() => setPeople([]));
       })
       .catch((err: unknown) => {
         if (cancelled) {
@@ -250,7 +252,6 @@ export default function FederationAdminPage() {
                       {t("admin.federation.schoolLine", {
                         name: school.name,
                         code: school.code,
-                        tenantId: school.tenantId,
                       })}
                     </li>
                   ))}
@@ -323,12 +324,19 @@ export default function FederationAdminPage() {
               </label>
               <label className="block space-y-1 text-sm">
                 <span>{t("admin.federation.adminUserId")}</span>
-                <input
+                <select
                   className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
                   value={adminUserId}
                   onChange={(event) => setAdminUserId(event.target.value)}
                   required
-                />
+                >
+                  <option value="">{t("admin.federation.adminUserId")}</option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <PrimaryButton type="submit">{t("admin.federation.assignAdmin")}</PrimaryButton>
             </form>

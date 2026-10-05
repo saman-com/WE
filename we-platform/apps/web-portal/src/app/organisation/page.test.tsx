@@ -14,9 +14,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  fetchProfile: (token: string) => fetchProfile(token),
-}));
+const listDirectoryUsers = vi.fn();
+
+vi.mock("@/lib/auth", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/auth")>("@/lib/auth");
+  return {
+    ...actual,
+    fetchProfile: (token: string) => fetchProfile(token),
+    listDirectoryUsers: (token: string) => listDirectoryUsers(token),
+  };
+});
 
 vi.mock("@/lib/organisation", () => ({
   listOrganisations: (token: string) => listOrganisations(token),
@@ -56,6 +63,9 @@ describe("organisation manage view", () => {
     ]);
     listYearLevels.mockReset().mockResolvedValue([
       { id: "year-1", organisationId: "org-1", name: "Year 11", sortOrder: 11 },
+    ]);
+    listDirectoryUsers.mockReset().mockResolvedValue([
+      { id: "22222222-2222-2222-2222-222222222222", name: "Demo Student", email: "student@school.local", roles: ["Student"] },
     ]);
     listClasses.mockReset().mockResolvedValue([
       {

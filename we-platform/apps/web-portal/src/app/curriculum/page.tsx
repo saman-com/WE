@@ -672,11 +672,22 @@ export default function CurriculumPage() {
                 });
               }}
             >
-              <Labeled
-                value={parentCurriculumId}
-                onChange={setParentCurriculumId}
-                label={t("curriculum.label.parent")}
-              />
+              <label className="block space-y-1 text-sm">
+                <span>{t("curriculum.label.parent")}</span>
+                <select
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={parentCurriculumId}
+                  onChange={(event) => setParentCurriculumId(event.target.value)}
+                  required
+                >
+                  <option value="">{t("curriculum.label.parent")}</option>
+                  {curricula.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <PrimaryButton type="submit" disabled={busy || !organisationId}>
                 {t("curriculum.inheritButton")}
               </PrimaryButton>

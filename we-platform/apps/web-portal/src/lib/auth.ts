@@ -15,6 +15,24 @@ export type UserProfile = {
   roles: string[];
 };
 
+export type DirectoryUser = {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+};
+
+export function personName(people: DirectoryUser[], userId: string, unknownLabel: string): string {
+  const match = people.find((person) => person.id === userId);
+  if (match?.name) {
+    return match.name;
+  }
+  if (match?.email) {
+    return match.email;
+  }
+  return unknownLabel;
+}
+
 export async function login(
   email: string,
   password: string
@@ -27,6 +45,18 @@ export async function login(
 
   if (!response.ok) {
     throw await readApiError(response, "auth.invalid_credentials");
+  }
+
+  return response.json();
+}
+
+export async function listDirectoryUsers(token: string): Promise<DirectoryUser[]> {
+  const response = await fetch(`${identityApiUrl}/api/v1/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "errors.unknown");
   }
 
   return response.json();

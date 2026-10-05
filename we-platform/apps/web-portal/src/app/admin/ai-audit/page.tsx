@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { searchAiAuditLogs, type AiAuditLogEntry } from "@/lib/ai-gateway";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -12,6 +12,7 @@ export default function AiAuditAdminPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [directory, setDirectory] = useState<DirectoryUser[]>([]);
   const [logs, setLogs] = useState<AiAuditLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export default function AiAuditAdminPage() {
         }
 
         setProfile(loaded);
+        listDirectoryUsers(token).then(setDirectory).catch(() => setDirectory([]));
         try {
           const entries = await searchAiAuditLogs(token);
           setLogs(entries);
@@ -169,6 +171,7 @@ export default function AiAuditAdminPage() {
                 <li key={entry.id}>
                   <FocusCard>
                     <p className="font-medium">{entry.promptId}</p>
+                    <p className="text-sm">{personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}</p>
                     <p className="text-sm">{entry.outcome}</p>
                     <p className="text-sm text-black/60">{entry.providerName}</p>
                     <p className="text-sm text-black/60">
@@ -196,7 +199,9 @@ export default function AiAuditAdminPage() {
                       <td className="p-3 whitespace-nowrap">
                         {new Date(entry.createdAt).toLocaleString()}
                       </td>
-                      <td className="p-3 font-mono text-xs">{entry.callerUserId}</td>
+                      <td className="p-3">
+                        {personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}
+                      </td>
                       <td className="p-3">{entry.promptId}</td>
                       <td className="p-3">{entry.outcome}</td>
                       <td className="p-3">{entry.providerName}</td>
