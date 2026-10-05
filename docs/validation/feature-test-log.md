@@ -19,4 +19,4 @@ Running log for Step 2 batches. One line per completed batch.
 | Security headers + CORS | `8c8086b` | WePlatform.AspNetCore headers+Cors; per-service SecurityHeadersEndpointTests; CorsExtensionsTests; portal next.config | none |
 | Role/API + Arabic + OpenAPI | `9097a6d` | RoleAccess.Tests + per-service RoleAccessEndpointTests; i-arabic admin RTL; national OpenAPI 7 paths | none |
 | Cleanup stray national stubs | `9097a6d` | Removed empty root services/databases national-reporting placeholders | none |
-| k6 load + restore drill | pending | testing/load k6 scripts; restore 19 DBs + e2e 40 passed | student-home & teacher-class p95 miss at 100 VU |
+| k6 load + restore drill | `2c8affe` | testing/load k6 scripts; restore 19 DBs + e2e 40 passed | student-home & teacher-class p95 miss at 100 VU |
