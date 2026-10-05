@@ -3,6 +3,7 @@ WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/events/WePlatform.Events.csproj shared/events/
 COPY shared/messaging/WePlatform.Messaging.csproj shared/messaging/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/mastery-service/src/Domain/MasteryService.Domain.csproj services/mastery-service/src/Domain/
 COPY services/mastery-service/src/Application/MasteryService.Application.csproj services/mastery-service/src/Application/
 COPY services/mastery-service/src/Infrastructure/MasteryService.Infrastructure.csproj services/mastery-service/src/Infrastructure/
@@ -11,6 +12,7 @@ RUN dotnet restore services/mastery-service/src/Api/MasteryService.Api.csproj
 COPY shared/events/ shared/events/
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/messaging/ shared/messaging/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/mastery-service/src/ services/mastery-service/src/
 RUN dotnet publish services/mastery-service/src/Api/MasteryService.Api.csproj -c Release -o /app/publish
 

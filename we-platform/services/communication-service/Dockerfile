@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/events/WePlatform.Events.csproj shared/events/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/communication-service/src/Domain/CommunicationService.Domain.csproj services/communication-service/src/Domain/
 COPY services/communication-service/src/Application/CommunicationService.Application.csproj services/communication-service/src/Application/
 COPY services/communication-service/src/Infrastructure/CommunicationService.Infrastructure.csproj services/communication-service/src/Infrastructure/
@@ -9,6 +10,7 @@ COPY services/communication-service/src/Api/CommunicationService.Api.csproj serv
 RUN dotnet restore services/communication-service/src/Api/CommunicationService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/events/ shared/events/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/communication-service/src/ services/communication-service/src/
 RUN dotnet publish services/communication-service/src/Api/CommunicationService.Api.csproj -c Release -o /app/publish
 

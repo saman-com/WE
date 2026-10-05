@@ -3,6 +3,7 @@ WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/events/WePlatform.Events.csproj shared/events/
 COPY shared/messaging/WePlatform.Messaging.csproj shared/messaging/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/evidence-service/src/Domain/EvidenceService.Domain.csproj services/evidence-service/src/Domain/
 COPY services/evidence-service/src/Application/EvidenceService.Application.csproj services/evidence-service/src/Application/
 COPY services/evidence-service/src/Infrastructure/EvidenceService.Infrastructure.csproj services/evidence-service/src/Infrastructure/
@@ -11,6 +12,7 @@ RUN dotnet restore services/evidence-service/src/Api/EvidenceService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/events/ shared/events/
 COPY shared/messaging/ shared/messaging/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/evidence-service/src/ services/evidence-service/src/
 RUN dotnet publish services/evidence-service/src/Api/EvidenceService.Api.csproj -c Release -o /app/publish
 

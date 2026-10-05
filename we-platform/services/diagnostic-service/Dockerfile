@@ -3,6 +3,7 @@ WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/events/WePlatform.Events.csproj shared/events/
 COPY shared/messaging/WePlatform.Messaging.csproj shared/messaging/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/diagnostic-service/src/Domain/DiagnosticService.Domain.csproj services/diagnostic-service/src/Domain/
 COPY services/diagnostic-service/src/Application/DiagnosticService.Application.csproj services/diagnostic-service/src/Application/
 COPY services/diagnostic-service/src/Infrastructure/DiagnosticService.Infrastructure.csproj services/diagnostic-service/src/Infrastructure/
@@ -11,6 +12,7 @@ RUN dotnet restore services/diagnostic-service/src/Api/DiagnosticService.Api.csp
 COPY shared/events/ shared/events/
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/messaging/ shared/messaging/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/diagnostic-service/src/ services/diagnostic-service/src/
 RUN dotnet publish services/diagnostic-service/src/Api/DiagnosticService.Api.csproj -c Release -o /app/publish
 

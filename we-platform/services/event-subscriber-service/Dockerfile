@@ -1,9 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/events/WePlatform.Events.csproj shared/events/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/event-subscriber-service/src/Api/EventSubscriberService.Api.csproj services/event-subscriber-service/src/Api/
 RUN dotnet restore services/event-subscriber-service/src/Api/EventSubscriberService.Api.csproj
 COPY shared/events/ shared/events/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/event-subscriber-service/src/ services/event-subscriber-service/src/
 RUN dotnet publish services/event-subscriber-service/src/Api/EventSubscriberService.Api.csproj -c Release -o /app/publish
 

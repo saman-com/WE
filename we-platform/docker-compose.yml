@@ -60,8 +60,8 @@ services:
 
   sample-service:
     build:
-      context: ./examples/sample-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: examples/sample-service/Dockerfile
     ports:
       - "8080:8080"
     depends_on:

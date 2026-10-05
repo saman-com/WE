@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/events/WePlatform.Events.csproj shared/events/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/assessment-service/src/Domain/AssessmentService.Domain.csproj services/assessment-service/src/Domain/
 COPY services/assessment-service/src/Application/AssessmentService.Application.csproj services/assessment-service/src/Application/
 COPY services/assessment-service/src/Infrastructure/AssessmentService.Infrastructure.csproj services/assessment-service/src/Infrastructure/
@@ -9,6 +10,7 @@ COPY services/assessment-service/src/Api/AssessmentService.Api.csproj services/a
 RUN dotnet restore services/assessment-service/src/Api/AssessmentService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/events/ shared/events/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/assessment-service/src/ services/assessment-service/src/
 RUN dotnet publish services/assessment-service/src/Api/AssessmentService.Api.csproj -c Release -o /app/publish
 

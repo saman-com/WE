@@ -1,12 +1,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/configuration-service/src/Domain/ConfigurationService.Domain.csproj services/configuration-service/src/Domain/
 COPY services/configuration-service/src/Application/ConfigurationService.Application.csproj services/configuration-service/src/Application/
 COPY services/configuration-service/src/Infrastructure/ConfigurationService.Infrastructure.csproj services/configuration-service/src/Infrastructure/
 COPY services/configuration-service/src/Api/ConfigurationService.Api.csproj services/configuration-service/src/Api/
 RUN dotnet restore services/configuration-service/src/Api/ConfigurationService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/configuration-service/src/ services/configuration-service/src/
 RUN dotnet publish services/configuration-service/src/Api/ConfigurationService.Api.csproj -c Release -o /app/publish
 

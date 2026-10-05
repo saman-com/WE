@@ -20,7 +20,7 @@ Playwright + TypeScript against the real Next.js portal and docker-compose backe
 
 ### Portal hosting choice
 
-The web portal is **not** added to `docker-compose.yml`. Playwright starts it via `webServer` in `testing/e2e/playwright.config.ts` (`next dev` on `http://localhost:3000`). The `pnpm e2e` script brings up compose services, waits for every `/health` endpoint, runs `scripts/seed-demo.sh`, then runs Playwright (which starts the portal).
+The web portal is **not** added to `docker-compose.yml`. Playwright starts it via `webServer` in `testing/e2e/playwright.config.ts` (`next dev` on `http://localhost:3000`). The `pnpm e2e` script **rebuilds** compose service images (serial `docker compose build` per service, then `up -d`), waits for every `/health` endpoint, runs `scripts/seed-demo.sh`, then runs Playwright (which starts the portal). Rebuild is mandatory so local runs cannot pass against stale images. Set `E2E_COMPOSE_PARALLEL=1` on larger hosts/CI to rebuild in one parallel pass.
 
 Use `localhost` (not `127.0.0.1`) so identity CORS (`http://localhost:3000`) allows browser login.
 

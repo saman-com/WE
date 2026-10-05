@@ -1,10 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/national-reporting-service/src/Domain/NationalReportingService.Domain.csproj services/national-reporting-service/src/Domain/
 COPY services/national-reporting-service/src/Application/NationalReportingService.Application.csproj services/national-reporting-service/src/Application/
 COPY services/national-reporting-service/src/Infrastructure/NationalReportingService.Infrastructure.csproj services/national-reporting-service/src/Infrastructure/
 COPY services/national-reporting-service/src/Api/NationalReportingService.Api.csproj services/national-reporting-service/src/Api/
 RUN dotnet restore services/national-reporting-service/src/Api/NationalReportingService.Api.csproj
+COPY shared/aspnet/ shared/aspnet/
 COPY services/national-reporting-service/src/ services/national-reporting-service/src/
 RUN dotnet publish services/national-reporting-service/src/Api/NationalReportingService.Api.csproj -c Release -o /app/publish
 

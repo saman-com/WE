@@ -1,12 +1,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
+COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
 COPY services/ai-gateway-service/src/Domain/AiGatewayService.Domain.csproj services/ai-gateway-service/src/Domain/
 COPY services/ai-gateway-service/src/Application/AiGatewayService.Application.csproj services/ai-gateway-service/src/Application/
 COPY services/ai-gateway-service/src/Infrastructure/AiGatewayService.Infrastructure.csproj services/ai-gateway-service/src/Infrastructure/
 COPY services/ai-gateway-service/src/Api/AiGatewayService.Api.csproj services/ai-gateway-service/src/Api/
 RUN dotnet restore services/ai-gateway-service/src/Api/AiGatewayService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
+COPY shared/aspnet/ shared/aspnet/
 COPY services/ai-gateway-service/src/ services/ai-gateway-service/src/
 COPY ai/prompts/ ai/prompts/
 RUN dotnet publish services/ai-gateway-service/src/Api/AiGatewayService.Api.csproj -c Release -o /app/publish
