@@ -59,7 +59,11 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await db.Database.EnsureCreatedAsync();
     await db.BackfillTenantIdsAsync<ApplicationUser>(_ => DefaultTenant.Id);
-    await IdentityDataSeeder.SeedAsync(app.Services);
+    var environment = app.Services.GetRequiredService<IHostEnvironment>();
+    if (environment.IsDevelopment() || environment.IsEnvironment("Testing"))
+    {
+        await IdentityDataSeeder.SeedAsync(app.Services);
+    }
 }
 
 app.UseCors("WebPortal");
