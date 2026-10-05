@@ -22,6 +22,16 @@ const roleHomes: Record<(typeof roles)[number], RegExp> = {
   federation: /\/admin\/federation$/,
 };
 
+const roleData: Record<(typeof roles)[number], string | RegExp> = {
+  student: "Algebra check",
+  teacher: "Year 11 Mathematics",
+  parent: "Algebra sheet",
+  leader: "Year 11",
+  admin: "Demo school",
+  authority: /Total schools:\s*\d+/,
+  federation: "North Federation School",
+};
+
 const homeOrBack = /\b(home|back)\b|الرئيسية|العودة/i;
 const backToLogin = /back to login|العودة لتسجيل الدخول/i;
 
@@ -67,6 +77,11 @@ for (const role of roles) {
     await withRole(browser, role, async (page) => {
       await page.goto("/");
       await expect(page).toHaveURL(roleHomes[role]);
+      await expect(page.getByText(roleData[role]).first()).toBeVisible({ timeout: 30_000 });
+      if (role === "federation") {
+        await expect(page.getByText("shared-curriculum").first()).toBeVisible();
+        await expect(page.getByText("No metrics available.")).toHaveCount(0);
+      }
       const token = await page.evaluate(() => localStorage.getItem("we_access_token"));
       expect(token).toBeTruthy();
       await assertStillSignedIn(page, token!);

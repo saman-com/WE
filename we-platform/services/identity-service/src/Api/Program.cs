@@ -53,6 +53,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await db.Database.EnsureCreatedAsync();
+    if (db.Database.IsRelational())
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            """ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS federation_id uuid NULL""");
+    }
+
     await db.BackfillTenantIdsAsync<ApplicationUser>(_ => DefaultTenant.Id);
     var environment = app.Services.GetRequiredService<IHostEnvironment>();
     if (environment.IsDevelopment() || environment.IsEnvironment("Testing"))

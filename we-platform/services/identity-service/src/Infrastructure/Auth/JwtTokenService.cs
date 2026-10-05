@@ -22,6 +22,11 @@ public sealed class JwtTokenService(IConfiguration configuration, UserManager<Ap
             new(TenantClaimTypes.TenantId, user.TenantId.ToString())
         };
 
+        if (user.FederationId is Guid federationId)
+        {
+            claims.Add(new Claim(FederationClaimTypes.FederationId, federationId.ToString()));
+        }
+
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetSigningKey()));

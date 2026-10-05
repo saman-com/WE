@@ -52,6 +52,34 @@ public class TenantIsolationEndpointTests : IClassFixture<IdentityWebApplication
         Assert.Equal(DefaultTenant.Id.ToString(), tenantClaim.Value);
     }
 
+    [Fact]
+    public async Task Login_FederationAdmin_IncludesFederationIdClaim()
+    {
+        var token = await LoginAndGetTokenAsync(
+            IdentityDataSeeder.FederationAdminEmail,
+            IdentityDataSeeder.FederationAdminPassword);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        var federationClaim = jwt.Claims.FirstOrDefault(c => c.Type == FederationClaimTypes.FederationId);
+
+        Assert.NotNull(federationClaim);
+        Assert.Equal(IdentityDataSeeder.DemoFederationId, federationClaim.Value);
+    }
+
+    [Fact]
+    public async Task Login_Teacher_OmitsFederationIdClaim()
+    {
+        var token = await LoginAndGetTokenAsync(
+            IdentityDataSeeder.TeacherEmail,
+            IdentityDataSeeder.TeacherPassword);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+
+        Assert.DoesNotContain(jwt.Claims, claim => claim.Type == FederationClaimTypes.FederationId);
+    }
+
     private async Task<string> LoginAndGetTokenAsync(string email, string password)
     {
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, password));

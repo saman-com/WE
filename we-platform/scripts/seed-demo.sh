@@ -187,5 +187,40 @@ fi
 echo "Algebra check (due soon)"
 published_assessment "Algebra check" "$(utc_days +4)" >/dev/null
 
+echo "Federation school and policy for federation@ministry.local"
+# Identity puts this id on the FederationAdmin token. Insert directly: the
+# create-school API provisions regional configuration with no service credential
+# and that call is rejected.
+FED_ID=00000000-0000-4000-8000-0000000000f1
+psql -d we_federation <<SQL
+insert into federation_schools (
+  id, tenant_id, federation_id, name, code, enrollment_count, average_progress_percent,
+  has_default_configuration, created_at)
+select
+  '00000000-0000-4000-8000-0000000000f3',
+  '00000000-0000-4000-8000-0000000000f2',
+  '$FED_ID',
+  'North Federation School',
+  'DFED',
+  120,
+  68.5,
+  true,
+  now()
+where not exists (
+  select 1 from federation_schools where federation_id = '$FED_ID' and code = 'DFED'
+);
+insert into federation_policies (id, federation_id, policy_key, policy_value, updated_at)
+select
+  '00000000-0000-4000-8000-0000000000f4',
+  '$FED_ID',
+  'shared-curriculum',
+  'enabled',
+  now()
+where not exists (
+  select 1 from federation_policies
+  where federation_id = '$FED_ID' and policy_key = 'shared-curriculum'
+);
+SQL
+
 echo "Done. Sign in as teacher@school.local or student@school.local (Password123!)."
 echo "Also: leader@school.local, federation@ministry.local, teacher-b@schoolb.local, student-b@schoolb.local"

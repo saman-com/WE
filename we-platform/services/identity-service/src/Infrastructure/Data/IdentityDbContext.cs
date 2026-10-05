@@ -22,6 +22,7 @@ public sealed class IdentityDbContext(
                 .HasColumnName("tenant_id")
                 .IsRequired();
             entity.HasIndex(e => e.TenantId);
+            entity.Property(e => e.FederationId).HasColumnName("federation_id");
         });
     }
 

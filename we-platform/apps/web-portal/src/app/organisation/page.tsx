@@ -10,6 +10,7 @@ import {
   createOrganisation,
   createYearLevel,
   enrollStudent,
+  listOrganisations,
   type Organisation,
   type SchoolClass,
   type YearLevel,
@@ -37,6 +38,7 @@ export default function OrganisationSetupPage() {
   const [studentUserId, setStudentUserId] = useState(STUDENT_SEED_ID);
 
   const [organisation, setOrganisation] = useState<Organisation | null>(null);
+  const [schools, setSchools] = useState<Organisation[]>([]);
   const [yearLevel, setYearLevel] = useState<YearLevel | null>(null);
   const [schoolClass, setSchoolClass] = useState<SchoolClass | null>(null);
 
@@ -49,12 +51,17 @@ export default function OrganisationSetupPage() {
 
     setToken(stored);
     fetchProfile(stored)
-      .then((loaded) => {
+      .then(async (loaded) => {
         if (!loaded.roles.includes("SystemAdministrator")) {
           setError(t("organisation.adminOnly"));
           return;
         }
         setProfile(loaded);
+        try {
+          setSchools(await listOrganisations(stored));
+        } catch {
+          setSchools([]);
+        }
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
@@ -112,6 +119,14 @@ export default function OrganisationSetupPage() {
         <p className="text-sm text-black/60">
           {t("organisation.intro", { seedId: STUDENT_SEED_ID })}
         </p>
+
+        {schools.length > 0 ? (
+          <ul className="text-sm">
+            {schools.map((school) => (
+              <li key={school.id}>{school.name}</li>
+            ))}
+          </ul>
+        ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         {message ? <p className="text-sm text-green-700">{message}</p> : null}

@@ -28,6 +28,7 @@ public static class IdentityDataSeeder
     public const string FederationAdminEmail = "federation@ministry.local";
     public const string FederationAdminPassword = "Password123!";
     public const string FederationAdminUserId = "66666666-6666-6666-6666-666666666666";
+    public const string DemoFederationId = "00000000-0000-4000-8000-0000000000f1";
     public const string SchoolBTenantId = "00000000-0000-4000-8000-000000000002";
     public const string TeacherBEmail = "teacher-b@schoolb.local";
     public const string TeacherBPassword = "Password123!";
@@ -93,7 +94,8 @@ public static class IdentityDataSeeder
             FederationAdminPassword,
             "Demo Federation Admin",
             PlatformRoles.FederationAdmin,
-            FederationAdminUserId);
+            FederationAdminUserId,
+            federationId: Guid.Parse(DemoFederationId));
         await EnsureUserAsync(
             userManager,
             TeacherBEmail,
@@ -121,11 +123,23 @@ public static class IdentityDataSeeder
         string displayName,
         string role,
         string? userId = null,
-        Guid? tenantId = null)
+        Guid? tenantId = null,
+        Guid? federationId = null)
     {
         var user = await userManager.FindByEmailAsync(email);
         if (user is not null)
         {
+            if (federationId.HasValue && user.FederationId != federationId)
+            {
+                user.FederationId = federationId;
+                var update = await userManager.UpdateAsync(user);
+                if (!update.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to set federation id for {email}: {string.Join(", ", update.Errors.Select(e => e.Description))}");
+                }
+            }
+
             return;
         }
 
@@ -136,7 +150,8 @@ public static class IdentityDataSeeder
             Email = email,
             DisplayName = displayName,
             EmailConfirmed = true,
-            TenantId = tenantId ?? DefaultTenant.Id
+            TenantId = tenantId ?? DefaultTenant.Id,
+            FederationId = federationId
         };
 
         var result = await userManager.CreateAsync(user, password);
