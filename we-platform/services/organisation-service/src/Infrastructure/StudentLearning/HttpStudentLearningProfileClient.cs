@@ -51,6 +51,15 @@ public sealed class HttpStudentLearningProfileClient(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
+        var summaries = await GetProfileSummariesAsync([studentUserId], bearerToken, cancellationToken);
+        return summaries.FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<StudentProfileSummaryData>> GetProfileSummariesAsync(
+        IReadOnlyList<string> studentUserIds,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
         var baseUrl = configuration["StudentLearning:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -58,33 +67,37 @@ public sealed class HttpStudentLearningProfileClient(
             throw new InvalidOperationException("Student learning service is not configured.");
         }
 
+        if (studentUserIds.Count == 0)
+        {
+            return [];
+        }
+
+        var query = string.Join(
+            "&",
+            studentUserIds.Select(id => $"studentUserIds={Uri.EscapeDataString(id)}"));
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{baseUrl.TrimEnd('/')}/api/v1/students/{studentUserId}/profile/summary");
+            $"{baseUrl.TrimEnd('/')}/api/v1/students/profiles/summaries?{query}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning(
-                "Student learning profile summary failed with status {StatusCode}.",
+                "Student learning profile summaries failed with status {StatusCode}.",
                 response.StatusCode);
             response.EnsureSuccessStatusCode();
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<ProfileSummaryPayload>(
+        var payload = await response.Content.ReadFromJsonAsync<List<ProfileSummaryPayload>>(
             cancellationToken: cancellationToken);
-        return payload is null
-            ? null
-            : new StudentProfileSummaryData(
-                payload.StudentUserId,
-                payload.EvidenceCount,
-                payload.LatestActivityAt);
+        return payload?
+            .Select(item => new StudentProfileSummaryData(
+                item.StudentUserId,
+                item.EvidenceCount,
+                item.LatestActivityAt))
+            .ToList()
+            ?? [];
     }
 
     public async Task<StudentProfileData?> GetProfileAsync(

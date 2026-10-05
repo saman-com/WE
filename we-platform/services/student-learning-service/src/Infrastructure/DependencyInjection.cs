@@ -32,6 +32,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IProfileEvidenceProcessor, ProfileEvidenceProcessor>();
+        services.AddMemoryCache();
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
         services.AddStudentLearningMessaging(configuration, environment);
 

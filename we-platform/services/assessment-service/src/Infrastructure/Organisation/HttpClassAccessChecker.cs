@@ -1,23 +1,28 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using AssessmentService.Application;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using AssessmentService.Application;
 
 namespace AssessmentService.Infrastructure.Organisation;
 
 public sealed class HttpClassAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
+    IMemoryCache cache,
     ILogger<HttpClassAccessChecker> logger) : IClassAccessChecker
 {
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+
     public Task<bool> TeacherCanManageClassAsync(
         string teacherUserId,
         Guid organisationId,
         Guid classId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
-        CheckClassMembershipAsync(
+        CheckClassMembershipCachedAsync(
+            $"access:teacher:{teacherUserId}:class:{organisationId}:{classId}",
             teacherUserId,
             organisationId,
             classId,
@@ -31,7 +36,8 @@ public sealed class HttpClassAccessChecker(
         Guid classId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
-        CheckClassMembershipAsync(
+        CheckClassMembershipCachedAsync(
+            $"access:student:{studentUserId}:class:{organisationId}:{classId}",
             studentUserId,
             organisationId,
             classId,
@@ -49,7 +55,8 @@ public sealed class HttpClassAccessChecker(
         return schoolClass?.StudentUserIds ?? [];
     }
 
-    private async Task<bool> CheckClassMembershipAsync(
+    private async Task<bool> CheckClassMembershipCachedAsync(
+        string cacheKey,
         string userId,
         Guid organisationId,
         Guid classId,
@@ -57,26 +64,15 @@ public sealed class HttpClassAccessChecker(
         Func<ClassResponse, string, bool> isMember,
         CancellationToken cancellationToken)
     {
-        var baseUrl = configuration["Organisation:BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
+        if (cache.TryGetValue(cacheKey, out bool cached))
         {
-            logger.LogWarning("Organisation base URL is not configured.");
-            return false;
+            return cached;
         }
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"{baseUrl.TrimEnd('/')}/api/v1/organisations/{organisationId}/classes/{classId}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-
-        var schoolClass = await response.Content.ReadFromJsonAsync<ClassResponse>(cancellationToken);
-        return schoolClass is not null && isMember(schoolClass, userId);
+        var schoolClass = await GetClassAsync(organisationId, classId, bearerToken, cancellationToken);
+        var allowed = schoolClass is not null && isMember(schoolClass, userId);
+        cache.Set(cacheKey, allowed, CacheDuration);
+        return allowed;
     }
 
     private async Task<ClassResponse?> GetClassAsync(

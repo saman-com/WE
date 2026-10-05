@@ -20,3 +20,4 @@ Running log for Step 2 batches. One line per completed batch.
 | Role/API + Arabic + OpenAPI | `9097a6d` | RoleAccess.Tests + per-service RoleAccessEndpointTests; i-arabic admin RTL; national OpenAPI 7 paths | none |
 | Cleanup stray national stubs | `9097a6d` | Removed empty root services/databases national-reporting placeholders | none |
 | k6 load + restore drill | `2c8affe` | testing/load k6 scripts; restore 19 DBs + e2e 40 passed | student-home & teacher-class p95 miss at 100 VU |
+| k6 p95 hot-path fix | `00d1ff8` | pool 50 / max_connections 800; access-check cache; list caps; EI insights cache; k6 before/after | unbounded assessments/evidence; org access fan-out; connection saturation |

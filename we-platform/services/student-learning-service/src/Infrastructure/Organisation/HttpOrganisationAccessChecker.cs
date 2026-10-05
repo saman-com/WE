@@ -1,22 +1,54 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StudentLearningService.Application;
 
 namespace StudentLearningService.Infrastructure.Organisation;
 
+/// <summary>
+/// Organisation access via /api/v1/access/* with a short per-(user,student) cache.
+/// Keys always include both principals so results never cross schools/users.
+/// </summary>
 public sealed class HttpOrganisationAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
+    IMemoryCache cache,
     ILogger<HttpOrganisationAccessChecker> logger) : IOrganisationAccessChecker
 {
-    public async Task<bool> TeacherCanViewStudentAsync(
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+
+    public Task<bool> TeacherCanViewStudentAsync(
         string teacherUserId,
         string studentUserId,
         string bearerToken,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        CheckAccessCachedAsync(
+            $"access:teacher:{teacherUserId}:student:{studentUserId}",
+            $"/api/v1/access/teacher/{Uri.EscapeDataString(teacherUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
+            bearerToken,
+            cancellationToken);
+
+    private async Task<bool> CheckAccessCachedAsync(
+        string cacheKey,
+        string path,
+        string bearerToken,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(cacheKey, out bool cached))
+        {
+            return cached;
+        }
+
+        var allowed = await CheckAccessAsync(path, bearerToken, cancellationToken);
+        cache.Set(cacheKey, allowed, CacheDuration);
+        return allowed;
+    }
+
+    private async Task<bool> CheckAccessAsync(
+        string path,
+        string bearerToken,
+        CancellationToken cancellationToken)
     {
         var baseUrl = configuration["Organisation:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -25,62 +57,12 @@ public sealed class HttpOrganisationAccessChecker(
             return false;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl.TrimEnd('/')}/api/v1/organisations");
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}{path}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-
-        var organisations = await response.Content.ReadFromJsonAsync<List<OrganisationResponse>>(cancellationToken);
-        if (organisations is null)
-        {
-            return false;
-        }
-
-        foreach (var organisation in organisations)
-        {
-            using var classRequest = new HttpRequestMessage(
-                HttpMethod.Get,
-                $"{baseUrl.TrimEnd('/')}/api/v1/organisations/{organisation.Id}/classes");
-            classRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-            using var classResponse = await httpClient.SendAsync(classRequest, cancellationToken);
-            if (!classResponse.IsSuccessStatusCode)
-            {
-                continue;
-            }
-
-            var classes = await classResponse.Content.ReadFromJsonAsync<List<ClassResponse>>(cancellationToken);
-            if (classes is null)
-            {
-                continue;
-            }
-
-            foreach (var schoolClass in classes)
-            {
-                var teachesClass = schoolClass.TeacherUserIds?.Contains(teacherUserId) == true;
-                var hasStudent = schoolClass.StudentUserIds?.Contains(studentUserId) == true;
-                if (teachesClass && hasStudent)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return response.IsSuccessStatusCode;
     }
-
-    private sealed record OrganisationResponse(Guid Id, string Name, string Code);
-
-    private sealed record ClassResponse(
-        Guid Id,
-        Guid OrganisationId,
-        Guid YearLevelId,
-        string Name,
-        string Code,
-        IReadOnlyList<string>? TeacherUserIds,
-        IReadOnlyList<string>? StudentUserIds);
 }

@@ -52,30 +52,30 @@ public static class StudentWorkspaceEndpoints
             .OrderBy(e => e.Class.Name)
             .ToListAsync();
 
-        var assessmentTasks = enrollments
-            .Select(async enrollment =>
-            {
-                var summaries = await assessmentClient.ListStudentAssessmentSummariesAsync(
-                    enrollment.Class.OrganisationId,
-                    enrollment.ClassId,
-                    bearerToken);
-                return summaries.Select(summary => new StudentWorkspaceAssessmentSummary(
-                    summary.Id,
-                    enrollment.Class.OrganisationId,
-                    enrollment.ClassId,
-                    enrollment.Class.Name,
-                    summary.Title,
-                    summary.DueAt,
-                    summary.LearningObjectiveIds,
-                    summary.HasSubmitted,
-                    summary.SubmittedAt));
-            })
-            .ToList();
-        var assessmentGroups = await Task.WhenAll(assessmentTasks);
-        var assessments = assessmentGroups.SelectMany(item => item).ToList();
+        var assessmentsTask = Task.WhenAll(enrollments.Select(async enrollment =>
+        {
+            var summaries = await assessmentClient.ListStudentAssessmentSummariesAsync(
+                enrollment.Class.OrganisationId,
+                enrollment.ClassId,
+                bearerToken);
+            return summaries.Select(summary => new StudentWorkspaceAssessmentSummary(
+                summary.Id,
+                enrollment.Class.OrganisationId,
+                enrollment.ClassId,
+                enrollment.Class.Name,
+                summary.Title,
+                summary.DueAt,
+                summary.LearningObjectiveIds,
+                summary.HasSubmitted,
+                summary.SubmittedAt));
+        }));
+        var feedbackTask = evidenceClient.ListStudentFeedbackAsync(bearerToken);
+        var profileTask = profileClient.GetProfileAsync(studentUserId, bearerToken);
 
-        var feedbackItems = await evidenceClient.ListStudentFeedbackAsync(bearerToken);
-        var feedback = feedbackItems
+        await Task.WhenAll(assessmentsTask, feedbackTask, profileTask);
+
+        var assessments = (await assessmentsTask).SelectMany(item => item).ToList();
+        var feedback = (await feedbackTask)
             .Select(item => new StudentWorkspaceFeedbackSummary(
                 item.Id,
                 item.AssessmentId,
@@ -88,9 +88,7 @@ public static class StudentWorkspaceEndpoints
                         mark.Feedback))
                     .ToList()))
             .ToList();
-
-        var profile = await profileClient.GetProfileAsync(studentUserId, bearerToken);
-        var timeline = profile?.EvidenceTimeline
+        var timeline = (await profileTask)?.EvidenceTimeline
             .Select(entry => new StudentWorkspaceTimelineEntry(
                 entry.Id,
                 entry.Title,

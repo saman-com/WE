@@ -14,11 +14,72 @@ public static class StudentLearningEndpoints
     {
         var api = app.MapGroup("/api/v1/students").RequireAuthorization();
 
+        api.MapGet("/profiles/summaries", GetProfileSummaries);
         api.MapGet("/{studentUserId}/profile", GetProfile);
         api.MapGet("/{studentUserId}/profile/summary", GetProfileSummary);
         api.MapPost("/{studentUserId}/profile/enrollments", SyncEnrollment);
         api.MapPost("/{studentUserId}/profile/evidence", RecordEvidence);
     }
+
+    private static async Task<IResult> GetProfileSummaries(
+        [AsParameters] ProfileSummariesQuery query,
+        ClaimsPrincipal principal,
+        StudentLearningDbContext db,
+        IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
+        HttpContext httpContext)
+    {
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
+        var ids = (query.StudentUserIds ?? [])
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (ids.Count == 0)
+        {
+            return Results.Ok(Array.Empty<StudentProfileSummaryResponse>());
+        }
+
+        if (ids.Count > 200)
+        {
+            return Results.BadRequest();
+        }
+
+        foreach (var studentUserId in ids)
+        {
+            var access = await EvaluateProfileAccessAsync(
+                principal,
+                studentUserId,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (access is not null)
+            {
+                return access;
+            }
+        }
+
+        // Projection — avoid loading full evidence collections for summary counts.
+        var summaries = await db.Profiles
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(p => ids.Contains(p.StudentUserId) && p.TenantId == tenantContext.TenantId)
+            .Select(p => new StudentProfileSummaryResponse(
+                p.StudentUserId,
+                p.EvidenceEntries.Count,
+                p.EvidenceEntries
+                    .OrderByDescending(e => e.RecordedAt)
+                    .Select(e => (DateTimeOffset?)e.RecordedAt)
+                    .FirstOrDefault()))
+            .ToListAsync();
+
+        return Results.Ok(summaries);
+    }
+
+    private sealed record ProfileSummariesQuery(string[]? StudentUserIds);
 
     private static async Task<IResult> GetProfile(
         string studentUserId,
@@ -50,8 +111,11 @@ public static class StudentLearningEndpoints
 
         var profile = await db.Profiles
             .IgnoreQueryFilters()
+            .AsNoTracking()
             .Include(p => p.Enrollments)
-            .Include(p => p.EvidenceEntries)
+            .Include(p => p.EvidenceEntries
+                .OrderByDescending(e => e.RecordedAt)
+                .Take(50))
             .FirstOrDefaultAsync(p => p.StudentUserId == studentUserId);
 
         if (profile is null)

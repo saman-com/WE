@@ -228,9 +228,11 @@ public static class EvidenceEndpoints
         }
 
         var items = await db.Evidence
+            .AsNoTracking()
             .Include(e => e.MicroSkillMarks)
             .Where(e => e.StudentUserId == targetStudentUserId && e.Status == EvidenceStatuses.Approved)
             .OrderByDescending(e => e.ApprovedAt)
+            .Take(50)
             .ToListAsync();
 
         var feedback = items

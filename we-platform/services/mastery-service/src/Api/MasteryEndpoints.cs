@@ -138,6 +138,11 @@ public static class MasteryEndpoints
         }
 
         var userId = principal.UserId();
+        if (principal.IsStudent())
+        {
+            return userId == studentUserId ? null : Results.Forbid();
+        }
+
         if (principal.IsTeacher())
         {
             var token = ExtractBearerToken(authorizationHeader);
@@ -186,6 +191,9 @@ public static class MasteryEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsStudent(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.Student);
 
     private static bool IsParent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Parent);

@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IDiagnosticAnalysisEngine, DiagnosticAnalysisEngine>();
         services.AddScoped<IDiagnosticProcessor, DiagnosticProcessor>();
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
+        services.AddMemoryCache();
         services.AddDiagnosticMessaging(configuration, environment);
         return services;
     }

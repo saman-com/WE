@@ -16,6 +16,8 @@ API responses under concurrent load should meet **p95 / max ≤ 500 ms** (monito
 
 Scripts: `we-platform/testing/load/` (`./run-load.sh`). Executed 2026-10-05 against local compose (DURATION=20s).
 
+**Before** (baseline `run-summary-20261005T085457Z.txt` — pre-optimisation):
+
 | Scenario | VU=25 p95 | VU=100 p95 | vs 500 ms |
 |----------|-----------|------------|-----------|
 | login | 93 ms | 400 ms | OK |
@@ -25,8 +27,24 @@ Scripts: `we-platform/testing/load/` (`./run-load.sh`). Executed 2026-10-05 agai
 | leadership | 15 ms | 441 ms | OK |
 | authority | 30 ms | 320 ms | OK |
 
-Summary artifact: `testing/load/results/run-summary-20261005T085457Z.txt`.
-Misses filed as delivery bugs (no optimisation in this pass).
+**After** (`run-summary-20261005T101337Z.txt` — pool sizing, access-check cache, list caps, EI single-flight cache, dashboard/workspace parallelisation):
+
+| Scenario | VU=25 p95 | VU=100 p95 | vs 500 ms |
+|----------|-----------|------------|-----------|
+| login | 86 ms | 445 ms | OK |
+| student-home | 10 ms | **151 ms** | OK |
+| teacher-class | 11 ms | **264 ms** | OK |
+| approve-evidence | 74 ms | 365 ms | OK |
+| leadership | 25 ms | 236 ms | OK |
+| authority | 5 ms | 14 ms | OK |
+
+Root causes fixed (with evidence at 100 concurrent before cleanup):
+
+1. **Postgres connection saturation** — default `max_connections=100` + Npgsql pool 15 → `FATAL: too many clients`; raised to `max_connections=800` and `Maximum Pool Size=50` per service.
+2. **Organisation access fan-out** — per-request org×class enumeration replaced with `/api/v1/access/*` + 30s MemoryCache keyed by user+student/class (never cross-school).
+3. **Unbounded payloads** — repeated `seed-demo` left **6451 assessments** / **2859 evidence** rows for one student; list/feedback endpoints now `Take` capped; polluted rows truncated for re-measure.
+4. **EI insights thundering herd** — per-student mastery/gaps/diagnostics fan-out under 100 VU; 30s school-scoped cache with single-flight gate.
+5. **Sequential dashboard/workspace HTTP** — assessment + evidence + profile calls now `Task.WhenAll`.
 
 ### Unit / TestHost SLA results (executed)
 
@@ -59,7 +77,7 @@ pnpm exec vitest run src/lib/policy-dashboards.sla.test.ts
 
 ### Verdict
 
-**Partial.** Unit SLA OK; compose k6 executed — **2 scenarios miss p95 at 100 VU** (student-home, teacher-class).
+**Covered.** Unit SLA OK; compose k6 @25 and @100 VU all scenarios meet p95 &lt; 500 ms after connection-pool, access-check, and unbounded-load fixes.
 
 ---
 
@@ -233,7 +251,7 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 
 | Area | Status | Key number / note |
 |------|--------|-------------------|
-| Load / latency | partial | k6 @25 OK; **student-home & teacher-class p95 miss @100 VU** |
+| Load / latency | covered | k6 @25/@100 all OK; student-home 151 ms / teacher-class 264 ms p95 @100 (was 3269 / 507) |
 | Dependency vulns | covered | .NET: SSH.NET High (tests only); Node prod: **0 critical/high** (`next@15.5.27`) |
 | Headers / CORS | covered | Shared middleware + portal next.config; Cors:AllowedOrigins |
 | Secrets | covered | No committed private keys / `.env`; local `we_dev` placeholders only |

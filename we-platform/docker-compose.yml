@@ -3,6 +3,7 @@ services:
     image: postgres:16-alpine
     ports:
       - "5432:5432"
+    command: ["postgres", "-c", "max_connections=800"]
     environment:
       POSTGRES_USER: we
       POSTGRES_PASSWORD: we_dev
@@ -80,7 +81,7 @@ services:
       - "8081:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__IdentityDb: Host=postgres;Port=5432;Database=we_identity;Username=we;Password=we_dev
+      ConnectionStrings__IdentityDb: Host=postgres;Port=5432;Database=we_identity;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -96,7 +97,7 @@ services:
       - "8082:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__OrganisationDb: Host=postgres;Port=5432;Database=we_organisation;Username=we;Password=we_dev
+      ConnectionStrings__OrganisationDb: Host=postgres;Port=5432;Database=we_organisation;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -115,7 +116,7 @@ services:
       - "8083:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__CurriculumDb: Host=postgres;Port=5432;Database=we_curriculum;Username=we;Password=we_dev
+      ConnectionStrings__CurriculumDb: Host=postgres;Port=5432;Database=we_curriculum;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -131,7 +132,7 @@ services:
       - "8084:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__StudentLearningDb: Host=postgres;Port=5432;Database=we_learning;Username=we;Password=we_dev
+      ConnectionStrings__StudentLearningDb: Host=postgres;Port=5432;Database=we_learning;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -155,7 +156,7 @@ services:
       - "8085:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__AssessmentDb: Host=postgres;Port=5432;Database=we_assessment;Username=we;Password=we_dev
+      ConnectionStrings__AssessmentDb: Host=postgres;Port=5432;Database=we_assessment;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       AiGateway__BaseUrl: http://ai-gateway-service:8080
       RabbitMQ__Host: rabbitmq
@@ -182,7 +183,7 @@ services:
       - "8086:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__EvidenceDb: Host=postgres;Port=5432;Database=we_evidence;Username=we;Password=we_dev
+      ConnectionStrings__EvidenceDb: Host=postgres;Port=5432;Database=we_evidence;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -221,7 +222,7 @@ services:
       - "8088:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DiagnosticDb: Host=postgres;Port=5432;Database=we_diagnostic;Username=we;Password=we_dev
+      ConnectionStrings__DiagnosticDb: Host=postgres;Port=5432;Database=we_diagnostic;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -245,7 +246,7 @@ services:
       - "8089:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__GapDb: Host=postgres;Port=5432;Database=we_gaps;Username=we;Password=we_dev
+      ConnectionStrings__GapDb: Host=postgres;Port=5432;Database=we_gaps;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -269,7 +270,7 @@ services:
       - "8090:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__MasteryDb: Host=postgres;Port=5432;Database=we_mastery;Username=we;Password=we_dev
+      ConnectionStrings__MasteryDb: Host=postgres;Port=5432;Database=we_mastery;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -293,7 +294,7 @@ services:
       - "8091:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__EiDb: Host=postgres;Port=5432;Database=we_ei;Username=we;Password=we_dev
+      ConnectionStrings__EiDb: Host=postgres;Port=5432;Database=we_ei;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       Mastery__BaseUrl: http://mastery-service:8080
       Gaps__BaseUrl: http://learning-gap-service:8080
@@ -324,7 +325,7 @@ services:
       - "8093:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__AiGatewayDb: Host=postgres;Port=5432;Database=we_ai_gateway;Username=we;Password=we_dev
+      ConnectionStrings__AiGatewayDb: Host=postgres;Port=5432;Database=we_ai_gateway;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Prompts__RootPath: /app/prompts
       AiProvider__Provider: Mock
       Jwt__Issuer: we-platform-identity
@@ -342,7 +343,7 @@ services:
       - "8092:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__InterventionDb: Host=postgres;Port=5432;Database=we_interventions;Username=we;Password=we_dev
+      ConnectionStrings__InterventionDb: Host=postgres;Port=5432;Database=we_interventions;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
@@ -361,7 +362,7 @@ services:
       - "8094:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__CommunicationDb: Host=postgres;Port=5432;Database=we_communication;Username=we;Password=we_dev
+      ConnectionStrings__CommunicationDb: Host=postgres;Port=5432;Database=we_communication;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
@@ -385,7 +386,7 @@ services:
       - "8095:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__NotificationDb: Host=postgres;Port=5432;Database=we_notifications;Username=we;Password=we_dev
+      ConnectionStrings__NotificationDb: Host=postgres;Port=5432;Database=we_notifications;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
       RabbitMQ__Password: we_dev
@@ -406,8 +407,8 @@ services:
       - "8096:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__ReportingDb: Host=postgres;Port=5432;Database=we_reporting;Username=we;Password=we_dev
-      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev
+      ConnectionStrings__ReportingDb: Host=postgres;Port=5432;Database=we_reporting;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
+      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
       Ei__BaseUrl: http://ei-service:8080
       Jwt__Issuer: we-platform-identity
@@ -429,7 +430,7 @@ services:
       - "8097:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev
+      ConnectionStrings__EdwDb: Host=postgres;Port=5432;Database=we_edw;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
       RabbitMQ__Password: we_dev
@@ -447,7 +448,7 @@ services:
       - "8098:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__ConfigurationDb: Host=postgres;Port=5432;Database=we_configuration;Username=we;Password=we_dev
+      ConnectionStrings__ConfigurationDb: Host=postgres;Port=5432;Database=we_configuration;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -463,7 +464,7 @@ services:
       - "8099:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__FederationDb: Host=postgres;Port=5432;Database=we_federation;Username=we;Password=we_dev
+      ConnectionStrings__FederationDb: Host=postgres;Port=5432;Database=we_federation;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       ConfigurationService__BaseUrl: http://configuration-service:8080
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
@@ -482,7 +483,7 @@ services:
       - "8100:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__NationalReportingDb: Host=postgres;Port=5432;Database=we_national_reporting;Username=we;Password=we_dev
+      ConnectionStrings__NationalReportingDb: Host=postgres;Port=5432;Database=we_national_reporting;Username=we;Password=we_dev;Maximum Pool Size=50;Timeout=15
       NationalReporting__RateLimitPermitLimit: 60
       NationalReporting__RateLimitWindowSeconds: 60
       Jwt__Issuer: we-platform-identity

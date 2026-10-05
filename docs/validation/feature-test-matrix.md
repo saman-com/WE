@@ -153,7 +153,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | `testing/load/` + `nfr-report.md` §1 — VU25 all OK; VU100 **student-home p95=3269ms** and **teacher-class p95=507ms** miss 500ms target | partial |
+| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | `testing/load/` + `nfr-report.md` §1 — before/after: student-home @100 **3269→151 ms**, teacher-class **507→264 ms**; all scenarios OK @25/@100 | covered |
 | Security | Dependency vulnerability scan (`dotnet list package --vulnerable`, `pnpm audit`) | manual / script | `docs/validation/nfr-report.md` §2 — .NET clean except test-only SSH.NET High; portal `next@15.5.27` + postcss `8.5.28` via `.pnpmfile.cjs`; `pnpm audit --prod` 0 critical/high | covered |
 | Security | Basic OWASP header and CORS checks | backend / portal | Shared `WePlatform.AspNetCore` middleware on all APIs; portal `next.config.ts` headers; `Cors:AllowedOrigins` via `AddWePlatformCors` (Dev default localhost:3000); `SecurityHeadersEndpointTests` per service; `CorsExtensionsTests` | covered |
 | Security | Confirm no secrets committed | manual / script | `docs/validation/nfr-report.md` §4 — no committed `.env`/keys; local-dev `Password=we_dev` + JWT placeholders only | covered |

@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IMasteryCalculationEngine, MasteryCalculationEngine>();
         services.AddScoped<IMasteryProcessor, MasteryProcessor>();
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
+        services.AddMemoryCache();
         services.AddMasteryMessaging(configuration, environment);
         return services;
     }

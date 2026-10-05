@@ -26,6 +26,18 @@ public sealed class FakeStudentLearningProfileClient : IStudentLearningProfileCl
         return Task.FromResult(summary);
     }
 
+    public Task<IReadOnlyList<StudentProfileSummaryData>> GetProfileSummariesAsync(
+        IReadOnlyList<string> studentUserIds,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<StudentProfileSummaryData> result = studentUserIds
+            .Where(Summaries.ContainsKey)
+            .Select(id => Summaries[id])
+            .ToList();
+        return Task.FromResult(result);
+    }
+
     public Dictionary<string, StudentProfileData> Profiles { get; } = [];
 
     public Task<StudentProfileData?> GetProfileAsync(

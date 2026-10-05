@@ -66,13 +66,29 @@ public class MasteryEndpointTests : IClassFixture<MasteryWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Student_CannotViewMasteryEndpoint()
+    public async Task Student_CanViewOwnMasteryEndpoint()
     {
         var studentId = Guid.NewGuid().ToString();
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
             $"/api/v1/mastery/students/{studentId}",
+            studentId,
+            TestJwt.StudentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Student_CannotViewOtherStudentMasteryEndpoint()
+    {
+        var studentId = Guid.NewGuid().ToString();
+        var otherStudentId = Guid.NewGuid().ToString();
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/mastery/students/{otherStudentId}",
             studentId,
             TestJwt.StudentRole);
         var response = await _client.SendAsync(request);

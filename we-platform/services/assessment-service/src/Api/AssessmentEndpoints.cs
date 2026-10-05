@@ -104,6 +104,7 @@ public static class AssessmentEndpoints
         }
 
         var query = db.Assessments
+            .AsNoTracking()
             .Include(a => a.LearningObjectives)
             .Include(a => a.MicroSkills)
             .AsQueryable();
@@ -123,19 +124,33 @@ public static class AssessmentEndpoints
             query = query.Where(a => a.Status == AssessmentStatuses.Published);
         }
 
-        var assessments = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
+        var assessments = await query
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(100)
+            .ToListAsync();
+
+        // One organisation access check per (org, class) — never N HTTP calls per assessment row.
+        var accessByClass = new Dictionary<(Guid OrganisationId, Guid ClassId), bool>();
         var visible = new List<Assessment>();
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
 
         foreach (var assessment in assessments)
         {
-            var access = await EvaluateViewAccessAsync(
-                principal,
-                assessment.OrganisationId,
-                assessment.ClassId,
-                assessment.Status,
-                accessChecker,
-                httpContext.Request.Headers.Authorization.ToString());
-            if (access is null)
+            var key = (assessment.OrganisationId, assessment.ClassId);
+            if (!accessByClass.TryGetValue(key, out var allowed))
+            {
+                var access = await EvaluateViewAccessAsync(
+                    principal,
+                    assessment.OrganisationId,
+                    assessment.ClassId,
+                    assessment.Status,
+                    accessChecker,
+                    authHeader);
+                allowed = access is null;
+                accessByClass[key] = allowed;
+            }
+
+            if (allowed)
             {
                 visible.Add(assessment);
             }
@@ -255,6 +270,7 @@ public static class AssessmentEndpoints
         }
 
         var assessments = await db.Assessments
+            .AsNoTracking()
             .Include(a => a.LearningObjectives)
             .Include(a => a.Submissions)
             .Where(a =>
@@ -262,6 +278,7 @@ public static class AssessmentEndpoints
                 && a.ClassId == classId
                 && a.Status == AssessmentStatuses.Published)
             .OrderByDescending(a => a.DueAt ?? a.PublishedAt ?? a.CreatedAt)
+            .Take(50)
             .ToListAsync();
 
         var summaries = assessments

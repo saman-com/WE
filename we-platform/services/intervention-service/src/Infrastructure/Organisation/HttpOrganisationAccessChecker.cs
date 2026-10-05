@@ -16,12 +16,7 @@ public sealed class HttpOrganisationAccessChecker(
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
-        UserCanViewStudentAsync(
-            teacherUserId,
-            studentUserId,
-            bearerToken,
-            requireTeacherAssignment: true,
-            cancellationToken);
+        CheckTeacherAccessAsync(teacherUserId, studentUserId, bearerToken, cancellationToken);
 
     public Task<bool> SchoolLeaderCanViewStudentAsync(
         string schoolLeaderUserId,
@@ -66,6 +61,28 @@ public sealed class HttpOrganisationAccessChecker(
 
         var organisations = await response.Content.ReadFromJsonAsync<List<OrganisationResponse>>(cancellationToken);
         return organisations?.Any(org => org.Id == organisationId) == true;
+    }
+
+    private async Task<bool> CheckTeacherAccessAsync(
+        string teacherUserId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken)
+    {
+        var baseUrl = configuration["Organisation:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            logger.LogWarning("Organisation base URL is not configured.");
+            return false;
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{baseUrl.TrimEnd('/')}/api/v1/access/teacher/{Uri.EscapeDataString(teacherUserId)}/student/{Uri.EscapeDataString(studentUserId)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        return response.IsSuccessStatusCode;
     }
 
     private async Task<bool> CheckParentAccessAsync(

@@ -794,27 +794,33 @@ public static class OrganisationEndpoints
             return Results.Forbid();
         }
 
-        var assessmentSummaries = await assessmentClient.ListClassAssessmentSummariesAsync(
+        var studentIds = schoolClass.Enrollments.Select(e => e.StudentUserId).Distinct().ToList();
+        var assessmentTask = assessmentClient.ListClassAssessmentSummariesAsync(
             organisationId,
             classId,
             bearerToken);
-        var evidenceSummaries = await evidenceClient.ListClassEvidenceSummariesAsync(
+        var evidenceTask = evidenceClient.ListClassEvidenceSummariesAsync(
             organisationId,
             classId,
             bearerToken);
-        var reviewedByAssessment = evidenceSummaries.ToDictionary(item => item.AssessmentId, item => item.ReviewedCount);
+        var profilesTask = profileClient.GetProfileSummariesAsync(studentIds, bearerToken);
+        await Task.WhenAll(assessmentTask, evidenceTask, profilesTask);
 
-        var rosterTasks = schoolClass.Enrollments
-            .Select(async enrollment =>
+        var assessmentSummaries = await assessmentTask;
+        var evidenceSummaries = await evidenceTask;
+        var profileSummaries = await profilesTask;
+        var reviewedByAssessment = evidenceSummaries.ToDictionary(item => item.AssessmentId, item => item.ReviewedCount);
+        var summaryByStudent = profileSummaries.ToDictionary(item => item.StudentUserId, StringComparer.Ordinal);
+        var roster = studentIds
+            .Select(studentUserId =>
             {
-                var summary = await profileClient.GetProfileSummaryAsync(enrollment.StudentUserId, bearerToken);
+                summaryByStudent.TryGetValue(studentUserId, out var summary);
                 return new ClassDashboardStudentSummary(
-                    enrollment.StudentUserId,
+                    studentUserId,
                     summary?.EvidenceCount ?? 0,
                     summary?.LatestActivityAt);
             })
             .ToList();
-        var roster = await Task.WhenAll(rosterTasks);
 
         var recentAssessments = assessmentSummaries
             .Select(item => new ClassDashboardAssessmentSummary(

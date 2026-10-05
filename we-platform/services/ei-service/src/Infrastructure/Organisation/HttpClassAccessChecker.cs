@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using EiService.Application;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -9,8 +10,11 @@ namespace EiService.Infrastructure.Organisation;
 public sealed class HttpClassAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
+    IMemoryCache cache,
     ILogger<HttpClassAccessChecker> logger) : IClassAccessChecker
 {
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+
     public async Task<bool> TeacherCanManageClassAsync(
         string teacherUserId,
         Guid organisationId,
@@ -18,6 +22,12 @@ public sealed class HttpClassAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"access:teacher:{teacherUserId}:class:{organisationId}:{classId}";
+        if (cache.TryGetValue(cacheKey, out bool cached))
+        {
+            return cached;
+        }
+
         var baseUrl = configuration["Organisation:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -33,11 +43,14 @@ public sealed class HttpClassAccessChecker(
         using var response = await httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            cache.Set(cacheKey, false, CacheDuration);
             return false;
         }
 
         var schoolClass = await response.Content.ReadFromJsonAsync<ClassResponse>(cancellationToken);
-        return schoolClass?.TeacherUserIds?.Contains(teacherUserId) == true;
+        var allowed = schoolClass?.TeacherUserIds?.Contains(teacherUserId) == true;
+        cache.Set(cacheKey, allowed, CacheDuration);
+        return allowed;
     }
 
     public async Task<bool> SchoolLeaderCanViewClassAsync(
@@ -47,6 +60,12 @@ public sealed class HttpClassAccessChecker(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"access:leader:{schoolLeaderUserId}:class:{organisationId}:{classId}";
+        if (cache.TryGetValue(cacheKey, out bool cached))
+        {
+            return cached;
+        }
+
         var baseUrl = configuration["Organisation:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -60,7 +79,9 @@ public sealed class HttpClassAccessChecker(
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        return response.IsSuccessStatusCode;
+        var allowed = response.IsSuccessStatusCode;
+        cache.Set(cacheKey, allowed, CacheDuration);
+        return allowed;
     }
 
     private sealed record ClassResponse(

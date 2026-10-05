@@ -1,87 +1,64 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using MasteryService.Application;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace MasteryService.Infrastructure.Organisation;
 
+/// <summary>
+/// Organisation access via the dedicated /api/v1/access endpoints (not org×class fan-out),
+/// with a short per-(user,student) cache. Cache keys include both principals so results
+/// are never reused across different schools/users.
+/// </summary>
 public sealed class HttpOrganisationAccessChecker(
     HttpClient httpClient,
     IConfiguration configuration,
+    IMemoryCache cache,
     ILogger<HttpOrganisationAccessChecker> logger) : IOrganisationAccessChecker
 {
-    public async Task<bool> TeacherCanViewStudentAsync(
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+
+    public Task<bool> TeacherCanViewStudentAsync(
         string teacherUserId,
         string studentUserId,
         string bearerToken,
-        CancellationToken cancellationToken = default)
-    {
-        var baseUrl = configuration["Organisation:BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            logger.LogWarning("Organisation base URL is not configured.");
-            return false;
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl.TrimEnd('/')}/api/v1/organisations");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-
-        var organisations = await response.Content.ReadFromJsonAsync<List<OrganisationResponse>>(cancellationToken);
-        if (organisations is null)
-        {
-            return false;
-        }
-
-        foreach (var organisation in organisations)
-        {
-            using var classRequest = new HttpRequestMessage(
-                HttpMethod.Get,
-                $"{baseUrl.TrimEnd('/')}/api/v1/organisations/{organisation.Id}/classes");
-            classRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-            using var classResponse = await httpClient.SendAsync(classRequest, cancellationToken);
-            if (!classResponse.IsSuccessStatusCode)
-            {
-                continue;
-            }
-
-            var classes = await classResponse.Content.ReadFromJsonAsync<List<ClassResponse>>(cancellationToken);
-            if (classes is null)
-            {
-                continue;
-            }
-
-            foreach (var schoolClass in classes)
-            {
-                var teachesClass = schoolClass.TeacherUserIds?.Contains(teacherUserId) == true;
-                var hasStudent = schoolClass.StudentUserIds?.Contains(studentUserId) == true;
-                if (teachesClass && hasStudent)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+        CancellationToken cancellationToken = default) =>
+        CheckAccessCachedAsync(
+            $"access:teacher:{teacherUserId}:student:{studentUserId}",
+            $"/api/v1/access/teacher/{Uri.EscapeDataString(teacherUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
+            bearerToken,
+            cancellationToken);
 
     public Task<bool> ParentCanViewStudentAsync(
         string parentUserId,
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
-        CheckParentAccessAsync(parentUserId, studentUserId, bearerToken, cancellationToken);
+        CheckAccessCachedAsync(
+            $"access:parent:{parentUserId}:student:{studentUserId}",
+            $"/api/v1/access/parent/{Uri.EscapeDataString(parentUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
+            bearerToken,
+            cancellationToken);
 
-    private async Task<bool> CheckParentAccessAsync(
-        string parentUserId,
-        string studentUserId,
+    private async Task<bool> CheckAccessCachedAsync(
+        string cacheKey,
+        string path,
+        string bearerToken,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(cacheKey, out bool cached))
+        {
+            return cached;
+        }
+
+        var allowed = await CheckAccessAsync(path, bearerToken, cancellationToken);
+        cache.Set(cacheKey, allowed, CacheDuration);
+        return allowed;
+    }
+
+    private async Task<bool> CheckAccessAsync(
+        string path,
         string bearerToken,
         CancellationToken cancellationToken)
     {
@@ -94,21 +71,10 @@ public sealed class HttpOrganisationAccessChecker(
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{baseUrl.TrimEnd('/')}/api/v1/access/parent/{Uri.EscapeDataString(parentUserId)}/student/{Uri.EscapeDataString(studentUserId)}");
+            $"{baseUrl.TrimEnd('/')}{path}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         return response.IsSuccessStatusCode;
     }
-
-    private sealed record OrganisationResponse(Guid Id, string Name, string Code);
-
-    private sealed record ClassResponse(
-        Guid Id,
-        Guid OrganisationId,
-        Guid YearLevelId,
-        string Name,
-        string Code,
-        IReadOnlyList<string>? TeacherUserIds,
-        IReadOnlyList<string>? StudentUserIds);
 }

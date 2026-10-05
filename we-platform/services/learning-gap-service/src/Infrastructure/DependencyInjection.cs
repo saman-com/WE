@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IGapCalculationEngine, GapCalculationEngine>();
         services.AddScoped<IGapProcessor, GapProcessor>();
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
+        services.AddMemoryCache();
         services.AddGapMessaging(configuration, environment);
         return services;
     }

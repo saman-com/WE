@@ -33,6 +33,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
+        services.AddMemoryCache();
         services.AddHttpClient<IParentAccessChecker, HttpParentAccessChecker>();
         services.AddSingleton<ServiceJwtIssuer>();
         services.AddHttpClient<IAiGatewayClient, HttpAiGatewayClient>();

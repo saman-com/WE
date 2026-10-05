@@ -34,6 +34,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IClassInsightsAggregationEngine, ClassInsightsAggregationEngine>();
         services.AddHttpClient<IClassAccessChecker, HttpClassAccessChecker>();
+        services.AddMemoryCache();
         services.AddHttpClient<IClassRosterClient, HttpClassRosterClient>();
         services.AddHttpClient<IStudentEiDataClient, HttpStudentEiDataClient>();
         services.AddScoped<IClassInsightsProvider, ClassInsightsProvider>();

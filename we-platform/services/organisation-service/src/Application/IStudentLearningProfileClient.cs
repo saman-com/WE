@@ -33,6 +33,11 @@ public interface IStudentLearningProfileClient
         string bearerToken,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StudentProfileSummaryData>> GetProfileSummariesAsync(
+        IReadOnlyList<string> studentUserIds,
+        string bearerToken,
+        CancellationToken cancellationToken = default);
+
     Task<StudentProfileData?> GetProfileAsync(
         string studentUserId,
         string bearerToken,

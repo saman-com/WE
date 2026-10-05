@@ -52,6 +52,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IOrganisationAccessChecker, HttpOrganisationAccessChecker>();
+        services.AddMemoryCache();
         services.AddHttpClient<IEiInsightsClient, HttpEiInsightsClient>();
         services.AddHttpClient<IClassDashboardClient, HttpClassDashboardClient>();
         services.AddHttpClient<ISchoolSummaryClient, HttpSchoolSummaryClient>();

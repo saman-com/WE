@@ -1878,6 +1878,18 @@
     {
       "service": "student-learning-service",
       "method": "GET",
+      "route": "/api/v1/students/profiles/summaries",
+      "ids": [
+        "studentUserIds"
+      ],
+      "kind": "isolation",
+      "reason": "query-resource-ids",
+      "file": "services/student-learning-service/src/Api/StudentLearningEndpoints.cs",
+      "probe": "student-learning-service:person-resource"
+    },
+    {
+      "service": "student-learning-service",
+      "method": "GET",
       "route": "/health",
       "ids": [],
       "kind": "exempt",
