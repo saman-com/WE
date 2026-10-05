@@ -1,11 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NationalReportingService.Application;
 using NationalReportingService.Infrastructure.Data;
 
 namespace NationalReportingService.Infrastructure.Reporting;
 
-public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolicyDashboardQuery
+public sealed class PolicyDashboardQuery(
+    NationalReportingDbContext db,
+    IOptions<NationalReportingOptions> options) : IPolicyDashboardQuery
 {
+    private int MinimumGroupSize => options.Value.MinimumGroupSize;
+
     public async Task<PolicyTrendsResponse> GetTrendsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -38,11 +43,17 @@ public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolic
                 g =>
                 {
                     var sampleSize = g.Sum(f => f.SampleSize);
-                    return sampleSize == 0
-                        ? 0m
-                        : decimal.Round(
+                    var sampleCell = CountCell.FromCount(sampleSize, MinimumGroupSize);
+                    if (sampleCell.Suppressed || sampleSize == 0)
+                    {
+                        return (Sample: sampleCell, Average: (decimal?)null);
+                    }
+
+                    return (
+                        Sample: sampleCell,
+                        Average: (decimal?)decimal.Round(
                             g.Sum(f => f.AverageMasteryPercent * f.SampleSize) / sampleSize,
-                            2);
+                            2));
                 });
 
         var regionCodes = enrollmentByRegion.Keys
@@ -55,25 +66,33 @@ public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolic
             {
                 enrollmentByRegion.TryGetValue(code, out var enrollment);
                 masteryByRegion.TryGetValue(code, out var mastery);
+                var studentCount = CountCell.FromCount(enrollment.StudentCount, MinimumGroupSize);
                 return new RegionTrendMetric(
                     code,
                     enrollment.SchoolCount,
-                    enrollment.StudentCount,
-                    mastery);
+                    studentCount,
+                    mastery.Average);
             })
             .ToList();
 
-        var nationalSample = masteryFacts.Sum(f => f.SampleSize);
-        var nationalMastery = nationalSample == 0
-            ? 0m
-            : decimal.Round(
-                masteryFacts.Sum(f => f.AverageMasteryPercent * f.SampleSize) / nationalSample,
-                2);
+        var nationalSampleCells = masteryByRegion.Values.Select(v => v.Sample).ToList();
+        var nationalSampleSuppressed = nationalSampleCells.Count > 0
+            && CountCell.SumOrSuppress(nationalSampleCells).Suppressed;
+        decimal? nationalMastery = null;
+        if (!nationalSampleSuppressed)
+        {
+            var nationalSample = masteryFacts.Sum(f => f.SampleSize);
+            nationalMastery = nationalSample == 0
+                ? 0m
+                : decimal.Round(
+                    masteryFacts.Sum(f => f.AverageMasteryPercent * f.SampleSize) / nationalSample,
+                    2);
+        }
 
         return new PolicyTrendsResponse(
             asOf,
             regions.Sum(r => r.SchoolCount),
-            regions.Sum(r => r.StudentCount),
+            CountCell.SumOrSuppress(regions.Select(r => r.StudentCount)),
             nationalMastery,
             regions);
     }
@@ -93,12 +112,16 @@ public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolic
             .OrderBy(f => f.RegionCode)
             .ThenBy(f => f.DemographicDimension)
             .ThenBy(f => f.DemographicCategory)
-            .Select(f => new EquityMasteryDistribution(
-                f.RegionCode,
-                f.DemographicDimension,
-                f.DemographicCategory,
-                f.AverageMasteryPercent,
-                f.SampleSize))
+            .Select(f =>
+            {
+                var sample = CountCell.FromCount(f.SampleSize, MinimumGroupSize);
+                return new EquityMasteryDistribution(
+                    f.RegionCode,
+                    f.DemographicDimension,
+                    f.DemographicCategory,
+                    sample.Suppressed ? null : f.AverageMasteryPercent,
+                    sample);
+            })
             .ToList();
 
         return new EquityAnalysisResponse(asOf, distributions);
@@ -119,13 +142,17 @@ public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolic
             .OrderBy(f => f.RegionCode)
             .ThenBy(f => f.CurriculumCode)
             .ThenBy(f => f.SubjectCode)
-            .Select(f => new RegionCurriculumEffectiveness(
-                f.RegionCode,
-                f.CurriculumCode,
-                f.SubjectCode,
-                f.MasteryRatePercent,
-                f.CoveragePercent,
-                f.SchoolsReporting))
+            .Select(f =>
+            {
+                var schools = CountCell.FromCount(f.SchoolsReporting, MinimumGroupSize);
+                return new RegionCurriculumEffectiveness(
+                    f.RegionCode,
+                    f.CurriculumCode,
+                    f.SubjectCode,
+                    schools.Suppressed ? null : f.MasteryRatePercent,
+                    schools.Suppressed ? null : f.CoveragePercent,
+                    schools);
+            })
             .ToList();
 
         return new CurriculumEffectivenessComparisonResponse(asOf, regions);
@@ -147,16 +174,28 @@ public sealed class PolicyDashboardQuery(NationalReportingDbContext db) : IPolic
             .ThenBy(f => f.InterventionType)
             .Select(f =>
             {
-                var successRate = f.TotalCount == 0
-                    ? 0m
-                    : decimal.Round(100m * f.SuccessfulCount / f.TotalCount, 2);
+                var total = CountCell.FromCount(f.TotalCount, MinimumGroupSize);
+                var successful = total.Suppressed
+                    ? CountCell.Hidden()
+                    : CountCell.FromCount(f.SuccessfulCount, MinimumGroupSize);
+                var anySuppressed = total.Suppressed || successful.Suppressed;
+                decimal? successRate = null;
+                decimal? averageGrowth = null;
+                if (!anySuppressed)
+                {
+                    successRate = f.TotalCount == 0
+                        ? 0m
+                        : decimal.Round(100m * f.SuccessfulCount / f.TotalCount, 2);
+                    averageGrowth = f.AverageGrowthPercent;
+                }
+
                 return new RegionInterventionImpact(
                     f.RegionCode,
                     f.InterventionType,
-                    f.TotalCount,
-                    f.SuccessfulCount,
+                    total,
+                    successful,
                     successRate,
-                    f.AverageGrowthPercent);
+                    averageGrowth);
             })
             .ToList();
 

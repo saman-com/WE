@@ -15,6 +15,9 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.Configure<NationalReportingOptions>(
+            configuration.GetSection(NationalReportingOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("NationalReportingDb");
 
         var testingDatabaseName = configuration["Testing:DatabaseName"]

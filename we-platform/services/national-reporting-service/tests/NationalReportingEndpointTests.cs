@@ -39,17 +39,53 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
         var report = await response.Content.ReadFromJsonAsync<NationalEnrollmentResponse>();
         Assert.NotNull(report);
         Assert.Equal(3, report.TotalSchools);
-        Assert.Equal(400, report.TotalStudents);
-        Assert.Equal(33, report.TotalTeachers);
+        AssertVisibleCount(400, report.TotalStudents);
+        AssertVisibleCount(33, report.TotalTeachers);
         Assert.Equal(AsOf, report.AsOfDate);
         Assert.Equal(2, report.Regions.Count);
 
         var north = report.Regions.Single(r => r.RegionCode == "NORTH");
         Assert.Equal(2, north.SchoolCount);
-        Assert.Equal(200, north.StudentCount);
+        AssertVisibleCount(200, north.StudentCount);
 
         var payload = await response.Content.ReadAsStringAsync();
         AssertNoStudentPii(payload);
+    }
+
+    [Fact]
+    public async Task Enrollment_SuppressesSmallRegionCounts_AndTotalsCannotRecoverHiddenValues()
+    {
+        await ResetAndSeedApiKeysAsync();
+        await SeedEnrollmentAsync("TINY", "SCH-T", 3, 2);
+        await SeedEnrollmentAsync("LARGE", "SCH-L", 100, 10);
+
+        using var request = TestApiKey.Authorized(
+            HttpMethod.Get,
+            "/api/v1/national/enrollment",
+            TestApiKey.SuppressionEnrollmentKey);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<NationalEnrollmentResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Regions.Single(r => r.RegionCode == "TINY");
+        AssertSuppressed(tiny.StudentCount);
+        AssertSuppressed(tiny.TeacherCount);
+
+        var large = report.Regions.Single(r => r.RegionCode == "LARGE");
+        AssertVisibleCount(100, large.StudentCount);
+        AssertVisibleCount(10, large.TeacherCount);
+
+        AssertSuppressed(report.TotalStudents);
+        AssertSuppressed(report.TotalTeachers);
+
+        var payload = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(payload);
+        var tinyJson = document.RootElement.GetProperty("regions").EnumerateArray()
+            .Single(r => r.GetProperty("regionCode").GetString() == "TINY");
+        Assert.True(tinyJson.GetProperty("studentCount").GetProperty("suppressed").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, tinyJson.GetProperty("studentCount").GetProperty("value").ValueKind);
     }
 
     [Fact]
@@ -74,10 +110,42 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
         var math = report.National.Single(b => b.SubjectCode == "MATH");
         Assert.Equal(75m, math.AverageMasteryPercent);
         Assert.Equal(65m, math.MasteredSharePercent);
-        Assert.Equal(200, math.SampleSize);
+        AssertVisibleCount(200, math.SampleSize);
 
         var payload = await response.Content.ReadAsStringAsync();
         AssertNoStudentPii(payload);
+    }
+
+    [Fact]
+    public async Task MasteryBenchmarks_SuppressesSmallSamples_AndNationalTotalsCannotRecover()
+    {
+        await ResetAndSeedApiKeysAsync();
+        await SeedMasteryAsync("TINY", "MATH", 90m, 80m, 3);
+        await SeedMasteryAsync("LARGE", "MATH", 70m, 60m, 100);
+
+        using var request = TestApiKey.Authorized(
+            HttpMethod.Get,
+            "/api/v1/national/mastery-benchmarks",
+            TestApiKey.SuppressionMasteryKey);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<NationalMasteryBenchmarksResponse>();
+        Assert.NotNull(report);
+
+        var tinyMath = report.Regions.Single(r => r.RegionCode == "TINY").Subjects.Single();
+        AssertSuppressed(tinyMath.SampleSize);
+        Assert.Null(tinyMath.AverageMasteryPercent);
+        Assert.Null(tinyMath.MasteredSharePercent);
+
+        var largeMath = report.Regions.Single(r => r.RegionCode == "LARGE").Subjects.Single();
+        AssertVisibleCount(100, largeMath.SampleSize);
+        Assert.Equal(70m, largeMath.AverageMasteryPercent);
+
+        var nationalMath = report.National.Single(b => b.SubjectCode == "MATH");
+        AssertSuppressed(nationalMath.SampleSize);
+        Assert.Null(nationalMath.AverageMasteryPercent);
+        Assert.Null(nationalMath.MasteredSharePercent);
     }
 
     [Fact]
@@ -100,11 +168,41 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
         Assert.Equal(AsOf, report.AsOfDate);
 
         var math = report.National.Single(c => c.CurriculumCode == "NAT-MATH");
-        Assert.Equal(30, math.SchoolsReporting);
-        Assert.Equal(86.67m, Math.Round(math.CoveredObjectivePercent, 2));
+        AssertVisibleCount(30, math.SchoolsReporting);
+        Assert.Equal(86.67m, Math.Round(math.CoveredObjectivePercent!.Value, 2));
 
         var payload = await response.Content.ReadAsStringAsync();
         AssertNoStudentPii(payload);
+    }
+
+    [Fact]
+    public async Task CurriculumCoverage_SuppressesSmallSchoolGroups_AndNationalTotalsCannotRecover()
+    {
+        await ResetAndSeedApiKeysAsync();
+        await SeedCoverageAsync("TINY", "NAT-MATH", 95m, 2);
+        await SeedCoverageAsync("LARGE", "NAT-MATH", 80m, 20);
+
+        using var request = TestApiKey.Authorized(
+            HttpMethod.Get,
+            "/api/v1/national/curriculum-coverage",
+            TestApiKey.SuppressionCoverageKey);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<NationalCurriculumCoverageResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Regions.Single(r => r.RegionCode == "TINY").Curricula.Single();
+        AssertSuppressed(tiny.SchoolsReporting);
+        Assert.Null(tiny.CoveredObjectivePercent);
+
+        var large = report.Regions.Single(r => r.RegionCode == "LARGE").Curricula.Single();
+        AssertVisibleCount(20, large.SchoolsReporting);
+        Assert.Equal(80m, large.CoveredObjectivePercent);
+
+        var national = report.National.Single(c => c.CurriculumCode == "NAT-MATH");
+        AssertSuppressed(national.SchoolsReporting);
+        Assert.Null(national.CoveredObjectivePercent);
     }
 
     [Fact]
@@ -238,6 +336,33 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
                 Scopes = TestApiKey.FullScopes,
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
+            },
+            new MinistryApiKey
+            {
+                Id = Guid.CreateVersion7(),
+                ClientName = "Suppression Enrollment Ministry",
+                KeyHash = ApiKeyHasher.Hash(TestApiKey.SuppressionEnrollmentKey),
+                Scopes = TestApiKey.FullScopes,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new MinistryApiKey
+            {
+                Id = Guid.CreateVersion7(),
+                ClientName = "Suppression Mastery Ministry",
+                KeyHash = ApiKeyHasher.Hash(TestApiKey.SuppressionMasteryKey),
+                Scopes = TestApiKey.FullScopes,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new MinistryApiKey
+            {
+                Id = Guid.CreateVersion7(),
+                ClientName = "Suppression Coverage Ministry",
+                KeyHash = ApiKeyHasher.Hash(TestApiKey.SuppressionCoverageKey),
+                Scopes = TestApiKey.FullScopes,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
             });
         await db.SaveChangesAsync();
     }
@@ -298,6 +423,18 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
             AsOfDate = AsOf
         });
         await db.SaveChangesAsync();
+    }
+
+    private static void AssertVisibleCount(int expected, CountCell cell)
+    {
+        Assert.False(cell.Suppressed);
+        Assert.Equal(expected, cell.Value);
+    }
+
+    private static void AssertSuppressed(CountCell cell)
+    {
+        Assert.True(cell.Suppressed);
+        Assert.Null(cell.Value);
     }
 
     private static void AssertNoStudentPii(string payload)

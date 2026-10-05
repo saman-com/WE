@@ -3,21 +3,21 @@ namespace NationalReportingService.Application;
 public record RegionEnrollmentMetric(
     string RegionCode,
     int SchoolCount,
-    int StudentCount,
-    int TeacherCount);
+    CountCell StudentCount,
+    CountCell TeacherCount);
 
 public record NationalEnrollmentResponse(
     int TotalSchools,
-    int TotalStudents,
-    int TotalTeachers,
+    CountCell TotalStudents,
+    CountCell TotalTeachers,
     DateOnly AsOfDate,
     IReadOnlyList<RegionEnrollmentMetric> Regions);
 
 public record NationalMasteryBenchmark(
     string SubjectCode,
-    decimal AverageMasteryPercent,
-    decimal MasteredSharePercent,
-    int SampleSize);
+    decimal? AverageMasteryPercent,
+    decimal? MasteredSharePercent,
+    CountCell SampleSize);
 
 public record RegionMasteryBenchmark(
     string RegionCode,
@@ -30,8 +30,8 @@ public record NationalMasteryBenchmarksResponse(
 
 public record CurriculumCoverageMetric(
     string CurriculumCode,
-    decimal CoveredObjectivePercent,
-    int SchoolsReporting);
+    decimal? CoveredObjectivePercent,
+    CountCell SchoolsReporting);
 
 public record RegionCoverageMetric(
     string RegionCode,

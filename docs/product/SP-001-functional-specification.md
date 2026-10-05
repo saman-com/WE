@@ -16838,6 +16838,13 @@ permission validation.
 External systems never receive information beyond authorised
 permissions.
 
+National and policy aggregate reporting APIs withhold cells with fewer
+than NationalReporting:MinimumGroupSize students (default 5). Withheld
+cells are returned as null with suppressed=true. Roll-up totals must
+not enable recovering withheld values by subtraction: when any
+contributing child cell is suppressed, the parent total for that count
+dimension is also suppressed.
+
 22.11 Event Architecture
 
 The platform supports event-driven communication.

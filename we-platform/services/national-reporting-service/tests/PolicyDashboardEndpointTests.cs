@@ -42,16 +42,48 @@ public class PolicyDashboardEndpointTests : IClassFixture<NationalReportingWebAp
         Assert.NotNull(report);
         Assert.Equal(AsOf, report.AsOfDate);
         Assert.Equal(3, report.TotalSchools);
-        Assert.Equal(400, report.TotalStudents);
+        AssertVisibleCount(400, report.TotalStudents);
         Assert.Equal(75m, report.NationalAverageMasteryPercent);
         Assert.Equal(2, report.Regions.Count);
 
         var north = report.Regions.Single(r => r.RegionCode == "NORTH");
         Assert.Equal(2, north.SchoolCount);
-        Assert.Equal(200, north.StudentCount);
+        AssertVisibleCount(200, north.StudentCount);
         Assert.Equal(70m, north.AverageMasteryPercent);
 
         AssertNoStudentPii(await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Trends_SuppressesSmallRegionCounts_AndTotalsCannotRecoverHiddenValues()
+    {
+        await ResetFactsAsync();
+        await SeedEnrollmentAsync("TINY", "SCH-T", 3, 2);
+        await SeedEnrollmentAsync("LARGE", "SCH-L", 100, 10);
+        await SeedMasteryAsync("TINY", "MATH", 90m, 80m, 3);
+        await SeedMasteryAsync("LARGE", "MATH", 70m, 60m, 100);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/policy-dashboards/trends",
+            Guid.NewGuid().ToString(),
+            TestJwt.EducationAuthorityOfficerRole);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<PolicyTrendsResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Regions.Single(r => r.RegionCode == "TINY");
+        AssertSuppressed(tiny.StudentCount);
+        Assert.Null(tiny.AverageMasteryPercent);
+
+        var large = report.Regions.Single(r => r.RegionCode == "LARGE");
+        AssertVisibleCount(100, large.StudentCount);
+        Assert.Equal(70m, large.AverageMasteryPercent);
+
+        AssertSuppressed(report.TotalStudents);
+        Assert.Null(report.NationalAverageMasteryPercent);
     }
 
     [Fact]
@@ -81,9 +113,36 @@ public class PolicyDashboardEndpointTests : IClassFixture<NationalReportingWebAp
             && d.DemographicDimension == "Gender"
             && d.DemographicCategory == "Female");
         Assert.Equal(78m, northFemale.AverageMasteryPercent);
-        Assert.Equal(50, northFemale.SampleSize);
+        AssertVisibleCount(50, northFemale.SampleSize);
 
         AssertNoStudentPii(await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Equity_SuppressesSmallDemographicSamples_AndNullsRelatedPercentages()
+    {
+        await ResetFactsAsync();
+        await SeedEquityAsync("TINY", "Gender", "Female", 95m, 2);
+        await SeedEquityAsync("LARGE", "Gender", "Female", 78m, 50);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/policy-dashboards/equity",
+            Guid.NewGuid().ToString(),
+            TestJwt.EducationAuthorityOfficerRole);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<EquityAnalysisResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Distributions.Single(d => d.RegionCode == "TINY");
+        AssertSuppressed(tiny.SampleSize);
+        Assert.Null(tiny.AverageMasteryPercent);
+
+        var large = report.Distributions.Single(d => d.RegionCode == "LARGE");
+        AssertVisibleCount(50, large.SampleSize);
+        Assert.Equal(78m, large.AverageMasteryPercent);
     }
 
     [Fact]
@@ -111,9 +170,37 @@ public class PolicyDashboardEndpointTests : IClassFixture<NationalReportingWebAp
             r.RegionCode == "SOUTH" && r.CurriculumCode == "NAT-MATH");
         Assert.Equal(85m, southMath.MasteryRatePercent);
         Assert.Equal(90m, southMath.CoveragePercent);
-        Assert.Equal(20, southMath.SchoolsReporting);
+        AssertVisibleCount(20, southMath.SchoolsReporting);
 
         AssertNoStudentPii(await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task CurriculumEffectiveness_SuppressesSmallSchoolGroups_AndNullsRelatedPercentages()
+    {
+        await ResetFactsAsync();
+        await SeedCurriculumEffectivenessAsync("TINY", "NAT-MATH", "MATH", 95m, 90m, 2);
+        await SeedCurriculumEffectivenessAsync("LARGE", "NAT-MATH", "MATH", 85m, 90m, 20);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/policy-dashboards/curriculum-effectiveness",
+            Guid.NewGuid().ToString(),
+            TestJwt.EducationAuthorityOfficerRole);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<CurriculumEffectivenessComparisonResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Regions.Single(r => r.RegionCode == "TINY");
+        AssertSuppressed(tiny.SchoolsReporting);
+        Assert.Null(tiny.MasteryRatePercent);
+        Assert.Null(tiny.CoveragePercent);
+
+        var large = report.Regions.Single(r => r.RegionCode == "LARGE");
+        AssertVisibleCount(20, large.SchoolsReporting);
+        Assert.Equal(85m, large.MasteryRatePercent);
     }
 
     [Fact]
@@ -139,12 +226,42 @@ public class PolicyDashboardEndpointTests : IClassFixture<NationalReportingWebAp
 
         var northTutoring = report.Regions.Single(r =>
             r.RegionCode == "NORTH" && r.InterventionType == "TargetedTutoring");
-        Assert.Equal(40, northTutoring.TotalCount);
-        Assert.Equal(30, northTutoring.SuccessfulCount);
+        AssertVisibleCount(40, northTutoring.TotalCount);
+        AssertVisibleCount(30, northTutoring.SuccessfulCount);
         Assert.Equal(75m, northTutoring.SuccessRatePercent);
         Assert.Equal(12.5m, northTutoring.AverageGrowthPercent);
 
         AssertNoStudentPii(await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InterventionImpact_SuppressesSmallCounts_AndNullsRelatedPercentages()
+    {
+        await ResetFactsAsync();
+        await SeedInterventionImpactAsync("TINY", "TargetedTutoring", 3, 2, 15m);
+        await SeedInterventionImpactAsync("LARGE", "TargetedTutoring", 40, 30, 12.5m);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/policy-dashboards/intervention-impact",
+            Guid.NewGuid().ToString(),
+            TestJwt.EducationAuthorityOfficerRole);
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var report = await response.Content.ReadFromJsonAsync<InterventionImpactResponse>();
+        Assert.NotNull(report);
+
+        var tiny = report.Regions.Single(r => r.RegionCode == "TINY");
+        AssertSuppressed(tiny.TotalCount);
+        AssertSuppressed(tiny.SuccessfulCount);
+        Assert.Null(tiny.SuccessRatePercent);
+        Assert.Null(tiny.AverageGrowthPercent);
+
+        var large = report.Regions.Single(r => r.RegionCode == "LARGE");
+        AssertVisibleCount(40, large.TotalCount);
+        AssertVisibleCount(30, large.SuccessfulCount);
+        Assert.Equal(75m, large.SuccessRatePercent);
     }
 
     [Fact]
@@ -317,6 +434,18 @@ public class PolicyDashboardEndpointTests : IClassFixture<NationalReportingWebAp
             AsOfDate = AsOf
         });
         await db.SaveChangesAsync();
+    }
+
+    private static void AssertVisibleCount(int expected, CountCell cell)
+    {
+        Assert.False(cell.Suppressed);
+        Assert.Equal(expected, cell.Value);
+    }
+
+    private static void AssertSuppressed(CountCell cell)
+    {
+        Assert.True(cell.Suppressed);
+        Assert.Null(cell.Value);
     }
 
     private static void AssertNoStudentPii(string payload)

@@ -3,22 +3,22 @@ namespace NationalReportingService.Application;
 public record RegionTrendMetric(
     string RegionCode,
     int SchoolCount,
-    int StudentCount,
-    decimal AverageMasteryPercent);
+    CountCell StudentCount,
+    decimal? AverageMasteryPercent);
 
 public record PolicyTrendsResponse(
     DateOnly AsOfDate,
     int TotalSchools,
-    int TotalStudents,
-    decimal NationalAverageMasteryPercent,
+    CountCell TotalStudents,
+    decimal? NationalAverageMasteryPercent,
     IReadOnlyList<RegionTrendMetric> Regions);
 
 public record EquityMasteryDistribution(
     string RegionCode,
     string DemographicDimension,
     string DemographicCategory,
-    decimal AverageMasteryPercent,
-    int SampleSize);
+    decimal? AverageMasteryPercent,
+    CountCell SampleSize);
 
 public record EquityAnalysisResponse(
     DateOnly AsOfDate,
@@ -28,9 +28,9 @@ public record RegionCurriculumEffectiveness(
     string RegionCode,
     string CurriculumCode,
     string SubjectCode,
-    decimal MasteryRatePercent,
-    decimal CoveragePercent,
-    int SchoolsReporting);
+    decimal? MasteryRatePercent,
+    decimal? CoveragePercent,
+    CountCell SchoolsReporting);
 
 public record CurriculumEffectivenessComparisonResponse(
     DateOnly AsOfDate,
@@ -39,10 +39,10 @@ public record CurriculumEffectivenessComparisonResponse(
 public record RegionInterventionImpact(
     string RegionCode,
     string InterventionType,
-    int TotalCount,
-    int SuccessfulCount,
-    decimal SuccessRatePercent,
-    decimal AverageGrowthPercent);
+    CountCell TotalCount,
+    CountCell SuccessfulCount,
+    decimal? SuccessRatePercent,
+    decimal? AverageGrowthPercent);
 
 public record InterventionImpactResponse(
     DateOnly AsOfDate,

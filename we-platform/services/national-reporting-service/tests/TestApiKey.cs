@@ -8,6 +8,9 @@ internal static class TestApiKey
     public const string EnrollmentOnlyKey = "test-ministry-enrollment-only-key";
     public const string InactiveKey = "test-ministry-inactive-key";
     public const string RateLimitKey = "test-ministry-rate-limit-key";
+    public const string SuppressionEnrollmentKey = "test-ministry-suppression-enrollment-key";
+    public const string SuppressionMasteryKey = "test-ministry-suppression-mastery-key";
+    public const string SuppressionCoverageKey = "test-ministry-suppression-coverage-key";
 
     public static HttpRequestMessage Authorized(HttpMethod method, string url, string apiKey)
     {
