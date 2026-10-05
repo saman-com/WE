@@ -3,12 +3,14 @@ using AssessmentService.Application;
 using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure.Ai;
 
 public sealed class AiFeedbackDraftService(
     AssessmentDbContext db,
-    IAiGatewayClient aiGatewayClient)
+    IAiGatewayClient aiGatewayClient,
+    ITenantContext tenantContext)
 {
     private const string PromptId = "assessment-feedback";
     private const string PromptVersion = "1.0.0";
@@ -89,8 +91,15 @@ public sealed class AiFeedbackDraftService(
         Guid evidenceId,
         CancellationToken cancellationToken = default)
     {
-        var auditLog = await db.AiFeedbackAuditLogs.FindAsync([auditLogId], cancellationToken);
+        var auditLog = await db.AiFeedbackAuditLogs
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(log => log.Id == auditLogId, cancellationToken);
         if (auditLog is null || auditLog.TeacherUserId != teacherUserId)
+        {
+            return null;
+        }
+
+        if (TenantAccess.ValidateEntityAccess(tenantContext, auditLog) is not null)
         {
             return null;
         }

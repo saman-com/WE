@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using AssessmentService.Application;
 using AssessmentService.Domain;
 using AssessmentService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-
 using WePlatform.Tenancy;
 
 namespace AssessmentService.Tests;
@@ -50,6 +50,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
 
         var draft = await RequestDraftAsync(
             teacherId,
+            organisationId,
             published.Id,
             submission.Id,
             microSkillId);
@@ -161,13 +162,14 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             organisationId,
             "Original student responses.");
 
-        await RequestDraftAsync(teacherId, published.Id, submission.Id, microSkillId);
+        await RequestDraftAsync(teacherId, organisationId, published.Id, submission.Id, microSkillId);
 
         var reloaded = await SendAsAsync<SubmissionResponse>(
             HttpMethod.Get,
             $"/api/v1/assessments/{published.Id}/submissions/{submission.Id}",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Equal("Original student responses.", reloaded.Responses);
         Assert.Equal(SubmissionStatuses.Submitted, reloaded.Status);
@@ -195,6 +197,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
 
         var draft = await RequestDraftAsync(
             teacherId,
+            organisationId,
             published.Id,
             submission.Id,
             microSkillId);
@@ -233,12 +236,13 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
 
         var draft = await RequestDraftAsync(
             teacherId,
+            organisationId,
             published.Id,
             submission.Id,
             microSkillId);
 
         var editedFeedback = "Edited by teacher before approval.";
-        await FinalizeAuditAsync(draft.AuditLogId, teacherId, editedFeedback, evidenceId);
+        await FinalizeAuditAsync(draft.AuditLogId, teacherId, organisationId, editedFeedback, evidenceId);
 
         var audit = await LoadAuditLogAsync(draft.AuditLogId);
 
@@ -270,6 +274,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
 
         var draft = await RequestDraftAsync(
             teacherId,
+            organisationId,
             published.Id,
             submission.Id,
             microSkillId);
@@ -286,11 +291,14 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AssessmentDbContext>();
-        return await db.AiFeedbackAuditLogs.FindAsync(auditLogId);
+        return await db.AiFeedbackAuditLogs
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(log => log.Id == auditLogId);
     }
 
     private async Task<AiFeedbackDraftResponse> RequestDraftAsync(
         string teacherId,
+        Guid organisationId,
         Guid assessmentId,
         Guid submissionId,
         Guid microSkillId)
@@ -299,6 +307,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             HttpMethod.Post,
             $"/api/v1/assessments/{assessmentId}/submissions/{submissionId}/ai-feedback-draft",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new RequestAiFeedbackDraftRequest(microSkillId));
 
@@ -311,6 +320,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
     private async Task FinalizeAuditAsync(
         Guid auditLogId,
         string teacherId,
+        Guid organisationId,
         string teacherEditedFeedback,
         Guid evidenceId)
     {
@@ -318,6 +328,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
             HttpMethod.Post,
             $"/api/v1/assessments/ai-feedback-audit/{auditLogId}/finalize",
             teacherId,
+            organisationId,
             TestJwt.TeacherRole);
         request.Content = JsonContent.Create(new FinalizeAiFeedbackAuditRequest(
             teacherEditedFeedback,

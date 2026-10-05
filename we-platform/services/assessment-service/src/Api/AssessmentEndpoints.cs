@@ -322,6 +322,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
@@ -333,6 +334,12 @@ public static class AssessmentEndpoints
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (assessment.Status != AssessmentStatuses.Draft)
@@ -379,6 +386,7 @@ public static class AssessmentEndpoints
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
         IDomainEventPublisher eventPublisher,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
@@ -390,6 +398,12 @@ public static class AssessmentEndpoints
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (assessment.Status != AssessmentStatuses.Draft)
@@ -449,6 +463,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
@@ -460,6 +475,12 @@ public static class AssessmentEndpoints
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         if (assessment.Status != AssessmentStatuses.Draft)
@@ -492,6 +513,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsStudent())
@@ -508,6 +530,12 @@ public static class AssessmentEndpoints
         if (assessment is null || assessment.Status != AssessmentStatuses.Published)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var access = await EvaluateViewAccessAsync(
@@ -558,6 +586,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!CanManageAssessments(principal))
@@ -569,6 +598,12 @@ public static class AssessmentEndpoints
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var teacherAccess = await EvaluateTeacherClassAccessAsync(
@@ -595,6 +630,7 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (!principal.IsStudent())
@@ -606,6 +642,12 @@ public static class AssessmentEndpoints
         if (assessment is null || assessment.Status != AssessmentStatuses.Published)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var access = await EvaluateViewAccessAsync(
@@ -636,12 +678,19 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         var assessment = await LoadAssessmentAsync(db, assessmentId);
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var submission = await db.Submissions.FirstOrDefaultAsync(
@@ -700,6 +749,7 @@ public static class AssessmentEndpoints
         AssessmentDbContext db,
         AiFeedbackDraftService draftService,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
@@ -717,6 +767,12 @@ public static class AssessmentEndpoints
         if (assessment is null)
         {
             return Results.NotFound();
+        }
+
+        var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, assessment);
+        if (tenantAccess is not null)
+        {
+            return tenantAccess;
         }
 
         var teacherAccess = await EvaluateTeacherClassAccessAsync(
@@ -798,14 +854,6 @@ public static class AssessmentEndpoints
             .Include(a => a.LearningObjectives)
             .Include(a => a.MicroSkills)
             .FirstOrDefaultAsync(a => a.Id == assessmentId);
-
-    private static async Task<AssessmentSubmission?> LoadSubmissionAsync(
-        AssessmentDbContext db,
-        Guid assessmentId,
-        Guid submissionId) =>
-        await db.Submissions
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(s => s.Id == submissionId && s.AssessmentId == assessmentId);
 
     private static AssessmentResponse ToResponse(Assessment assessment) =>
         new(

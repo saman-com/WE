@@ -117,6 +117,54 @@ public class TenantIsolationEndpointTests : IClassFixture<AssessmentWebApplicati
         Assert.Equal(HttpStatusCode.Forbidden, createResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CrossSchool_Admin_CannotMutateOtherSchoolAssessment_BothDirections()
+    {
+        // Regression: Admin previously bypassed class checks without TenantAccess after IgnoreQueryFilters load.
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
+        var teacherA = Guid.NewGuid().ToString();
+        var teacherB = Guid.NewGuid().ToString();
+        var adminA = Guid.NewGuid().ToString();
+        var adminB = Guid.NewGuid().ToString();
+        var classA = Guid.CreateVersion7();
+        var classB = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherA, schoolA, classA);
+        _accessChecker.AllowTeacher(teacherB, schoolB, classB);
+
+        var assessmentA = await CreateAssessmentAsync(teacherA, schoolA, classA);
+        var assessmentB = await CreateAssessmentAsync(teacherB, schoolB, classB);
+
+        await AssertAdminDeniedAsync(HttpMethod.Put, $"/api/v1/assessments/{assessmentA.Id}", adminB, schoolB);
+        await AssertAdminDeniedAsync(HttpMethod.Delete, $"/api/v1/assessments/{assessmentA.Id}", adminB, schoolB);
+        await AssertAdminDeniedAsync(HttpMethod.Post, $"/api/v1/assessments/{assessmentA.Id}/publish", adminB, schoolB);
+        await AssertAdminDeniedAsync(HttpMethod.Get, $"/api/v1/assessments/{assessmentA.Id}/submissions", adminB, schoolB);
+
+        await AssertAdminDeniedAsync(HttpMethod.Put, $"/api/v1/assessments/{assessmentB.Id}", adminA, schoolA);
+        await AssertAdminDeniedAsync(HttpMethod.Delete, $"/api/v1/assessments/{assessmentB.Id}", adminA, schoolA);
+        await AssertAdminDeniedAsync(HttpMethod.Post, $"/api/v1/assessments/{assessmentB.Id}/publish", adminA, schoolA);
+        await AssertAdminDeniedAsync(HttpMethod.Get, $"/api/v1/assessments/{assessmentB.Id}/submissions", adminA, schoolA);
+    }
+
+    private async Task AssertAdminDeniedAsync(HttpMethod method, string path, string userId, Guid tenantId)
+    {
+        using var request = TestJwt.Authorized(method, path, userId, tenantId, TestJwt.AdminRole);
+        if (method == HttpMethod.Put || method == HttpMethod.Post)
+        {
+            request.Content = JsonContent.Create(new
+            {
+                title = "cross-school",
+                instructions = (string?)null,
+                dueAt = (DateTimeOffset?)null,
+                learningObjectiveIds = Array.Empty<Guid>(),
+                microSkillIds = Array.Empty<Guid>()
+            });
+        }
+
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private async Task AssertDeniedAsync(string method, string path, string userId, Guid tenantId)
     {
         using var request = TestJwt.Authorized(new HttpMethod(method), path, userId, tenantId, TestJwt.TeacherRole);

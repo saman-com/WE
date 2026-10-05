@@ -162,7 +162,8 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/{published.Id}/submissions/me",
             studentId,
-            TestJwt.StudentRole);
+            TestJwt.StudentRole,
+            organisationId);
 
         Assert.Equal(submitted.Id, loaded.Id);
         Assert.Equal("My work.", loaded.Responses);
@@ -190,7 +191,8 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             HttpMethod.Get,
             $"/api/v1/assessments/{published.Id}/submissions",
             teacherId,
-            TestJwt.TeacherRole);
+            TestJwt.TeacherRole,
+            organisationId);
 
         Assert.Single(listed);
         Assert.Equal(submitted.Id, listed[0].Id);
