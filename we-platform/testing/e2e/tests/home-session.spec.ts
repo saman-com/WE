@@ -27,7 +27,7 @@ const roleData: Record<(typeof roles)[number], string | RegExp> = {
   teacher: "Year 11 Mathematics",
   parent: "Algebra sheet",
   leader: "Year 11",
-  admin: "Demo school",
+  admin: "Year 11",
   authority: /Total schools:\s*\d+/,
   federation: "North Federation School",
 };

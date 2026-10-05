@@ -3,22 +3,36 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LearningFrame } from "@/components/learning-frame";
+import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   assignTeacher,
   createClass,
-  createOrganisation,
   createYearLevel,
+  deleteClass,
+  deleteYearLevel,
   enrollStudent,
+  linkParentChild,
+  listClasses,
+  listEnrollments,
   listOrganisations,
+  listParentChildren,
+  listTeachers,
+  listYearLevels,
+  unassignTeacher,
+  unenrollStudent,
+  unlinkParentChild,
+  updateClass,
+  updateYearLevel,
+  type ClassMember,
   type Organisation,
+  type ParentChildLink,
   type SchoolClass,
   type YearLevel,
 } from "@/lib/organisation";
 import { useI18n } from "@/i18n/I18nProvider";
 
-const STUDENT_SEED_ID = "22222222-2222-2222-2222-222222222222";
+type Tab = "years" | "classes" | "staff" | "students" | "families";
 
 export default function OrganisationSetupPage() {
   const router = useRouter();
@@ -26,22 +40,28 @@ export default function OrganisationSetupPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState(false);
+  const [schools, setSchools] = useState<Organisation[]>([]);
+  const [organisationId, setOrganisationId] = useState("");
+  const [years, setYears] = useState<YearLevel[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [tab, setTab] = useState<Tab>("years");
+  const [classId, setClassId] = useState("");
+  const [people, setPeople] = useState<ClassMember[]>([]);
+  const [links, setLinks] = useState<ParentChildLink[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const [schoolName, setSchoolName] = useState("Westfield Primary");
-  const [schoolCode, setSchoolCode] = useState("WFP");
-  const [yearName, setYearName] = useState("Year 7");
-  const [yearOrder, setYearOrder] = useState(7);
-  const [className, setClassName] = useState("7A");
-  const [classCode, setClassCode] = useState("7A");
-  const [teacherUserId, setTeacherUserId] = useState("");
-  const [studentUserId, setStudentUserId] = useState(STUDENT_SEED_ID);
-
-  const [organisation, setOrganisation] = useState<Organisation | null>(null);
-  const [schools, setSchools] = useState<Organisation[]>([]);
-  const [yearLevel, setYearLevel] = useState<YearLevel | null>(null);
-  const [schoolClass, setSchoolClass] = useState<SchoolClass | null>(null);
+  const [yearName, setYearName] = useState("");
+  const [yearOrder, setYearOrder] = useState(1);
+  const [className, setClassName] = useState("");
+  const [classCode, setClassCode] = useState("");
+  const [classYearId, setClassYearId] = useState("");
+  const [userId, setUserId] = useState("");
+  const [parentId, setParentId] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [editingYear, setEditingYear] = useState<string | null>(null);
+  const [editingClass, setEditingClass] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -49,7 +69,6 @@ export default function OrganisationSetupPage() {
       router.replace("/login");
       return;
     }
-
     setToken(stored);
     fetchProfile(stored)
       .then(async (loaded) => {
@@ -58,10 +77,10 @@ export default function OrganisationSetupPage() {
           return;
         }
         setProfile(loaded);
-        try {
-          setSchools(await listOrganisations(stored));
-        } catch {
-          setSchools([]);
+        const existing = await listOrganisations(stored);
+        setSchools(existing);
+        if (existing[0]) {
+          setOrganisationId(existing[0].id);
         }
       })
       .catch(() => {
@@ -70,29 +89,89 @@ export default function OrganisationSetupPage() {
       });
   }, [router, t]);
 
+  useEffect(() => {
+    if (!token || !organisationId) {
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      listYearLevels(token, organisationId),
+      listClasses(token, organisationId),
+    ])
+      .then(([loadedYears, loadedClasses]) => {
+        if (cancelled) {
+          return;
+        }
+        setYears(loadedYears);
+        setClasses(loadedClasses);
+        setClassId((current) => current || loadedClasses[0]?.id || "");
+        setClassYearId((current) => current || loadedYears[0]?.id || "");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatusError(true);
+          setStatus(t("organisation.manage.failed"));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, organisationId, t]);
+
+  useEffect(() => {
+    if (!token || !organisationId || !classId || (tab !== "staff" && tab !== "students")) {
+      return;
+    }
+    const load = tab === "staff" ? listTeachers : listEnrollments;
+    load(token, organisationId, classId)
+      .then(setPeople)
+      .catch(() => {
+        setPeople([]);
+        setStatusError(true);
+        setStatus(t("organisation.manage.failed"));
+      });
+  }, [token, organisationId, classId, tab, t]);
+
   async function run(action: () => Promise<void>) {
-    if (!token) {
+    if (!token || !organisationId) {
       return;
     }
     setBusy(true);
-    setError(null);
-    setMessage(null);
+    setStatus(null);
+    setStatusError(false);
     try {
       await action();
+      setStatus(t("organisation.manage.saved"));
+      const [loadedYears, loadedClasses] = await Promise.all([
+        listYearLevels(token, organisationId),
+        listClasses(token, organisationId),
+      ]);
+      setYears(loadedYears);
+      setClasses(loadedClasses);
     } catch {
-      setError(t("organisation.requestFailedCheckForm"));
+      setStatusError(true);
+      setStatus(t("organisation.manage.failed"));
     } finally {
       setBusy(false);
     }
   }
 
+  const firstTime = classes.length === 0;
+  const tabs = [
+    { id: "years", label: t("organisation.manage.years") },
+    { id: "classes", label: t("organisation.manage.classes") },
+    { id: "staff", label: t("organisation.manage.staff") },
+    { id: "students", label: t("organisation.manage.students") },
+    { id: "families", label: t("organisation.manage.families") },
+  ];
+
   if (error && !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="flex min-h-screen items-center justify-center p-6">
         <div className="space-y-4 text-center">
-          <p className="text-red-600">{error}</p>
-          <Link href="/dashboard" className="underline">
-            {t("common.backToDashboard")}
+          <p className="text-red-700">{error}</p>
+          <Link href="/login" className="underline">
+            {t("common.backToLogin")}
           </Link>
         </div>
       </div>
@@ -101,7 +180,7 @@ export default function OrganisationSetupPage() {
 
   if (!profile || !token) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="flex min-h-screen items-center justify-center p-6">
         <p>{t("organisation.loading")}</p>
       </div>
     );
@@ -116,224 +195,427 @@ export default function OrganisationSetupPage() {
         router.push("/login");
       }}
       signOutLabel={t("common.signOut")}
+      tabs={tabs}
+      activeTab={tab}
+      onTabChange={(id) => setTab(id as Tab)}
     >
-      <div className="mx-auto max-w-xl space-y-6">
+      <div className="space-y-6">
         <h1 className="text-2xl font-semibold">{t("dashboard.nav.organisationSetup")}</h1>
-
-        <p className="text-sm text-black/60">
-          {t("organisation.intro")}
-        </p>
-
-        {schools.length > 0 ? (
-          <ul className="text-sm">
+        {status ? (
+          <p role="status" className={`text-sm ${statusError ? "text-red-700" : "text-green-800"}`}>
+            {status}
+          </p>
+        ) : null}
+        <label className="block space-y-1 text-sm">
+          <span>{t("organisation.manage.school")}</span>
+          <select
+            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+            value={organisationId}
+            onChange={(event) => setOrganisationId(event.target.value)}
+          >
             {schools.map((school) => (
-              <li key={school.id}>{school.name}</li>
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
             ))}
-          </ul>
+          </select>
+        </label>
+
+        {firstTime ? (
+          <FocusCard>
+            <h2 className="font-medium">{t("organisation.manage.firstTitle")}</h2>
+            <form
+              className="mt-4 space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run(async () => {
+                  const year = await createYearLevel(token, organisationId, yearName, yearOrder);
+                  await createClass(token, organisationId, year.id, className, classCode);
+                  setYearName("");
+                  setClassName("");
+                  setClassCode("");
+                });
+              }}
+            >
+              <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
+              <Field
+                label={t("organisation.manage.sortOrder")}
+                value={String(yearOrder)}
+                onChange={(value) => setYearOrder(Number(value))}
+                type="number"
+              />
+              <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
+              <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
+              <PrimaryButton type="submit" disabled={busy}>
+                {t("organisation.manage.firstAction")}
+              </PrimaryButton>
+            </form>
+          </FocusCard>
         ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {message ? <p className="text-sm text-green-700">{message}</p> : null}
+        {tab === "years" ? (
+          <FocusCard>
+            {years.length === 0 ? (
+              <p className="text-sm text-black/60">{t("organisation.manage.noYears")}</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {years.map((year) => (
+                  <li key={year.id} className="flex flex-wrap items-center justify-between gap-2">
+                    {editingYear === year.id ? (
+                      <form
+                        className="flex flex-1 flex-wrap gap-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void run(async () => {
+                            await updateYearLevel(token, organisationId, year.id, yearName, yearOrder);
+                            setEditingYear(null);
+                          });
+                        }}
+                      >
+                        <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
+                        <Field
+                          label={t("organisation.manage.sortOrder")}
+                          value={String(yearOrder)}
+                          onChange={(value) => setYearOrder(Number(value))}
+                          type="number"
+                        />
+                        <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                      </form>
+                    ) : (
+                      <span>
+                        {year.name}
+                      </span>
+                    )}
+                    <span className="flex gap-3">
+                      <TextButton
+                        onClick={() => {
+                          setEditingYear(year.id);
+                          setYearName(year.name);
+                          setYearOrder(year.sortOrder);
+                        }}
+                      >
+                        {t("organisation.manage.edit")}
+                      </TextButton>
+                      <TextButton
+                        onClick={() => {
+                          void run(() => deleteYearLevel(token, organisationId, year.id));
+                        }}
+                      >
+                        {t("organisation.manage.remove")}
+                      </TextButton>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!firstTime ? (
+              <form
+                className="mt-4 space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(async () => {
+                    await createYearLevel(token, organisationId, yearName, yearOrder);
+                    setYearName("");
+                  });
+                }}
+              >
+                <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
+                <Field
+                  label={t("organisation.manage.sortOrder")}
+                  value={String(yearOrder)}
+                  onChange={(value) => setYearOrder(Number(value))}
+                  type="number"
+                />
+                <PrimaryButton type="submit" disabled={busy}>
+                  {t("organisation.manage.addYear")}
+                </PrimaryButton>
+              </form>
+            ) : null}
+          </FocusCard>
+        ) : null}
 
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void run(async () => {
-              const created = await createOrganisation(token, schoolName, schoolCode);
-              setOrganisation(created);
-              setMessage(t("organisation.createdSchool", { name: created.name }));
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("organisation.step1Title")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={schoolName}
-            onChange={(event) => setSchoolName(event.target.value)}
-            placeholder={t("organisation.schoolNamePlaceholder")}
-            required
-          />
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={schoolCode}
-            onChange={(event) => setSchoolCode(event.target.value)}
-            placeholder={t("organisation.schoolCodePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("organisation.createSchool")}
-          </button>
-          {organisation ? (
-            <p className="text-sm">{t("organisation.schoolId", { id: organisation.id })}</p>
-          ) : null}
-        </form>
+        {tab === "classes" ? (
+          <FocusCard>
+            {classes.length === 0 ? (
+              <p className="text-sm text-black/60">{t("organisation.manage.noClasses")}</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {classes.map((schoolClass) => (
+                  <li key={schoolClass.id} className="space-y-2">
+                    {editingClass === schoolClass.id ? (
+                      <form
+                        className="space-y-3"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void run(async () => {
+                            await updateClass(
+                              token,
+                              organisationId,
+                              schoolClass.id,
+                              className,
+                              classCode,
+                              classYearId || schoolClass.yearLevelId
+                            );
+                            setEditingClass(null);
+                          });
+                        }}
+                      >
+                        <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
+                        <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
+                        <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                      </form>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          {schoolClass.name} ({schoolClass.code})
+                        </span>
+                        <span className="flex gap-3">
+                          <TextButton
+                            onClick={() => {
+                              setEditingClass(schoolClass.id);
+                              setClassName(schoolClass.name);
+                              setClassCode(schoolClass.code);
+                              setClassYearId(schoolClass.yearLevelId);
+                            }}
+                          >
+                            {t("organisation.manage.edit")}
+                          </TextButton>
+                          <TextButton
+                            onClick={() => {
+                              void run(() => deleteClass(token, organisationId, schoolClass.id));
+                            }}
+                          >
+                            {t("organisation.manage.remove")}
+                          </TextButton>
+                        </span>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!firstTime ? (
+              <form
+                className="mt-4 space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(async () => {
+                    await createClass(token, organisationId, classYearId, className, classCode);
+                    setClassName("");
+                    setClassCode("");
+                  });
+                }}
+              >
+                <label className="block space-y-1 text-sm">
+                  <span>{t("organisation.manage.yearName")}</span>
+                  <select
+                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                    value={classYearId}
+                    onChange={(event) => setClassYearId(event.target.value)}
+                  >
+                    {years.map((year) => (
+                      <option key={year.id} value={year.id}>
+                        {year.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
+                <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
+                <PrimaryButton type="submit" disabled={busy}>
+                  {t("organisation.manage.addClass")}
+                </PrimaryButton>
+              </form>
+            ) : null}
+          </FocusCard>
+        ) : null}
 
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisation) {
-              setError(t("organisation.createSchoolFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createYearLevel(
-                token,
-                organisation.id,
-                yearName,
-                yearOrder
-              );
-              setYearLevel(created);
-              setMessage(t("organisation.createdYearLevel", { name: created.name }));
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("organisation.step2Title")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={yearName}
-            onChange={(event) => setYearName(event.target.value)}
-            placeholder={t("organisation.yearLevelNamePlaceholder")}
-            required
-          />
-          <input
-            type="number"
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={yearOrder}
-            onChange={(event) => setYearOrder(Number(event.target.value))}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !organisation}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("organisation.createYearLevel")}
-          </button>
-        </form>
+        {tab === "staff" || tab === "students" ? (
+          <FocusCard>
+            <ClassPicker
+              label={t("organisation.manage.classLabel")}
+              classes={classes}
+              classId={classId}
+              onChange={setClassId}
+            />
+            {people.length === 0 ? (
+              <p className="mt-3 text-sm text-black/60">{t("organisation.manage.noPeople")}</p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {people.map((person) => (
+                  <li key={person.userId} className="flex items-center justify-between gap-2">
+                    <span>{person.userId}</span>
+                    <TextButton
+                      onClick={() => {
+                        void run(async () => {
+                          if (tab === "staff") {
+                            await unassignTeacher(token, organisationId, classId, person.userId);
+                          } else {
+                            await unenrollStudent(token, organisationId, classId, person.userId);
+                          }
+                          const load = tab === "staff" ? listTeachers : listEnrollments;
+                          setPeople(await load(token, organisationId, classId));
+                        });
+                      }}
+                    >
+                      {t("organisation.manage.remove")}
+                    </TextButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form
+              className="mt-4 space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run(async () => {
+                  if (tab === "staff") {
+                    await assignTeacher(token, organisationId, classId, userId);
+                    setPeople(await listTeachers(token, organisationId, classId));
+                  } else {
+                    await enrollStudent(token, organisationId, classId, userId);
+                    setPeople(await listEnrollments(token, organisationId, classId));
+                  }
+                  setUserId("");
+                });
+              }}
+            >
+              <Field label={t("organisation.manage.userId")} value={userId} onChange={setUserId} />
+              <PrimaryButton type="submit" disabled={busy || !classId}>
+                {t("organisation.manage.addPerson")}
+              </PrimaryButton>
+            </form>
+          </FocusCard>
+        ) : null}
 
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisation || !yearLevel) {
-              setError(t("organisation.createSchoolAndYearFirst"));
-              return;
-            }
-            void run(async () => {
-              const created = await createClass(
-                token,
-                organisation.id,
-                yearLevel.id,
-                className,
-                classCode
-              );
-              setSchoolClass(created);
-              setMessage(t("organisation.createdClass", { name: created.name }));
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("organisation.step3Title")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={className}
-            onChange={(event) => setClassName(event.target.value)}
-            placeholder={t("organisation.classNamePlaceholder")}
-            required
-          />
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={classCode}
-            onChange={(event) => setClassCode(event.target.value)}
-            placeholder={t("organisation.classCodePlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !yearLevel}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("organisation.createClass")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisation || !schoolClass) {
-              setError(t("organisation.createClassFirst"));
-              return;
-            }
-            void run(async () => {
-              await assignTeacher(
-                token,
-                organisation.id,
-                schoolClass.id,
-                teacherUserId
-              );
-              setMessage(t("organisation.teacherAssigned"));
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("organisation.step4Title")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={teacherUserId}
-            onChange={(event) => setTeacherUserId(event.target.value)}
-            placeholder={t("organisation.teacherIdPlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !schoolClass}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("organisation.assignTeacher")}
-          </button>
-        </form>
-
-        <form
-          className="rounded-lg border border-black/10 p-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!organisation || !schoolClass) {
-              setError(t("organisation.createClassFirst"));
-              return;
-            }
-            void run(async () => {
-              await enrollStudent(
-                token,
-                organisation.id,
-                schoolClass.id,
-                studentUserId
-              );
-              setMessage(t("organisation.studentEnrolled"));
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("organisation.step5Title")}</h2>
-          <input
-            className="w-full rounded border border-black/20 px-3 py-2"
-            value={studentUserId}
-            onChange={(event) => setStudentUserId(event.target.value)}
-            placeholder={t("organisation.studentIdPlaceholder")}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !schoolClass}
-            className="rounded bg-black text-white px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {t("organisation.enrollStudent")}
-          </button>
-        </form>
+        {tab === "families" ? (
+          <FocusCard>
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run(async () => {
+                  await linkParentChild(token, parentId, studentId);
+                  setLinks(await listParentChildren(token, parentId));
+                  setStudentId("");
+                });
+              }}
+            >
+              <Field label={t("organisation.manage.parentId")} value={parentId} onChange={setParentId} />
+              <Field label={t("organisation.manage.studentId")} value={studentId} onChange={setStudentId} />
+              <PrimaryButton type="submit" disabled={busy}>
+                {t("organisation.manage.addPerson")}
+              </PrimaryButton>
+            </form>
+            <TextButton
+              onClick={() => {
+                if (!parentId) {
+                  return;
+                }
+                void listParentChildren(token, parentId)
+                  .then(setLinks)
+                  .catch(() => {
+                    setStatusError(true);
+                    setStatus(t("organisation.manage.failed"));
+                  });
+              }}
+            >
+              {t("organisation.manage.lookup")}
+            </TextButton>
+            {links.length === 0 ? (
+              <p className="mt-3 text-sm text-black/60">{t("organisation.manage.noLinks")}</p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {links.map((link) => (
+                  <li key={link.studentUserId} className="flex items-center justify-between gap-2">
+                    <span>{link.studentUserId}</span>
+                    <TextButton
+                      onClick={() => {
+                        void run(async () => {
+                          await unlinkParentChild(token, link.parentUserId, link.studentUserId);
+                          setLinks(await listParentChildren(token, link.parentUserId));
+                        });
+                      }}
+                    >
+                      {t("organisation.manage.remove")}
+                    </TextButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </FocusCard>
+        ) : null}
       </div>
     </LearningFrame>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block min-w-40 flex-1 space-y-1 text-sm">
+      <span>{label}</span>
+      <input
+        type={type}
+        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      />
+    </label>
+  );
+}
+
+function TextButton({
+  children,
+  onClick,
+  type = "button",
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  type?: "button" | "submit";
+}) {
+  return (
+    <button type={type} onClick={onClick} className="text-sm text-black/60 underline-offset-2 hover:underline">
+      {children}
+    </button>
+  );
+}
+
+function ClassPicker({
+  label,
+  classes,
+  classId,
+  onChange,
+}: {
+  label: string;
+  classes: SchoolClass[];
+  classId: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <label className="block space-y-1 text-sm">
+      <span>{label}</span>
+      <select
+        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+        value={classId}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {classes.map((schoolClass) => (
+          <option key={schoolClass.id} value={schoolClass.id}>
+            {schoolClass.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
