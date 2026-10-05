@@ -101,11 +101,17 @@ public static class InterventionEndpoints
         ClaimsPrincipal principal,
         InterventionDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateViewAccessAsync(
@@ -118,10 +124,19 @@ public static class InterventionEndpoints
             return access;
         }
 
-        var interventions = await db.Interventions
+        var tenantId = tenantContext.TenantId!.Value;
+        var all = await db.Interventions
+            .IgnoreQueryFilters()
             .Where(i => i.StudentUserId == studentUserId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
+
+        if (all.Count > 0 && all.All(i => i.TenantId != tenantId))
+        {
+            return Results.Forbid();
+        }
+
+        var interventions = all.Where(i => i.TenantId == tenantId).ToList();
 
         return Results.Ok(new StudentInterventionsResponse(
             studentUserId,

@@ -16,76 +16,149 @@ public class TenantIsolationEndpointTests : IClassFixture<InterventionWebApplica
     }
 
     [Fact]
-    public async Task SchoolLeader_FromDifferentTenant_CannotListOrganisationInterventions()
+    public async Task CrossSchool_InterventionList_BothDirections_NeverReturnsOtherSchoolData()
     {
-        var tenantA = Guid.CreateVersion7();
-        var tenantB = Guid.CreateVersion7();
-        var leaderId = Guid.NewGuid().ToString();
-        _accessChecker.AllowSchoolLeaderForOrganisation(leaderId, tenantB);
+        // Probe: intervention-service:intervention-list
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
+        var teacherA = Guid.NewGuid().ToString();
+        var teacherB = Guid.NewGuid().ToString();
+        var studentA = Guid.NewGuid().ToString();
+        var studentB = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherA, studentA);
+        _accessChecker.AllowTeacher(teacherB, studentB);
 
-        using var request = TestJwt.Authorized(
+        var interventionA = await CreateInterventionAsync(teacherA, schoolA, studentA, "School A intervention");
+        var interventionB = await CreateInterventionAsync(teacherB, schoolB, studentB, "School B intervention");
+
+        using var listA = TestJwt.Authorized(
             HttpMethod.Get,
-            $"/api/v1/organisations/{tenantB}/interventions",
-            leaderId,
-            tenantA,
-            TestJwt.SchoolLeaderRole);
-        var response = await _client.SendAsync(request);
+            $"/api/v1/interventions?studentUserId={studentA}",
+            teacherA,
+            schoolA,
+            TestJwt.TeacherRole);
+        var okA = await _client.SendAsync(listA);
+        okA.EnsureSuccessStatusCode();
+        var itemsA = await okA.Content.ReadFromJsonAsync<StudentInterventionsResponse>();
+        Assert.Contains(itemsA!.Interventions, item => item.Id == interventionA.Id);
+        Assert.DoesNotContain(itemsA.Interventions, item => item.Id == interventionB.Id);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        using var listB = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/interventions?studentUserId={studentB}",
+            teacherB,
+            schoolB,
+            TestJwt.TeacherRole);
+        var okB = await _client.SendAsync(listB);
+        okB.EnsureSuccessStatusCode();
+        var itemsB = await okB.Content.ReadFromJsonAsync<StudentInterventionsResponse>();
+        Assert.Contains(itemsB!.Interventions, item => item.Id == interventionB.Id);
+        Assert.DoesNotContain(itemsB.Interventions, item => item.Id == interventionA.Id);
+
+        using var createIntoA = TestJwt.Authorized(HttpMethod.Post, "/api/v1/interventions", teacherB, schoolB, TestJwt.TeacherRole);
+        createIntoA.Content = JsonContent.Create(new CreateInterventionRequest(
+            schoolA,
+            studentA,
+            Guid.CreateVersion7(),
+            "Cross-school create",
+            null,
+            null,
+            null,
+            null));
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(createIntoA)).StatusCode);
     }
 
     [Fact]
-    public async Task Teacher_FromDifferentTenant_CannotGetInterventionById()
+    public async Task CrossSchool_InterventionResource_BothDirections_Denied()
     {
-        var tenantA = Guid.CreateVersion7();
-        var tenantB = Guid.CreateVersion7();
-        var teacherId = Guid.NewGuid().ToString();
-        var studentId = Guid.NewGuid().ToString();
-        _accessChecker.AllowTeacher(teacherId, studentId);
+        // Probe: intervention-service:intervention-resource
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
+        var teacherA = Guid.NewGuid().ToString();
+        var teacherB = Guid.NewGuid().ToString();
+        var studentA = Guid.NewGuid().ToString();
+        var studentB = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherA, studentA);
+        _accessChecker.AllowTeacher(teacherB, studentB);
 
-        var created = await SendAsAsync<InterventionResponse>(
-            HttpMethod.Post,
-            "/api/v1/interventions",
-            teacherId,
-            tenantB,
-            TestJwt.TeacherRole,
-            new CreateInterventionRequest(
-                tenantB,
-                studentId,
-                Guid.CreateVersion7(),
-                "Cross-tenant isolation test.",
-                null,
-                null,
-                null,
-                null));
+        var interventionA = await CreateInterventionAsync(teacherA, schoolA, studentA, "Resource A");
+        var interventionB = await CreateInterventionAsync(teacherB, schoolB, studentB, "Resource B");
 
+        await AssertDeniedAsync(HttpMethod.Get, interventionA.Id, teacherB, schoolB);
+        await AssertDeniedAsync(HttpMethod.Get, interventionB.Id, teacherA, schoolA);
+        await AssertDeniedAsync(HttpMethod.Patch, interventionA.Id, teacherB, schoolB);
+        await AssertDeniedAsync(HttpMethod.Patch, interventionB.Id, teacherA, schoolA);
+    }
+
+    [Fact]
+    public async Task CrossSchool_OrganisationPath_BothDirections_Denied()
+    {
+        // Probe: intervention-service:organisation-path
+        var schoolA = Guid.CreateVersion7();
+        var schoolB = Guid.CreateVersion7();
+        var leaderA = Guid.NewGuid().ToString();
+        var leaderB = Guid.NewGuid().ToString();
+        _accessChecker.AllowSchoolLeaderForOrganisation(leaderA, schoolA);
+        _accessChecker.AllowSchoolLeaderForOrganisation(leaderB, schoolB);
+
+        await AssertOrgListDeniedAsync(schoolA, leaderB, schoolB);
+        await AssertOrgListDeniedAsync(schoolB, leaderA, schoolA);
+    }
+
+    private async Task AssertOrgListDeniedAsync(Guid targetOrganisationId, string callerId, Guid callerTenant)
+    {
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
-            $"/api/v1/interventions/{created.Id}",
-            teacherId,
-            tenantA,
-            TestJwt.TeacherRole);
+            $"/api/v1/organisations/{targetOrganisationId}/interventions",
+            callerId,
+            callerTenant,
+            TestJwt.SchoolLeaderRole);
         var response = await _client.SendAsync(request);
-
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private async Task<TResponse> SendAsAsync<TResponse>(
-        HttpMethod method,
-        string url,
-        string userId,
-        Guid tenantId,
-        string role,
-        object? body = null)
+    private async Task AssertDeniedAsync(HttpMethod method, Guid interventionId, string callerId, Guid callerTenant)
     {
-        using var request = TestJwt.Authorized(method, url, userId, tenantId, role);
-        if (body is not null)
+        using var request = TestJwt.Authorized(
+            method,
+            $"/api/v1/interventions/{interventionId}",
+            callerId,
+            callerTenant,
+            TestJwt.TeacherRole);
+        if (method == HttpMethod.Patch)
         {
-            request.Content = JsonContent.Create(body);
+            request.Content = JsonContent.Create(new PatchInterventionRequest(null, null, null, null, null, null, null));
         }
 
-        using var response = await _client.SendAsync(request);
+        var response = await _client.SendAsync(request);
+        Assert.True(
+            response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound,
+            $"{method} intervention returned {response.StatusCode}");
+    }
+
+    private async Task<InterventionResponse> CreateInterventionAsync(
+        string teacherId,
+        Guid organisationId,
+        string studentId,
+        string plannedActions)
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateInterventionRequest(
+            organisationId,
+            studentId,
+            Guid.CreateVersion7(),
+            plannedActions,
+            null,
+            null,
+            null,
+            null));
+        var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<TResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<InterventionResponse>())!;
     }
 }
