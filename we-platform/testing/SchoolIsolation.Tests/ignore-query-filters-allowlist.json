@@ -193,32 +193,42 @@
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 131,
+      "line": 105,
+      "reason": "duplicate-code-uniqueness-across-tenants"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 133,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 165,
+      "line": 167,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 206,
+      "line": 186,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 891,
+      "line": 210,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 910,
+      "line": 908,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
       "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
-      "line": 930,
+      "line": 927,
+      "reason": "lookup-by-id-then-TenantAccess"
+    },
+    {
+      "file": "services/organisation-service/src/Api/OrganisationEndpoints.cs",
+      "line": 947,
       "reason": "lookup-by-id-then-TenantAccess"
     },
     {
