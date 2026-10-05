@@ -3,7 +3,7 @@
 Coverage map for delivery feature checks. Paths are relative to the repo root (`edu_app/`).  
 Status: `covered` | `partial` | `missing` | `linked`.
 
-Updated: 2026-10-05 (batch 2 school isolation complete).
+Updated: 2026-10-05 (batch 2b IgnoreQueryFilters audit, fail-closed tenant filter, federation isolation).
 
 ---
 
@@ -26,8 +26,11 @@ Updated: 2026-10-05 (batch 2 school isolation complete).
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
 | School isolation | School B user with School A org/class/student/resource IDs gets 403/404 and never data — **every** ID-bearing endpoint, table-driven per service or cross-service suite | backend | Source-scanned catalog + coverage guard: `we-platform/testing/SchoolIsolation.Tests/` (`EndpointCoverageGuardTests`, `isolation-catalog.json`). Table-driven both-direction probes in each service’s `TenantIsolationEndpointTests.cs` (incl. federation). Consumer isolation covered in diagnostic/gaps/mastery/learning/edw/notification suites. e2e spot-checks remain in `testing/e2e/tests/g-access-control.spec.ts`. | covered |
+| School isolation | `IgnoreQueryFilters()` bypasses are allow-listed with reason; new bypasses fail CI | backend | Audit: `docs/validation/ignore-query-filters-audit.md`. Guard: `SchoolIsolation.Tests/IgnoreQueryFiltersGuardTests` + `ignore-query-filters-allowlist.json`. | covered |
+| School isolation | Tenant EF filter fail-closed when no tenant is set | backend | `TenantAwareDbContext.CurrentTenantId` filter (`tenant set ∧ TenantId match`); processors/consumers call `SetTenant`; shared `DimTime` joins use allow-listed `IgnoreQueryFilters`. | covered |
+| School isolation | Federation admin A cannot list/create/assign/change policies or metrics for federation B (both directions) | backend | `federation-service/tests/TenantIsolationEndpointTests.cs` (+ existing `FederationEndpointTests` cross-federation cases). Federations are modelled via `FederationId` claim scoping. | covered |
 
-Services with at least one isolation test today: ai-gateway, assessment, communication, configuration, curriculum, diagnostic, edw-ingest, ei, evidence, identity, intervention, learning-gap, mastery, notification, organisation, reporting, student-learning.
+Services with at least one isolation test today: ai-gateway, assessment, communication, configuration, curriculum, diagnostic, edw-ingest, ei, evidence, federation, identity, intervention, learning-gap, mastery, notification, organisation, reporting, student-learning.
 
 ## 3. Organisation setup
 
@@ -163,7 +166,7 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 
 | Priority batch | Highest-impact gaps |
 |----------------|---------------------|
-| 2 School isolation | Exhaustive table-driven isolation (or cross-service suite); fix any cross-school leaks immediately |
+| 2 School isolation | Exhaustive table-driven isolation (batch 2 + 2b complete: endpoint guard, IgnoreQueryFilters allow-list, fail-closed filter, federation A↔B) |
 | 6 Evidence | e2e UI locked; re-verify PUT/DELETE (fix product if editable) |
 | 17 National | Small-count suppression + OpenAPI path completeness; note SP-001 missing min group size |
 | 1 Sign-in | Expired token, refresh persistence, logout |
