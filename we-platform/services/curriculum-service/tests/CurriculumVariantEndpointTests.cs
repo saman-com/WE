@@ -309,6 +309,58 @@ public class CurriculumVariantEndpointTests : IClassFixture<CurriculumWebApplica
         Assert.DoesNotContain(regionalMicroSkill.Id, links.MicroSkillIds);
     }
 
+    [Fact]
+    public async Task VariantLinks_ReturnsOnlyVariantSpecificLearningObjectiveAndMicroSkillIds()
+    {
+        var authorityId = Guid.NewGuid().ToString();
+        var authorityOrgId = Guid.CreateVersion7();
+        var schoolTeacherId = Guid.NewGuid().ToString();
+        var schoolOrgId = Guid.CreateVersion7();
+
+        var regional = await SeedRegionalScienceAsync(authorityId, authorityOrgId);
+        var schoolVariant = await InheritAsync(schoolTeacherId, schoolOrgId, regional.Id);
+
+        var schoolTree = await SendAsAsync<CurriculumTreeResponse>(
+            HttpMethod.Get,
+            $"/api/v1/curriculum/{schoolVariant.Id}/tree",
+            schoolTeacherId,
+            schoolOrgId);
+        var schoolObjective = Assert.Single(Assert.Single(Assert.Single(schoolTree.Subjects).Units).LearningObjectives);
+        var schoolMicroSkill = Assert.Single(schoolObjective.MicroSkills);
+
+        var regionalTree = await SendAsAsync<CurriculumTreeResponse>(
+            HttpMethod.Get,
+            $"/api/v1/curriculum/{regional.Id}/tree",
+            authorityId,
+            authorityOrgId);
+        var regionalObjective = Assert.Single(Assert.Single(Assert.Single(regionalTree.Subjects).Units).LearningObjectives);
+        var regionalMicroSkill = Assert.Single(regionalObjective.MicroSkills);
+
+        var schoolLinks = await SendAsAsync<VariantCurriculumLinksResponse>(
+            HttpMethod.Get,
+            $"/api/v1/curriculum/{schoolVariant.Id}/variant-links",
+            schoolTeacherId,
+            schoolOrgId);
+
+        Assert.Equal(schoolVariant.Id, schoolLinks.CurriculumId);
+        Assert.Equal([schoolObjective.Id], schoolLinks.LearningObjectiveIds);
+        Assert.Equal([schoolMicroSkill.Id], schoolLinks.MicroSkillIds);
+        Assert.DoesNotContain(regionalObjective.Id, schoolLinks.LearningObjectiveIds);
+        Assert.DoesNotContain(regionalMicroSkill.Id, schoolLinks.MicroSkillIds);
+
+        var regionalLinks = await SendAsAsync<VariantCurriculumLinksResponse>(
+            HttpMethod.Get,
+            $"/api/v1/curriculum/{regional.Id}/variant-links",
+            authorityId,
+            authorityOrgId);
+
+        Assert.Equal(regional.Id, regionalLinks.CurriculumId);
+        Assert.Equal([regionalObjective.Id], regionalLinks.LearningObjectiveIds);
+        Assert.Equal([regionalMicroSkill.Id], regionalLinks.MicroSkillIds);
+        Assert.DoesNotContain(schoolObjective.Id, regionalLinks.LearningObjectiveIds);
+        Assert.DoesNotContain(schoolMicroSkill.Id, regionalLinks.MicroSkillIds);
+    }
+
     private async Task<CurriculumResponse> SeedRegionalScienceAsync(string userId, Guid organisationId)
     {
         var regional = await CreateRegionalVariantAsync(

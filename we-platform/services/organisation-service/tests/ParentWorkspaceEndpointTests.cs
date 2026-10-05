@@ -57,6 +57,31 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
     }
 
     [Fact]
+    public async Task DuplicateParentLink_IsRejected()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var parentId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Dup Link School", UniqueCode("DLK"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 6", 6);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "6A", UniqueCode("6A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await LinkParentToStudentAsync(adminId, org.Id, parentId, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/parents/{parentId}/children",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new LinkParentStudentRequest(studentId));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Parent_CanViewLinkedChildProgress()
     {
         var adminId = Guid.NewGuid().ToString();

@@ -44,6 +44,22 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task SchoolLeader_CannotCreateOrganisation()
+    {
+        var leaderId = Guid.NewGuid().ToString();
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/organisations",
+            leaderId,
+            TestJwt.SchoolLeaderRole);
+        request.Content = JsonContent.Create(new CreateOrganisationRequest("Leader School", UniqueCode("LDR")));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Admin_ListOrganisations_DoesNotReturnOtherSchool()
     {
         // Regression: Admin previously used IgnoreQueryFilters and listed every school.
@@ -568,6 +584,118 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             org.Id,
             TestJwt.StudentRole);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(enrollmentsRequest)).StatusCode);
+    }
+
+    [Fact]
+    public async Task DuplicateOrganisationCode_IsRejected()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var code = UniqueCode("DUP");
+        await CreateOrganisationAsAdminAsync(adminId, "First School", code);
+
+        using var request = TestJwt.Authorized(HttpMethod.Post, "/api/v1/organisations", adminId, TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateOrganisationRequest("Second School", code));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DuplicateYearLevelName_IsRejected()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Year Dup School", UniqueCode("YDP"));
+        await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 7", 7);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/year-levels",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateYearLevelRequest("Year 7", 8));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DuplicateClassCode_IsRejected()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Class Dup School", UniqueCode("CDP"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 5", 5);
+        var classCode = UniqueCode("5A");
+        await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "5A", classCode);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/classes",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateClassRequest("5A Copy", classCode, year.Id));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DuplicateEnrollment_IsRejected()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Enrol Dup School", UniqueCode("EDP"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 3", 3);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "3A", UniqueCode("3A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/enrollments",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteClass_WithEnrolledStudents_CascadesSafely()
+    {
+        // Product choice: class delete cascades enrollments rather than rejecting.
+        var adminId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Cascade School", UniqueCode("CSC"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 2", 2);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "2A", UniqueCode("2A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        using var deleteClass = TestJwt.Authorized(
+            HttpMethod.Delete,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.SendAsync(deleteClass)).StatusCode);
+
+        using var missing = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.SendAsync(missing)).StatusCode);
+
+        var classes = await SendAsAsync<List<ClassResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        Assert.DoesNotContain(classes, item => item.Id == schoolClass.Id);
     }
 
     private async Task<OrganisationResponse> CreateOrganisationAsAdminAsync(string adminId, string name, string code)

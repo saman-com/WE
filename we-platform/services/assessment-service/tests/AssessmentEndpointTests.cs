@@ -480,6 +480,91 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Teacher_CannotEditPublishedAssessment()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Locked after publish",
+            null,
+            DateTimeOffset.UtcNow.AddDays(3),
+            [],
+            []);
+        var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Put,
+            $"/api/v1/assessments/{published.Id}",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new UpdateAssessmentRequest(
+            "Attempted edit",
+            "Should be rejected",
+            DateTimeOffset.UtcNow.AddDays(5),
+            [],
+            []));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var unchanged = await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{published.Id}",
+            teacherId,
+            TestJwt.TeacherRole,
+            organisationId);
+        Assert.Equal("Locked after publish", unchanged.Title);
+        Assert.Equal(AssessmentStatuses.Published, unchanged.Status);
+    }
+
+    [Fact]
+    public async Task Teacher_CannotDeletePublishedAssessment()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Published stays",
+            null,
+            null,
+            [],
+            []);
+        var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Delete,
+            $"/api/v1/assessments/{published.Id}",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var stillPresent = await SendAsAsync<AssessmentResponse>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{published.Id}",
+            teacherId,
+            TestJwt.TeacherRole,
+            organisationId);
+        Assert.Equal(published.Id, stillPresent.Id);
+        Assert.Equal(AssessmentStatuses.Published, stillPresent.Status);
+    }
+
     private async Task<AssessmentResponse> PublishAssessmentAsync(string teacherId, Guid assessmentId, Guid organisationId) =>
         await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,

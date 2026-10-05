@@ -52,6 +52,8 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
     [Fact]
     public async Task Student_LateSubmission_IsAcceptedAndMarkedLate()
     {
+        // Documented product behaviour: late submissions are accepted and flagged IsLate=true
+        // (not rejected). Teachers can review late work separately; students cannot edit after submit.
         var teacherId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
         var organisationId = Guid.NewGuid();
@@ -74,6 +76,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
 
         Assert.Equal(SubmissionStatuses.Submitted, submission.Status);
         Assert.True(submission.IsLate);
+        Assert.Equal("Late but submitted.", submission.Responses);
     }
 
     [Fact]

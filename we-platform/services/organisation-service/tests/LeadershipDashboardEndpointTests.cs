@@ -17,6 +17,52 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         _assessmentClient = factory.AssessmentClient;
         _interventionClient = factory.InterventionClient;
         _eiClient = factory.EiClient;
+
+        _assessmentClient.Summaries = [];
+        _assessmentClient.SummariesByClass = new();
+        _assessmentClient.RequestedClasses.Clear();
+        _interventionClient.InterventionsByStudent.Clear();
+        _interventionClient.OrganisationInterventions.Clear();
+        _eiClient.InsightsByClass.Clear();
+        _eiClient.RequestedClasses.Clear();
+    }
+
+    [Fact]
+    public async Task Admin_CanAssignSchoolLeader()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Leader Assign School", UniqueCode("LAS"));
+
+        using var assign = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/leaders",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        assign.Content = JsonContent.Create(new AssignSchoolLeaderRequest(leaderId));
+        var assignResponse = await _client.SendAsync(assign);
+
+        Assert.Equal(HttpStatusCode.Created, assignResponse.StatusCode);
+        var assigned = await assignResponse.Content.ReadFromJsonAsync<SchoolLeaderResponse>();
+        Assert.Equal(leaderId, assigned!.UserId);
+
+        using var duplicate = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/leaders",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        duplicate.Content = JsonContent.Create(new AssignSchoolLeaderRequest(leaderId));
+        Assert.Equal(HttpStatusCode.Conflict, (await _client.SendAsync(duplicate)).StatusCode);
+
+        var dashboard = await SendAsAsync<LeadershipDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/dashboard",
+            leaderId,
+            org.Id,
+            TestJwt.SchoolLeaderRole);
+        Assert.Equal(org.Id, dashboard.OrganisationId);
     }
 
     [Fact]
@@ -94,6 +140,164 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         Assert.Equal("7A", dashboard.ClassComparisons[0].ClassName);
         Assert.Contains(_assessmentClient.RequestedClasses, pair => pair.ClassId == schoolClass.Id);
         Assert.Contains(_eiClient.RequestedClasses, pair => pair.ClassId == schoolClass.Id);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_DashboardNumbers_MatchComputedExpectationsFromSeededOrgClassData()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var student7A1 = Guid.NewGuid().ToString();
+        var student7A2 = Guid.NewGuid().ToString();
+        var student7B = Guid.NewGuid().ToString();
+        var student8A = Guid.NewGuid().ToString();
+        var microSkillId = Guid.CreateVersion7();
+        var assessment7A = Guid.CreateVersion7();
+        var assessment7B = Guid.CreateVersion7();
+        var assessment8A = Guid.CreateVersion7();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Computed Seed School", UniqueCode("CSS"));
+        var year7 = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 7", 7);
+        var year8 = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 8", 8);
+        var class7A = await CreateClassAsAdminAsync(adminId, org.Id, year7.Id, "7A", UniqueCode("7A"));
+        var class7B = await CreateClassAsAdminAsync(adminId, org.Id, year7.Id, "7B", UniqueCode("7B"));
+        var class8A = await CreateClassAsAdminAsync(adminId, org.Id, year8.Id, "8A", UniqueCode("8A"));
+        await EnrollStudentAsync(adminId, org.Id, class7A.Id, student7A1);
+        await EnrollStudentAsync(adminId, org.Id, class7A.Id, student7A2);
+        await EnrollStudentAsync(adminId, org.Id, class7B.Id, student7B);
+        await EnrollStudentAsync(adminId, org.Id, class8A.Id, student8A);
+        await AssignSchoolLeaderAsync(adminId, org.Id, leaderId);
+
+        var assessmentsByClass = new Dictionary<Guid, IReadOnlyList<AssessmentSummaryData>>
+        {
+            [class7A.Id] =
+            [
+                new AssessmentSummaryData(assessment7A, "7A Quiz", "Published", DateTimeOffset.UtcNow.AddDays(3), 1)
+            ],
+            [class7B.Id] =
+            [
+                new AssessmentSummaryData(assessment7B, "7B Quiz", "Published", DateTimeOffset.UtcNow.AddDays(4), 1)
+            ],
+            [class8A.Id] =
+            [
+                new AssessmentSummaryData(assessment8A, "8A Quiz", "Published", DateTimeOffset.UtcNow.AddDays(5), 0)
+            ]
+        };
+        _assessmentClient.SummariesByClass = assessmentsByClass;
+
+        _interventionClient.InterventionsByStudent[student7A1] =
+        [
+            new ParentInterventionSummaryData(
+                Guid.CreateVersion7(), "Support A1", "Active", null, null)
+        ];
+        _interventionClient.InterventionsByStudent[student7A2] =
+        [
+            new ParentInterventionSummaryData(
+                Guid.CreateVersion7(), "Support A2", "Active", null, null),
+            new ParentInterventionSummaryData(
+                Guid.CreateVersion7(), "Support A2b", "Active", null, null)
+        ];
+
+        var insights7A = new ClassEiInsightsData(
+            org.Id,
+            class7A.Id,
+            [
+                new ClassMasteryDistributionData(
+                    microSkillId,
+                    new Dictionary<string, int> { ["Developing"] = 1, ["Secure"] = 1 },
+                    2,
+                    "7A mastery.",
+                    [])
+            ],
+            [
+                new ClassActiveGapData(
+                    Guid.CreateVersion7(), microSkillId, "High", "Medium", student7A1, "Gap A1", Guid.CreateVersion7()),
+                new ClassActiveGapData(
+                    Guid.CreateVersion7(), microSkillId, "Medium", "Low", student7A2, "Gap A2", Guid.CreateVersion7())
+            ],
+            [],
+            [
+                new StudentNeedingAttentionData(student7A1, "Gap", "Needs attention.", null)
+            ]);
+        var insights7B = new ClassEiInsightsData(
+            org.Id,
+            class7B.Id,
+            [
+                new ClassMasteryDistributionData(
+                    microSkillId,
+                    new Dictionary<string, int> { ["Developing"] = 1 },
+                    1,
+                    "7B mastery.",
+                    [])
+            ],
+            [
+                new ClassActiveGapData(
+                    Guid.CreateVersion7(), microSkillId, "Low", "Low", student7B, "Gap B", Guid.CreateVersion7())
+            ],
+            [],
+            []);
+        var insights8A = EmptyInsights(org.Id, class8A.Id);
+
+        _eiClient.InsightsByClass[(org.Id, class7A.Id)] = insights7A;
+        _eiClient.InsightsByClass[(org.Id, class7B.Id)] = insights7B;
+        _eiClient.InsightsByClass[(org.Id, class8A.Id)] = insights8A;
+
+        var expectedAggregations = new[]
+        {
+            LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
+                class7A.Id, "7A", year7.Id, "Year 7",
+                [student7A1, student7A2], assessmentsByClass[class7A.Id], ActiveInterventions: 3, insights7A)),
+            LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
+                class7B.Id, "7B", year7.Id, "Year 7",
+                [student7B], assessmentsByClass[class7B.Id], ActiveInterventions: 0, insights7B)),
+            LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
+                class8A.Id, "8A", year8.Id, "Year 8",
+                [student8A], assessmentsByClass[class8A.Id], ActiveInterventions: 0, insights8A))
+        };
+        var expectedKpis = LeadershipDashboardAggregator.RollUpKpis(expectedAggregations);
+        var expectedYearLevels = LeadershipDashboardAggregator.RollUpYearLevels(expectedAggregations);
+        var expectedComparisons = LeadershipDashboardAggregator.ToClassComparisons(expectedAggregations);
+
+        var dashboard = await SendAsAsync<LeadershipDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/dashboard",
+            leaderId,
+            org.Id,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(org.Id, dashboard.OrganisationId);
+        Assert.Equal("Computed Seed School", dashboard.OrganisationName);
+        Assert.Equal(expectedKpis.TotalStudents, dashboard.Kpis.TotalStudents);
+        Assert.Equal(expectedKpis.TotalClasses, dashboard.Kpis.TotalClasses);
+        Assert.Equal(expectedKpis.ActiveInterventions, dashboard.Kpis.ActiveInterventions);
+        Assert.Equal(expectedKpis.ActiveLearningGaps, dashboard.Kpis.ActiveLearningGaps);
+        Assert.Equal(expectedKpis.StudentsNeedingAttention, dashboard.Kpis.StudentsNeedingAttention);
+        Assert.Equal(expectedKpis.AssessmentCompletionRate, dashboard.Kpis.AssessmentCompletionRate);
+        Assert.Equal(4, dashboard.Kpis.TotalStudents);
+        Assert.Equal(3, dashboard.Kpis.TotalClasses);
+        Assert.Equal(3, dashboard.Kpis.ActiveInterventions);
+        Assert.Equal(3, dashboard.Kpis.ActiveLearningGaps);
+        Assert.Equal(1, dashboard.Kpis.StudentsNeedingAttention);
+        Assert.Equal(2, dashboard.Kpis.MasteryLevelCounts["Developing"]);
+        Assert.Equal(1, dashboard.Kpis.MasteryLevelCounts["Secure"]);
+        foreach (var (level, count) in expectedKpis.MasteryLevelCounts)
+        {
+            Assert.Equal(count, dashboard.Kpis.MasteryLevelCounts[level]);
+        }
+
+        Assert.Equal(expectedYearLevels.Count, dashboard.YearLevels.Count);
+        Assert.Equal(expectedYearLevels[0].YearLevelId, dashboard.YearLevels[0].YearLevelId);
+        Assert.Equal(2, dashboard.YearLevels.Single(y => y.YearLevelName == "Year 7").ClassCount);
+        Assert.Equal(3, dashboard.YearLevels.Single(y => y.YearLevelName == "Year 7").StudentCount);
+        Assert.Equal(1, dashboard.YearLevels.Single(y => y.YearLevelName == "Year 8").StudentCount);
+
+        Assert.Equal(expectedComparisons.Count, dashboard.ClassComparisons.Count);
+        Assert.Equal(
+            expectedComparisons.Single(c => c.ClassId == class7A.Id).AssessmentCompletionRate,
+            dashboard.ClassComparisons.Single(c => c.ClassId == class7A.Id).AssessmentCompletionRate);
+        Assert.Equal(0.5m, dashboard.ClassComparisons.Single(c => c.ClassId == class7A.Id).AssessmentCompletionRate);
+        Assert.Equal(1m, dashboard.ClassComparisons.Single(c => c.ClassId == class7B.Id).AssessmentCompletionRate);
+        Assert.Equal(0m, dashboard.ClassComparisons.Single(c => c.ClassId == class8A.Id).AssessmentCompletionRate);
     }
 
     [Fact]
