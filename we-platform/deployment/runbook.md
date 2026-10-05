@@ -79,6 +79,28 @@ decision in `IMemoryCache` for **30 seconds**.
 
 See SP-001 §4.16 (Permission Matrix) for the product statement of this delay.
 
+## Production database sizing
+
+Local compose sets Postgres `max_connections=800` and each service Npgsql pool to
+`Maximum Pool Size=30` (reporting and edw-ingest each open their own pool(s)).
+
+**Formula (without a pooler):**
+
+```text
+required_connections ≈ Σ (service_instances × Maximum_Pool_Size)
+                     + overhead_for_migrations_admin_monitoring
+
+must satisfy: required_connections + headroom < Postgres max_connections
+```
+
+Compose check: 20 pool entries × 30 = 600, plus headroom under `max_connections=800`.
+
+**Production recommendation:** put **PgBouncer in transaction mode** in front of
+Postgres. Application pools then size against PgBouncer `max_client_conn`, while
+Postgres `max_connections` only needs to cover PgBouncer `default_pool_size` ×
+databases/users (plus a small admin reserve). Prefer many short-lived client
+connections through PgBouncer over raising Postgres `max_connections` unboundedly.
+
 ## Schema upgrades (existing Postgres volumes)
 
 `EnsureCreated` does **not** add new tables to databases that already exist. For evidence, diagnostic, gaps, mastery, and student-learning services, MassTransit requires `InboxState`, `OutboxState`, and `OutboxMessage`.
