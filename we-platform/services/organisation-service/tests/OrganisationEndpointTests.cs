@@ -513,6 +513,81 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task Workspace_And_Dashboard_Totals_IncludeAll_WhenStudentHas120AssessmentsAndEvidence()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var recordedAt = DateTimeOffset.UtcNow;
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Census School", UniqueCode("CEN"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 8", 8);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "8A", UniqueCode("8A"));
+        await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
+        _assessmentClient.StudentSummaries = Enumerable.Range(0, 120)
+            .Select(i => new StudentAssessmentSummaryData(
+                Guid.Parse($"00000000-0000-4000-8000-{i:D12}"),
+                $"Assessment {i}",
+                recordedAt.AddDays(i),
+                [],
+                i % 3 == 0,
+                i % 3 == 0 ? recordedAt : null))
+            .ToList();
+        _evidenceClient.StudentFeedback = Enumerable.Range(0, 120)
+            .Select(i => new StudentEvidenceFeedbackData(
+                Guid.Parse($"00000000-0000-4000-8001-{i:D12}"),
+                Guid.Parse($"00000000-0000-4000-8000-{i:D12}"),
+                $"Evidence {i}",
+                recordedAt.AddMinutes(-i),
+                []))
+            .ToList();
+        _profileClient.Profiles[studentId] = new StudentProfileData(
+            studentId,
+            Enumerable.Range(0, 120)
+                .Select(i => new StudentProfileTimelineEntryData(
+                    Guid.Parse($"00000000-0000-4000-8002-{i:D12}"),
+                    $"Timeline {i}",
+                    recordedAt.AddMinutes(-i)))
+                .ToList());
+        _profileClient.Summaries[studentId] = new StudentProfileSummaryData(studentId, 120, recordedAt);
+        _assessmentClient.Summaries =
+        [
+            new AssessmentSummaryData(
+                Guid.Parse("00000000-0000-4000-8000-000000000000"),
+                "Recent quiz",
+                "Published",
+                recordedAt.AddDays(1),
+                1)
+        ];
+        _evidenceClient.Summaries =
+        [
+            new EvidenceSummaryData(Guid.Parse("00000000-0000-4000-8000-000000000000"), 1)
+        ];
+
+        var workspace = await SendAsAsync<StudentWorkspaceResponse>(
+            HttpMethod.Get,
+            $"/api/v1/students/{studentId}/workspace",
+            studentId,
+            org.Id,
+            TestJwt.StudentRole);
+
+        Assert.Equal(120, workspace.Assessments.Count);
+        Assert.Equal(120, workspace.Feedback.Count);
+        Assert.Equal(120, workspace.Timeline.Count);
+
+        var dashboard = await SendAsAsync<ClassDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/classes/{schoolClass.Id}/dashboard",
+            teacherId,
+            org.Id,
+            TestJwt.TeacherRole);
+
+        Assert.Equal(120, dashboard.Roster[0].EvidenceCount);
+    }
+
+    [Fact]
     public async Task Student_CannotViewOtherStudentWorkspace()
     {
         var adminId = Guid.NewGuid().ToString();

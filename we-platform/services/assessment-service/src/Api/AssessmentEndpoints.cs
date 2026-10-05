@@ -211,6 +211,7 @@ public static class AssessmentEndpoints
     private static async Task<IResult> ListClassAssessmentSummary(
         Guid organisationId,
         Guid classId,
+        int? pageSize,
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
@@ -242,11 +243,14 @@ public static class AssessmentEndpoints
             }
         }
 
+        // Recent-only dashboard strip — default 10, hard-capped well below list MaxPageSize.
+        var take = pageSize is null or <= 0 ? 10 : Math.Min(pageSize.Value, 25);
+
         var assessments = await db.Assessments
             .Include(a => a.Submissions)
             .Where(a => a.OrganisationId == organisationId && a.ClassId == classId)
             .OrderByDescending(a => a.CreatedAt)
-            .Take(10)
+            .Take(take)
             .ToListAsync();
 
         var summaries = assessments

@@ -795,7 +795,7 @@ public static class OrganisationEndpoints
         }
 
         var studentIds = schoolClass.Enrollments.Select(e => e.StudentUserId).Distinct().ToList();
-        var assessmentTask = assessmentClient.ListClassAssessmentSummariesAsync(
+        var assessmentTask = assessmentClient.GetRecentClassAssessmentSummariesAsync(
             organisationId,
             classId,
             bearerToken);

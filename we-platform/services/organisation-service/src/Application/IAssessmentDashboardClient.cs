@@ -17,7 +17,10 @@ public sealed record StudentAssessmentSummaryData(
 
 public interface IAssessmentDashboardClient
 {
-    Task<IReadOnlyList<AssessmentSummaryData>> ListClassAssessmentSummariesAsync(
+    /// <summary>
+    /// Recent class assessments only (explicit small page — not a full inventory).
+    /// </summary>
+    Task<IReadOnlyList<AssessmentSummaryData>> GetRecentClassAssessmentSummariesAsync(
         Guid organisationId,
         Guid classId,
         string bearerToken,

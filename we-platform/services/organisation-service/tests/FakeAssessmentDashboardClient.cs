@@ -8,7 +8,7 @@ public sealed class FakeAssessmentDashboardClient : IAssessmentDashboardClient
     public IReadOnlyList<AssessmentSummaryData> Summaries { get; set; } = [];
     public Dictionary<Guid, IReadOnlyList<AssessmentSummaryData>> SummariesByClass { get; set; } = new();
 
-    public Task<IReadOnlyList<AssessmentSummaryData>> ListClassAssessmentSummariesAsync(
+    public Task<IReadOnlyList<AssessmentSummaryData>> GetRecentClassAssessmentSummariesAsync(
         Guid organisationId,
         Guid classId,
         string bearerToken,

@@ -17,12 +17,7 @@ public sealed class HttpStudentLearningProfileClient(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["StudentLearning:BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            logger.LogWarning("Student learning base URL is not configured.");
-            throw new InvalidOperationException("Student learning service is not configured.");
-        }
+        var baseUrl = RequireBaseUrl();
 
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
@@ -60,12 +55,7 @@ public sealed class HttpStudentLearningProfileClient(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["StudentLearning:BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            logger.LogWarning("Student learning base URL is not configured.");
-            throw new InvalidOperationException("Student learning service is not configured.");
-        }
+        var baseUrl = RequireBaseUrl();
 
         if (studentUserIds.Count == 0)
         {
@@ -105,6 +95,72 @@ public sealed class HttpStudentLearningProfileClient(
         string bearerToken,
         CancellationToken cancellationToken = default)
     {
+        var baseUrl = RequireBaseUrl();
+        IReadOnlyList<ClassEnrollmentSummaryPayload>? enrollments = null;
+        string? firstStudentUserId = null;
+
+        var timeline = await PagedHttp.FetchAllAsync(
+            async (cursor, ct) =>
+            {
+                var query = $"pageSize={PagedHttp.PageSize}";
+                if (!string.IsNullOrWhiteSpace(cursor))
+                {
+                    query += $"&cursor={Uri.EscapeDataString(cursor)}";
+                }
+
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    $"{baseUrl.TrimEnd('/')}/api/v1/students/{studentUserId}/profile?{query}");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+                using var response = await httpClient.SendAsync(request, ct);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogWarning(
+                        "Student learning profile request failed with status {StatusCode}.",
+                        response.StatusCode);
+                    response.EnsureSuccessStatusCode();
+                }
+
+                var payload = await response.Content.ReadFromJsonAsync<ProfilePayload>(
+                    cancellationToken: ct);
+                if (payload is null)
+                {
+                    return null;
+                }
+
+                firstStudentUserId ??= payload.StudentUserId;
+                enrollments ??= payload.Enrollments;
+
+                return new PagedHttp.Page<StudentProfileTimelineEntryData>(
+                    payload.EvidenceTimeline
+                        .Select(entry => new StudentProfileTimelineEntryData(
+                            entry.Id,
+                            entry.Title,
+                            entry.RecordedAt))
+                        .ToList(),
+                    payload.HasMore,
+                    payload.NextCursor);
+            },
+            logger,
+            "student-profile-timeline",
+            cancellationToken);
+
+        if (firstStudentUserId is null)
+        {
+            return null;
+        }
+
+        return new StudentProfileData(firstStudentUserId, timeline);
+    }
+
+    private string RequireBaseUrl()
+    {
         var baseUrl = configuration["StudentLearning:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -112,37 +168,7 @@ public sealed class HttpStudentLearningProfileClient(
             throw new InvalidOperationException("Student learning service is not configured.");
         }
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"{baseUrl.TrimEnd('/')}/api/v1/students/{studentUserId}/profile");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            logger.LogWarning(
-                "Student learning profile request failed with status {StatusCode}.",
-                response.StatusCode);
-            response.EnsureSuccessStatusCode();
-        }
-
-        var payload = await response.Content.ReadFromJsonAsync<ProfilePayload>(
-            cancellationToken: cancellationToken);
-        return payload is null
-            ? null
-            : new StudentProfileData(
-                payload.StudentUserId,
-                payload.EvidenceTimeline
-                    .Select(entry => new StudentProfileTimelineEntryData(
-                        entry.Id,
-                        entry.Title,
-                        entry.RecordedAt))
-                    .ToList());
+        return baseUrl;
     }
 
     private sealed record ProfileSummaryPayload(
@@ -152,9 +178,17 @@ public sealed class HttpStudentLearningProfileClient(
 
     private sealed record ProfilePayload(
         string StudentUserId,
+        IReadOnlyList<ClassEnrollmentSummaryPayload> Enrollments,
         IReadOnlyList<ProfileTimelinePayload> EvidenceTimeline,
         bool HasMore = false,
         string? NextCursor = null);
+
+    private sealed record ClassEnrollmentSummaryPayload(
+        Guid OrganisationId,
+        Guid ClassId,
+        string ClassName,
+        string ClassCode,
+        DateTimeOffset EnrolledAt);
 
     private sealed record ProfileTimelinePayload(
         Guid Id,

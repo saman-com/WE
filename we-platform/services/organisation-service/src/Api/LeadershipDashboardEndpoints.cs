@@ -204,7 +204,7 @@ public static class LeadershipDashboardEndpoints
             return Results.Forbid();
         }
 
-        var assessments = await assessmentClient.ListClassAssessmentSummariesAsync(
+        var assessments = await assessmentClient.GetRecentClassAssessmentSummariesAsync(
             organisationId,
             classId,
             bearerToken);
@@ -410,7 +410,7 @@ public static class LeadershipDashboardEndpoints
         var tasks = classes.Select(async schoolClass =>
         {
             var studentIds = schoolClass.Enrollments.Select(e => e.StudentUserId).ToList();
-            var assessments = await assessmentClient.ListClassAssessmentSummariesAsync(
+            var assessments = await assessmentClient.GetRecentClassAssessmentSummariesAsync(
                 schoolClass.OrganisationId,
                 schoolClass.Id,
                 bearerToken);
