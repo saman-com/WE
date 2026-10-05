@@ -66,6 +66,12 @@ services:
       dockerfile: examples/sample-service/Dockerfile
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +92,12 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,6 +117,12 @@ services:
       StudentLearning__BaseUrl: http://student-learning-service:8080
       Assessment__BaseUrl: http://assessment-service:8080
       Evidence__BaseUrl: http://evidence-service:8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,6 +139,12 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -141,11 +165,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -166,13 +196,19 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       ai-gateway-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -192,11 +228,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -211,6 +253,12 @@ services:
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
       RabbitMQ__Password: we_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -231,11 +279,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -255,11 +309,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -279,11 +339,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
@@ -304,19 +370,25 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       mastery-service:
-        condition: service_started
+        condition: service_healthy
       learning-gap-service:
-        condition: service_started
+        condition: service_healthy
       diagnostic-service:
-        condition: service_started
+        condition: service_healthy
       ai-gateway-service:
-        condition: service_started
+        condition: service_healthy
 
   ai-gateway-service:
     build:
@@ -332,6 +404,12 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -349,11 +427,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
 
   communication-service:
     build:
@@ -371,13 +455,19 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   notification-service:
     build:
@@ -394,11 +484,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   reporting-service:
     build:
@@ -415,13 +511,19 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       organisation-service:
-        condition: service_started
+        condition: service_healthy
       ei-service:
-        condition: service_started
+        condition: service_healthy
 
   edw-ingest-service:
     build:
@@ -435,11 +537,17 @@ services:
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: we
       RabbitMQ__Password: we_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   configuration-service:
     build:
@@ -453,6 +561,12 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -470,11 +584,17 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       configuration-service:
-        condition: service_started
+        condition: service_healthy
 
   national-reporting-service:
     build:
@@ -490,6 +610,12 @@ services:
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy

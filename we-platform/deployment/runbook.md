@@ -101,6 +101,41 @@ Postgres `max_connections` only needs to cover PgBouncer `default_pool_size` ×
 databases/users (plus a small admin reserve). Prefer many short-lived client
 connections through PgBouncer over raising Postgres `max_connections` unboundedly.
 
+## Backup and restore
+
+1. Ensure compose Postgres is healthy: `docker compose ps postgres`.
+2. Create a dump directory: `mkdir -p backups/$(date +%Y%m%d)`.
+3. Dump every service database (custom format), including `we_notifications`
+   (created by `databases/notification/init.sql` on first volume init):
+
+```bash
+DBS="we_identity we_organisation we_curriculum we_learning we_assessment \
+we_evidence we_diagnostic we_gaps we_mastery we_interventions we_ei \
+we_ai_gateway we_communication we_notifications we_reporting we_edw \
+we_configuration we_federation we_national_reporting"
+
+for db in $DBS; do
+  docker exec we-platform-postgres-1 \
+    pg_dump -U we -d "$db" -Fc -f "/tmp/${db}.dump"
+  docker cp "we-platform-postgres-1:/tmp/${db}.dump" "backups/$(date +%Y%m%d)/${db}.dump"
+done
+```
+
+4. Restore into a fresh volume (or stop APIs first). On a new volume, compose mounts
+   all `databases/*/init.sql` scripts (including notification) so every database
+   exists before `pg_restore`:
+
+```bash
+docker compose down
+docker volume rm we-platform_postgres_data   # destructive — confirm first
+docker compose up -d postgres
+# wait until healthy, then for each dump:
+docker exec -i we-platform-postgres-1 \
+  pg_restore -U we -d "$db" --clean --if-exists < "backups/<date>/${db}.dump"
+```
+
+5. Bring the stack back: `docker compose up -d` and run `./scripts/check-health.sh`.
+
 ## Schema upgrades (existing Postgres volumes)
 
 `EnsureCreated` does **not** add new tables to databases that already exist. For evidence, diagnostic, gaps, mastery, and student-learning services, MassTransit requires `InboxState`, `OutboxState`, and `OutboxMessage`.
