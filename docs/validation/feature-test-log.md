@@ -15,4 +15,4 @@ Running log for Step 2 batches. One line per completed batch.
 | 14–16 Leadership/analytics/federation | `36143f7` | KPI vs seeded aggregator; empty charts; school-admin policies | none |
 | 18 + 8–10 Arabic/homes | `259ef6f` | Parent RTL; i18n scans; empty homes; intervention filters | none |
 | 19 Non-functional | `cf77a6c`, `6ab5f7c` | nfr-report.md + PlatformSlaLoadTests p95 output; e2e webServer restore | Next.js critical advisories; OWASP headers missing; no compose k6 |
-| Next.js upgrade | pending | next@15.5.27 + eslint-config-next; postcss→8.5.28 via .pnpmfile.cjs; build/test/e2e | pnpm audit --prod clean of critical/high |
+| Next.js upgrade | `963ed39` | next@15.5.27 + eslint-config-next; postcss→8.5.28 via .pnpmfile.cjs; build/test/e2e | pnpm audit --prod clean of critical/high |
