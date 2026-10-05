@@ -8,6 +8,7 @@ test.describe("d. AI feedback draft", () => {
   test("teacher drafts/edits/finalises AI feedback; student sees after approve; admin sees audit", async ({
     browser,
   }) => {
+    test.setTimeout(180_000);
     const title = uniqueTitle("E2E AI Algebra");
     const editedFeedback = `Edited AI feedback ${title}`;
 
@@ -58,25 +59,37 @@ test.describe("d. AI feedback draft", () => {
     await expect(teacherPage.getByText(/AI draft ready for your review/i)).toBeVisible({
       timeout: 60_000,
     });
+    await expect(teacherPage.getByRole("button", { name: "Approve evidence" })).toBeEnabled();
 
-    const firstFeedback = teacherPage.getByLabel("Feedback").first();
-    await firstFeedback.fill(editedFeedback);
-
+    // Controlled number inputs sometimes drop Playwright fill after AI re-render; type + assert.
     const markInputs = teacherPage.getByLabel("Mark");
+    const feedbackInputs = teacherPage.getByLabel("Feedback");
     const count = await markInputs.count();
+    expect(count).toBeGreaterThanOrEqual(4);
     for (let i = 0; i < count; i++) {
-      await markInputs.nth(i).fill("4");
-      if (i > 0) {
-        await teacherPage.getByLabel("Feedback").nth(i).fill(`Mark ${i} ${title}`);
+      const mark = markInputs.nth(i);
+      await mark.click();
+      await mark.fill("4");
+      if ((await mark.inputValue()) !== "4") {
+        await mark.clear();
+        await mark.pressSequentially("4");
       }
+      await expect(mark).toHaveValue("4");
+
+      const feedback = feedbackInputs.nth(i);
+      const feedbackText = i === 0 ? editedFeedback : `Mark ${i} ${title}`;
+      await feedback.fill(feedbackText);
+      await expect(feedback).toHaveValue(feedbackText);
     }
+    await expect(feedbackInputs.first()).toHaveValue(editedFeedback);
 
     await teacherPage.getByRole("button", { name: "Approve evidence" }).click();
     await expect(teacherPage.getByText(/Submission approved/i)).toBeVisible();
+    await expect(teacherPage.getByText(editedFeedback)).toBeVisible();
 
     await waitForUi(studentPage, "/student/feedback", async (page) => {
       await expect(page.getByText(editedFeedback)).toBeVisible();
-    }, { timeoutMs: 120_000 });
+    }, { timeoutMs: 90_000 });
 
     const admin = await browser.newContext({ storageState: storagePath("admin") });
     const adminPage = await admin.newPage();
