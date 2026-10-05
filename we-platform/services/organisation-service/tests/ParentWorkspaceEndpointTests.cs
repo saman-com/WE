@@ -28,10 +28,16 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         var parentId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
 
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Link School", UniqueCode("LNK"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 3", 3);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "3A", UniqueCode("3A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/parents/{parentId}/children",
             adminId,
+            org.Id,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new LinkParentStudentRequest(studentId));
         var response = await _client.SendAsync(request);
@@ -45,7 +51,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
             HttpMethod.Get,
             $"/api/v1/parents/{parentId}/children",
             adminId,
-            null,
+            org.Id,
             TestJwt.AdminRole);
         Assert.Contains(children, item => item.StudentUserId == studentId);
     }
@@ -66,7 +72,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 5", 5);
         var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "5A", UniqueCode("5A"));
         await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
-        await LinkParentToStudentAsync(adminId, parentId, studentId);
+        await LinkParentToStudentAsync(adminId, org.Id, parentId, studentId);
 
         _assessmentClient.StudentSummaries =
         [
@@ -147,12 +153,17 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         var otherParentId = Guid.NewGuid().ToString();
         var studentId = Guid.NewGuid().ToString();
 
-        await LinkParentToStudentAsync(adminId, otherParentId, studentId);
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Other Parent School", UniqueCode("OPS"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 4", 4);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "4A", UniqueCode("4A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await LinkParentToStudentAsync(adminId, org.Id, otherParentId, studentId);
 
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
             $"/api/v1/parents/me/children/{studentId}/progress",
             parentId,
+            org.Id,
             TestJwt.ParentRole);
         var response = await _client.SendAsync(request);
 
@@ -167,14 +178,19 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         var firstStudentId = Guid.NewGuid().ToString();
         var secondStudentId = Guid.NewGuid().ToString();
 
-        await LinkParentToStudentAsync(adminId, parentId, firstStudentId);
-        await LinkParentToStudentAsync(adminId, parentId, secondStudentId);
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Children School", UniqueCode("CHD"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 2", 2);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "2A", UniqueCode("2A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, firstStudentId);
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, secondStudentId);
+        await LinkParentToStudentAsync(adminId, org.Id, parentId, firstStudentId);
+        await LinkParentToStudentAsync(adminId, org.Id, parentId, secondStudentId);
 
         var children = await SendAsAsync<List<ParentChildLinkResponse>>(
             HttpMethod.Get,
             "/api/v1/parents/me/children",
             parentId,
-            null,
+            org.Id,
             TestJwt.ParentRole);
 
         Assert.Equal(2, children.Count);
@@ -257,7 +273,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "11A", UniqueCode("11A"));
         await AssignTeacherAsync(adminId, org.Id, schoolClass.Id, teacherId);
         await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
-        await LinkParentToStudentAsync(adminId, parentId, studentId);
+        await LinkParentToStudentAsync(adminId, org.Id, parentId, studentId);
 
         using var allowed = TestJwt.Authorized(
             HttpMethod.Get,
@@ -291,12 +307,13 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    private async Task LinkParentToStudentAsync(string adminId, string parentId, string studentId)
+    private async Task LinkParentToStudentAsync(string adminId, Guid organisationId, string parentId, string studentId)
     {
         using var request = TestJwt.Authorized(
             HttpMethod.Post,
             $"/api/v1/parents/{parentId}/children",
             adminId,
+            organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new LinkParentStudentRequest(studentId));
         var response = await _client.SendAsync(request);

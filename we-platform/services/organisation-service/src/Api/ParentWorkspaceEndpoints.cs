@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OrganisationService.Application;
 using OrganisationService.Domain;
 using OrganisationService.Infrastructure.Data;
+using WePlatform.Tenancy;
 
 namespace OrganisationService.Api;
 
@@ -29,9 +30,15 @@ public static class ParentWorkspaceEndpoints
         string parentUserId,
         LinkParentStudentRequest request,
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
         if (!principal.IsAdmin())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
         {
             return Results.Forbid();
         }
@@ -42,6 +49,18 @@ public static class ParentWorkspaceEndpoints
         }
 
         var studentUserId = request.StudentUserId.Trim();
+        var tenantId = tenantContext.TenantId!.Value;
+
+        // Student must be enrolled in the caller's school; prevents cross-school parent links.
+        var enrolledInTenant = await db.ClassEnrollments
+            .IgnoreQueryFilters()
+            .AnyAsync(enrollment =>
+                enrollment.StudentUserId == studentUserId && enrollment.TenantId == tenantId);
+        if (!enrolledInTenant)
+        {
+            return Results.NotFound();
+        }
+
         if (await db.ParentStudentLinks.AnyAsync(link =>
                 link.ParentUserId == parentUserId && link.StudentUserId == studentUserId))
         {
@@ -50,6 +69,7 @@ public static class ParentWorkspaceEndpoints
 
         var link = new ParentStudentLink
         {
+            TenantId = tenantId,
             ParentUserId = parentUserId,
             StudentUserId = studentUserId,
             LinkedAt = DateTimeOffset.UtcNow
