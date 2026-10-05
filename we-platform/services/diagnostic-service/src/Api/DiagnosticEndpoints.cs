@@ -4,6 +4,7 @@ using DiagnosticService.Application;
 using DiagnosticService.Domain;
 using DiagnosticService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using WePlatform.Tenancy;
 
 namespace DiagnosticService.Api;
 
@@ -21,11 +22,17 @@ public static class DiagnosticEndpoints
         ClaimsPrincipal principal,
         DiagnosticDbContext db,
         IOrganisationAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
         if (string.IsNullOrWhiteSpace(studentUserId))
         {
             return Results.BadRequest();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
         }
 
         var access = await EvaluateAccessAsync(
@@ -38,11 +45,22 @@ public static class DiagnosticEndpoints
             return access;
         }
 
-        var diagnostics = await db.Diagnostics
+        var tenantId = tenantContext.TenantId!.Value;
+        var allDiagnostics = await db.Diagnostics
+            .IgnoreQueryFilters()
             .Where(d => d.StudentUserId == studentUserId)
             .OrderBy(d => d.CreatedAt)
             .ThenBy(d => d.MicroSkillId)
             .ToListAsync();
+
+        if (allDiagnostics.Count > 0 && allDiagnostics.All(d => d.TenantId != tenantId))
+        {
+            return Results.Forbid();
+        }
+
+        var diagnostics = allDiagnostics
+            .Where(d => d.TenantId == tenantId)
+            .ToList();
 
         return Results.Ok(new StudentDiagnosticsResponse(
             studentUserId,

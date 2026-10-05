@@ -5,6 +5,7 @@ using DiagnosticService.Infrastructure.Messaging.Consumers;
 using MassTransit;
 using MassTransit.Testing;
 using WePlatform.Events;
+using WePlatform.Tenancy;
 
 namespace DiagnosticService.Tests;
 
@@ -116,7 +117,7 @@ public class DiagnosticEndpointTests : IClassFixture<DiagnosticWebApplicationFac
             eventId,
             eventId,
             DateTimeOffset.UtcNow,
-            Guid.CreateVersion7(),
+            DefaultTenant.Id,
             EvidenceCreated.CurrentVersion,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
