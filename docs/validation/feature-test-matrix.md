@@ -3,7 +3,7 @@
 Coverage map for delivery feature checks. Paths are relative to the repo root (`edu_app/`).  
 Status: `covered` | `partial` | `missing` | `linked`.
 
-Updated: 2026-10-05 (batches 18 Arabic + 8–10 homes/interventions; 3–5; 14 leadership; 15 analytics; 16 federation/config).
+Updated: 2026-10-05 (batch 19 NFR; batches 18 Arabic + 8–10 homes/interventions; 3–5; 14 leadership; 15 analytics; 16 federation/config).
 
 ---
 
@@ -151,12 +151,12 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | missing as compose-wide k6; unit-style concurrent SLA only in `national-reporting-service/tests/PlatformSlaLoadTests.cs` | missing |
-| Security | Dependency vulnerability scan (`dotnet list package --vulnerable`, `pnpm audit`) | manual / script | missing | missing |
-| Security | Basic OWASP header and CORS checks | manual / script | missing | missing |
-| Security | Confirm no secrets committed | manual / script | missing | missing |
-| Backup / restore | Dump + restore all service DBs then `pnpm e2e` | manual / script | missing | missing |
-| Health | Every compose service `/health` returns OK | manual / script | sample only: `examples/sample-service/tests/HealthEndpointTests.cs`; no compose-wide health script | missing |
+| Load | k6 (or similar) against compose main endpoints; report p95 vs 500 ms | manual / script | Report: `docs/validation/nfr-report.md` §1. Compose-wide k6 still missing. Unit SLA executed: `national-reporting-service/tests/PlatformSlaLoadTests.cs` (enrollment p95=12ms, trends p95=1ms, max≤500ms); portal `policy-dashboards.sla.test.ts` | partial |
+| Security | Dependency vulnerability scan (`dotnet list package --vulnerable`, `pnpm audit`) | manual / script | `docs/validation/nfr-report.md` §2 — .NET clean except test-only SSH.NET High; `pnpm audit` 45 findings (4 critical on `next@15.1.0`) | covered |
+| Security | Basic OWASP header and CORS checks | manual / script | `docs/validation/nfr-report.md` §3 — CORS `WebPortal` → `localhost:3000`; OWASP security headers absent (no product change this batch) | covered |
+| Security | Confirm no secrets committed | manual / script | `docs/validation/nfr-report.md` §4 — no committed `.env`/keys; local-dev `Password=we_dev` + JWT placeholders only | covered |
+| Backup / restore | Dump + restore all service DBs then `pnpm e2e` | manual / script | Checklist + dump probe in `docs/validation/nfr-report.md` §5 — 19/19 `pg_dump` OK; restore + e2e not executed | partial |
+| Health | Every compose service `/health` returns OK | manual / script | Live sample 21/21 OK (`nfr-report.md` §6); unit: `examples/sample-service/tests/HealthEndpointTests.cs`; no compose-wide health script / app Docker healthchecks | covered |
 
 ---
 
@@ -180,7 +180,7 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 | 16 Federation / config | School-admin policy/school create completeness | ✓ filled |
 | 18 Arabic | Full-page RTL + source literal scan + error catalogue | ✓ filled (RTL homes; catalogue scan; errors.*) |
 | 8–10 Homes / interventions | Empty states, filters, status changes in e2e | ✓ filled |
-| 19 Non-functional | k6, vuln scan, headers/CORS/secrets, backup/restore, compose health — scripts + report |
+| 19 Non-functional | NFR report written; unit SLA + audits + health sample done; k6 + restore/e2e + header middleware still open |
 
 ## Existing suite anchors (baseline)
 
