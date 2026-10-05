@@ -238,12 +238,12 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 | Artifact | Role |
 |----------|------|
 | `examples/sample-service/tests/HealthEndpointTests.cs` | Unit: `GET /health` → 200 |
-| Compose `healthcheck` | Only on **postgres**, **redis**, **rabbitmq** — **no** app-service healthchecks in `docker-compose.yml` |
-| Compose-wide health script | **Missing** (manual curl loop used for this report) |
+| Compose `healthcheck` | **Infra** (postgres, redis, rabbitmq) **and all 21 app services** — each probes `curl -f http://localhost:8080/health` (see `docker-compose.yml`) |
+| `scripts/check-health.sh` | Compose-wide host-port poller for all 21 `/health` endpoints (`TIMEOUT_SECS`, `INTERVAL_SECS`) |
 
 ### Verdict
 
-**Partial → covered for live sample; automation gap remains.** All running services healthy; no compose-wide health script or per-service Docker healthchecks.
+**Covered.** Live `/health` OK; Docker Compose app healthchecks on every service; `scripts/check-health.sh` for host-side verification.
 
 ---
 
@@ -256,6 +256,6 @@ Every compose API maps `GET /health` → `{ "status": "healthy" }` (see `deploym
 | Headers / CORS | covered | Shared middleware + portal next.config; Cors:AllowedOrigins |
 | Secrets | covered | No committed private keys / `.env`; local `we_dev` placeholders only |
 | Backup / restore | covered | 19/19 restore + e2e 40 passed (~3 min drill) |
-| Health | covered* | **21/21** `/health` OK; *no compose-wide script / app healthchecks |
+| Health | covered | **21/21** `/health` OK; compose app healthchecks + `scripts/check-health.sh` |
 
 Report path: `docs/validation/nfr-report.md`.
