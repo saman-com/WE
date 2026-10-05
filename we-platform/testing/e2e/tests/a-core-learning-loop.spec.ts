@@ -76,6 +76,11 @@ test.describe("a. Core learning loop", () => {
     ).toBeVisible();
     await expect(teacherPage.getByText("Approved", { exact: true })).toBeVisible();
     await expect(teacherPage.getByRole("button", { name: "Approve evidence" })).toHaveCount(0);
+    // Approved evidence is locked: edit controls are replaced by read-only marks.
+    await expect(teacherPage.getByLabel("Mark")).toHaveCount(0);
+    await expect(teacherPage.getByLabel("Feedback")).toHaveCount(0);
+    await expect(teacherPage.getByRole("button", { name: "Draft with AI" })).toHaveCount(0);
+    await expect(teacherPage.getByText(/E2E feedback 1 for/)).toBeVisible();
 
     await expectTextSoon(studentPage, "/student/progress", title);
     await expectTextSoon(
@@ -96,6 +101,10 @@ test.describe("a. Core learning loop", () => {
       .click();
     await expect(teacherPage.getByText("Approved", { exact: true })).toBeVisible();
     await expect(teacherPage.getByRole("button", { name: "Approve evidence" })).toHaveCount(0);
+    await expect(teacherPage.getByLabel("Mark")).toHaveCount(0);
+    await expect(teacherPage.getByLabel("Feedback")).toHaveCount(0);
+    await expect(teacherPage.getByRole("button", { name: "Draft with AI" })).toHaveCount(0);
+    await expect(teacherPage.getByText(/E2E feedback 1 for/)).toBeVisible();
 
     await teacher.close();
     await student.close();

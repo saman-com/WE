@@ -70,7 +70,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 |---------|-------|-------|--------------------|--------|
 | Evidence | Approved evidence rejects PUT | backend | `we-platform/services/evidence-service/tests/EvidenceEndpointTests.cs` (`ApprovedEvidence_PutReturnsForbidden`) | covered |
 | Evidence | Approved evidence rejects DELETE | backend | `EvidenceEndpointTests.ApprovedEvidence_DeleteReturnsForbidden` | covered |
-| Evidence | UI shows approved evidence as locked | e2e | missing | missing |
+| Evidence | UI shows approved evidence as locked | e2e | `testing/e2e/tests/a-core-learning-loop.spec.ts` (after approve + reload: no Mark/Feedback/Draft/Approve; read-only mark text visible) | covered |
 
 ## 7. Updates after approval
 
@@ -136,7 +136,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | National API | Revoked / inactive API key → unauthorized | backend | `NationalReportingEndpointTests.InactiveApiKey_IsUnauthorized` | covered |
 | National API | Rate limit returns 429 | backend | `NationalReportingEndpointTests.NationalEndpoints_AreRateLimited` | covered |
 | National API | All seven aggregate endpoints | backend | 3 national (`enrollment`, `mastery-benchmarks`, `curriculum-coverage`) + 4 policy (`trends`, `equity`, `curriculum-effectiveness`, `intervention-impact`) in `NationalReportingEndpointTests` / `PolicyDashboardEndpointTests` | covered |
-| National API | Small counts suppressed (min group size &lt; 5) | backend | planned batch 17: `NationalReporting:MinimumGroupSize` (default 5); hidden cells `{ value: null, suppressed: true }`; totals must not allow subtraction recovery; add rule to SP-001 Ch.22 | missing |
+| National API | Small counts suppressed (min group size &lt; 5) | backend | `NationalReporting:MinimumGroupSize` (default 5); `CountCell` `{ value, suppressed }`; totals suppress when any child suppressed; tests in `NationalReportingEndpointTests` / `PolicyDashboardEndpointTests`; SP-001 Ch.22.10 | covered |
 | National API | OpenAPI document matches the endpoints | backend | `NationalReportingEndpointTests.OpenApiDocumentation_IsPublishedAtApiV1Docs` (presence only; does not assert all seven paths) | partial |
 
 ## 18. Arabic
