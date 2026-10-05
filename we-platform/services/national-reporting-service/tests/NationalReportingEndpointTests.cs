@@ -284,6 +284,40 @@ public class NationalReportingEndpointTests : IClassFixture<NationalReportingWeb
                 paths.TryGetProperty(path, out _),
                 $"OpenAPI paths missing required endpoint: {path}");
         }
+
+        Assert.True(
+            document.RootElement.TryGetProperty("components", out var components),
+            "OpenAPI document missing components");
+        Assert.True(
+            components.TryGetProperty("schemas", out var schemas),
+            "OpenAPI document missing components.schemas");
+
+        // CountCell may be named CountCell or countCell depending on generator casing.
+        System.Text.Json.JsonElement countCellSchema = default;
+        var foundCountCell = false;
+        foreach (var property in schemas.EnumerateObject())
+        {
+            if (string.Equals(property.Name, "CountCell", StringComparison.OrdinalIgnoreCase))
+            {
+                countCellSchema = property.Value;
+                foundCountCell = true;
+                break;
+            }
+        }
+
+        Assert.True(foundCountCell, "OpenAPI schemas missing CountCell for small-count suppression");
+        Assert.True(
+            countCellSchema.TryGetProperty("properties", out var countProps),
+            "CountCell schema missing properties");
+        Assert.True(
+            countProps.EnumerateObject().Any(p =>
+                string.Equals(p.Name, "value", StringComparison.OrdinalIgnoreCase)),
+            "CountCell schema missing value");
+        Assert.True(
+            countProps.EnumerateObject().Any(p =>
+                string.Equals(p.Name, "suppressed", StringComparison.OrdinalIgnoreCase)),
+            "CountCell schema missing suppressed");
+        Assert.Contains("suppression", countCellSchema.GetProperty("description").GetString()!, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

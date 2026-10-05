@@ -648,5 +648,6 @@
   "authority.curriculum.schools": "schools",
   "authority.interventions.title": "Intervention impact",
   "authority.interventions.subtitle": "Intervention impact at national scale by region.",
-  "authority.interventions.growth": "avg growth"
+  "authority.interventions.growth": "avg growth",
+  "authority.count.suppressed": "Hidden (fewer than {n} students)"
 }

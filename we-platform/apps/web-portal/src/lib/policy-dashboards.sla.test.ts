@@ -37,7 +37,7 @@ describe("Phase 8 page-load SLA", () => {
             {
               asOfDate: "2026-10-01",
               totalSchools: 3,
-              totalStudents: 400,
+              totalStudents: { value: 400, suppressed: false },
               nationalAverageMasteryPercent: 75,
               regions: [],
             },

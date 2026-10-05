@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.HttpResults;
 using NationalReportingService.Application;
 using NationalReportingService.Domain;
 
@@ -17,51 +18,55 @@ public static class PolicyDashboardEndpoints
 
         api.MapGet("/trends", GetTrends)
             .WithName("GetPolicyDashboardTrends")
+            .Produces<PolicyTrendsResponse>()
             .WithOpenApi();
 
         api.MapGet("/equity", GetEquity)
             .WithName("GetPolicyDashboardEquity")
+            .Produces<EquityAnalysisResponse>()
             .WithOpenApi();
 
         api.MapGet("/curriculum-effectiveness", GetCurriculumEffectiveness)
             .WithName("GetPolicyDashboardCurriculumEffectiveness")
+            .Produces<CurriculumEffectivenessComparisonResponse>()
             .WithOpenApi();
 
         api.MapGet("/intervention-impact", GetInterventionImpact)
             .WithName("GetPolicyDashboardInterventionImpact")
+            .Produces<InterventionImpactResponse>()
             .WithOpenApi();
     }
 
-    private static async Task<IResult> GetTrends(
+    private static async Task<Ok<PolicyTrendsResponse>> GetTrends(
         IPolicyDashboardQuery query,
         CancellationToken cancellationToken)
     {
         var report = await query.GetTrendsAsync(cancellationToken);
-        return Results.Ok(report);
+        return TypedResults.Ok(report);
     }
 
-    private static async Task<IResult> GetEquity(
+    private static async Task<Ok<EquityAnalysisResponse>> GetEquity(
         IPolicyDashboardQuery query,
         CancellationToken cancellationToken)
     {
         var report = await query.GetEquityAnalysisAsync(cancellationToken);
-        return Results.Ok(report);
+        return TypedResults.Ok(report);
     }
 
-    private static async Task<IResult> GetCurriculumEffectiveness(
+    private static async Task<Ok<CurriculumEffectivenessComparisonResponse>> GetCurriculumEffectiveness(
         IPolicyDashboardQuery query,
         CancellationToken cancellationToken)
     {
         var report = await query.GetCurriculumEffectivenessAsync(cancellationToken);
-        return Results.Ok(report);
+        return TypedResults.Ok(report);
     }
 
-    private static async Task<IResult> GetInterventionImpact(
+    private static async Task<Ok<InterventionImpactResponse>> GetInterventionImpact(
         IPolicyDashboardQuery query,
         CancellationToken cancellationToken)
     {
         var report = await query.GetInterventionImpactAsync(cancellationToken);
-        return Results.Ok(report);
+        return TypedResults.Ok(report);
     }
 
     public static void AddEducationAuthorityOfficerPolicy(this AuthorizationOptions options)

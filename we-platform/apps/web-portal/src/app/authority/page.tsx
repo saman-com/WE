@@ -5,10 +5,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
+  NATIONAL_MINIMUM_GROUP_SIZE,
+  chartPointsForCountCells,
   fetchCurriculumEffectiveness,
   fetchEquityAnalysis,
   fetchInterventionImpact,
   fetchPolicyTrends,
+  formatCountCell,
   formatPercent,
   type CurriculumEffectivenessComparisonResponse,
   type EquityAnalysisResponse,
@@ -32,6 +35,10 @@ export default function AuthorityPolicyDashboardPage() {
   const [interventions, setInterventions] = useState<InterventionImpactResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const suppressedLabel = t("authority.count.suppressed", {
+    n: NATIONAL_MINIMUM_GROUP_SIZE,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -79,6 +86,10 @@ export default function AuthorityPolicyDashboardPage() {
     return null;
   }
 
+  const studentChartPoints = trends
+    ? chartPointsForCountCells(trends.regions, (region) => region.studentCount)
+    : [];
+
   return (
     <main className="min-h-screen p-8 space-y-8">
       <div className="flex items-center justify-between gap-4">
@@ -102,8 +113,9 @@ export default function AuthorityPolicyDashboardPage() {
             <p className="text-sm">
               {t("authority.trends.totalSchools")}: {trends.totalSchools}
             </p>
-            <p className="text-sm">
-              {t("authority.trends.totalStudents")}: {trends.totalStudents}
+            <p className="text-sm" data-testid="authority-total-students">
+              {t("authority.trends.totalStudents")}:{" "}
+              {formatCountCell(trends.totalStudents, suppressedLabel)}
             </p>
             <p className="text-sm">
               {t("authority.trends.nationalMastery")}:{" "}
@@ -115,9 +127,14 @@ export default function AuthorityPolicyDashboardPage() {
           ) : (
             <ul className="space-y-2">
               {trends.regions.map((region) => (
-                <li key={region.regionCode} className="text-sm">
+                <li
+                  key={region.regionCode}
+                  className="text-sm"
+                  data-testid={`authority-region-${region.regionCode}`}
+                >
                   {region.regionCode}: {region.schoolCount}{" "}
-                  {t("authority.trends.schools")}, {region.studentCount}{" "}
+                  {t("authority.trends.schools")},{" "}
+                  {formatCountCell(region.studentCount, suppressedLabel)}{" "}
                   {t("authority.trends.students")},{" "}
                   {formatPercent(region.averageMasteryPercent)}{" "}
                   {t("authority.trends.mastery")}
@@ -125,6 +142,14 @@ export default function AuthorityPolicyDashboardPage() {
               ))}
             </ul>
           )}
+          {/* Chart series omit suppressed cells (never plot 0 for hidden counts). */}
+          <ul className="sr-only" data-testid="authority-student-chart-points">
+            {studentChartPoints.map((point) => (
+              <li key={point.regionCode}>
+                {point.regionCode}:{point.value}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
@@ -142,7 +167,8 @@ export default function AuthorityPolicyDashboardPage() {
                   className="text-sm"
                 >
                   {item.regionCode} · {item.demographicDimension}/{item.demographicCategory}:{" "}
-                  {formatPercent(item.averageMasteryPercent)} ({item.sampleSize}{" "}
+                  {formatPercent(item.averageMasteryPercent)} (
+                  {formatCountCell(item.sampleSize, suppressedLabel)}{" "}
                   {t("authority.equity.sample")})
                 </li>
               ))}
@@ -168,7 +194,8 @@ export default function AuthorityPolicyDashboardPage() {
                   {t("authority.curriculum.mastery")}{" "}
                   {formatPercent(item.masteryRatePercent)},{" "}
                   {t("authority.curriculum.coverage")}{" "}
-                  {formatPercent(item.coveragePercent)} ({item.schoolsReporting}{" "}
+                  {formatPercent(item.coveragePercent)} (
+                  {formatCountCell(item.schoolsReporting, suppressedLabel)}{" "}
                   {t("authority.curriculum.schools")})
                 </li>
               ))}
@@ -191,7 +218,8 @@ export default function AuthorityPolicyDashboardPage() {
                   className="text-sm"
                 >
                   {item.regionCode} · {item.interventionType}:{" "}
-                  {item.successfulCount}/{item.totalCount} (
+                  {formatCountCell(item.successfulCount, suppressedLabel)}/
+                  {formatCountCell(item.totalCount, suppressedLabel)} (
                   {formatPercent(item.successRatePercent)}),{" "}
                   {t("authority.interventions.growth")}{" "}
                   {formatPercent(item.averageGrowthPercent)}

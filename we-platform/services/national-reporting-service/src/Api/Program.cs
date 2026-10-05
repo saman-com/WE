@@ -13,7 +13,10 @@ using WePlatform.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddNationalReportingInfrastructure(builder.Configuration, builder.Environment);
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddSchemaTransformer<CountCellSchemaTransformer>();
+});
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["Key"]

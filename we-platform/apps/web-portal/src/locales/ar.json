@@ -648,5 +648,6 @@
   "authority.curriculum.schools": "مدارس",
   "authority.interventions.title": "أثر التدخلات",
   "authority.interventions.subtitle": "أثر التدخلات على المستوى الوطني حسب المنطقة.",
-  "authority.interventions.growth": "متوسط النمو"
+  "authority.interventions.growth": "متوسط النمو",
+  "authority.count.suppressed": "مخفي (أقل من {n} طلاب)"
 }
