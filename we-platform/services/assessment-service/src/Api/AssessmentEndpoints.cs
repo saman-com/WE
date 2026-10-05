@@ -150,22 +150,32 @@ public static class AssessmentEndpoints
         ClaimsPrincipal principal,
         AssessmentDbContext db,
         IClassAccessChecker accessChecker,
+        ITenantContext tenantContext,
         HttpContext httpContext)
     {
-        if (!principal.IsTeacher() && !principal.IsAdmin())
+        if (principal.IsSchoolLeader())
+        {
+            if (!tenantContext.HasTenant || organisationId != tenantContext.TenantId)
+            {
+                return Results.Forbid();
+            }
+        }
+        else if (!principal.IsTeacher() && !principal.IsAdmin())
         {
             return Results.Forbid();
         }
-
-        var access = await EvaluateTeacherClassAccessAsync(
-            principal,
-            organisationId,
-            classId,
-            accessChecker,
-            httpContext.Request.Headers.Authorization.ToString());
-        if (access is not null)
+        else
         {
-            return access;
+            var access = await EvaluateTeacherClassAccessAsync(
+                principal,
+                organisationId,
+                classId,
+                accessChecker,
+                httpContext.Request.Headers.Authorization.ToString());
+            if (access is not null)
+            {
+                return access;
+            }
         }
 
         var assessments = await db.Assessments
@@ -934,6 +944,9 @@ public static class AssessmentEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
 
     private static bool IsStudent(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Student);

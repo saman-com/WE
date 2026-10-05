@@ -27,19 +27,22 @@ test.describe("e. Leadership", () => {
     await context.close();
   });
 
-  test("school leader page is currently broken by assessment 403 aggregation", async ({
+  test("school leader opens leadership dashboard and generates a report", async ({
     browser,
   }) => {
-    test.fixme(
-      true,
-      "SchoolLeader JWT forwarded to assessment-service returns 403 during leadership dashboard aggregation"
-    );
     const context = await browser.newContext({ storageState: storagePath("leader") });
     const page = await context.newPage();
     await page.goto("/leadership");
     await expect(
       page.getByRole("heading", { name: /School Leadership Dashboard/i })
     ).toBeVisible();
+    await expect(page.getByText(/error|forbidden|failed to load/i)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Generate report" }).click();
+    await expect(page.getByText(/School summary report generated|report generated/i)).toBeVisible({
+      timeout: 60_000,
+    });
+
     await context.close();
   });
 });

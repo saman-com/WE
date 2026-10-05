@@ -324,6 +324,45 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
     }
 
     [Fact]
+    public async Task SchoolLeader_CanViewClassAssessmentSummaryForTheirOrganisation()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Leadership summary quiz",
+            null,
+            DateTimeOffset.UtcNow.AddDays(2),
+            [],
+            []);
+        var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
+
+        var summaries = await SendAsAsync<List<ClassAssessmentSummaryResponse>>(
+            HttpMethod.Get,
+            $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
+            leaderId,
+            TestJwt.SchoolLeaderRole,
+            organisationId);
+
+        Assert.Contains(summaries, item => item.Id == published.Id);
+
+        using var otherTenant = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/class-summary?organisationId={organisationId}&classId={classId}",
+            leaderId,
+            Guid.NewGuid(),
+            TestJwt.SchoolLeaderRole);
+        var denied = await _client.SendAsync(otherTenant);
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [Fact]
     public async Task Teacher_CannotViewClassAssessmentSummaryForUnassignedClass()
     {
         var teacherId = Guid.NewGuid().ToString();
