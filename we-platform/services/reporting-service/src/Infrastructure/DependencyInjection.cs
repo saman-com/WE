@@ -69,7 +69,8 @@ internal sealed class ReportGenerator(
     IEiInsightsClient eiInsightsClient,
     IClassDashboardClient classDashboardClient,
     ISchoolSummaryClient schoolSummaryClient,
-    IReportPdfExporter pdfExporter) : IReportGenerator
+    IReportPdfExporter pdfExporter,
+    ITenantContext tenantContext) : IReportGenerator
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -166,7 +167,12 @@ internal sealed class ReportGenerator(
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
 
-        return report is null ? null : ToResponse(report, DeserializeContent(report));
+        if (report is null || TenantAccess.ValidateEntityAccess(tenantContext, report) is not null)
+        {
+            return null;
+        }
+
+        return ToResponse(report, DeserializeContent(report));
     }
 
     public async Task<byte[]?> ExportReportPdfAsync(
@@ -180,7 +186,7 @@ internal sealed class ReportGenerator(
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
 
-        if (report is null)
+        if (report is null || TenantAccess.ValidateEntityAccess(tenantContext, report) is not null)
         {
             return null;
         }
