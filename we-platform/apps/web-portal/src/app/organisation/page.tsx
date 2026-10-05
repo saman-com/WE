@@ -62,7 +62,15 @@ export default function OrganisationSetupPage() {
   const [parentId, setParentId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [editingYear, setEditingYear] = useState<string | null>(null);
+  const [editYearName, setEditYearName] = useState("");
+  const [editYearOrder, setEditYearOrder] = useState(1);
   const [editingClass, setEditingClass] = useState<string | null>(null);
+  const [editClassName, setEditClassName] = useState("");
+  const [editClassCode, setEditClassCode] = useState("");
+  const [editingPerson, setEditingPerson] = useState<string | null>(null);
+  const [editPersonId, setEditPersonId] = useState("");
+  const [editingLink, setEditingLink] = useState<string | null>(null);
+  const [editLinkStudentId, setEditLinkStudentId] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -256,315 +264,440 @@ export default function OrganisationSetupPage() {
         ) : null}
 
         {tab === "years" ? (
-          <FocusCard>
-            {years.length === 0 ? (
-              <p className="text-sm text-black/60">{t("organisation.manage.noYears")}</p>
-            ) : (
-              <ul className="space-y-3 text-sm">
-                {years.map((year) => (
-                  <li key={year.id} className="flex flex-wrap items-center justify-between gap-2">
-                    {editingYear === year.id ? (
-                      <form
-                        className="flex flex-1 flex-wrap gap-2"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void run(async () => {
-                            await updateYearLevel(token, organisationId, year.id, yearName, yearOrder);
-                            setEditingYear(null);
-                          });
-                        }}
-                      >
-                        <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
-                        <Field
-                          label={t("organisation.manage.sortOrder")}
-                          value={String(yearOrder)}
-                          onChange={(value) => setYearOrder(Number(value))}
-                          type="number"
-                        />
-                        <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
-                      </form>
-                    ) : (
-                      <span>
-                        {year.name}
-                      </span>
-                    )}
-                    <span className="flex gap-3">
-                      <TextButton
-                        onClick={() => {
-                          setEditingYear(year.id);
-                          setYearName(year.name);
-                          setYearOrder(year.sortOrder);
-                        }}
-                      >
-                        {t("organisation.manage.edit")}
-                      </TextButton>
-                      <TextButton
-                        onClick={() => {
-                          void run(() => deleteYearLevel(token, organisationId, year.id));
-                        }}
-                      >
-                        {t("organisation.manage.remove")}
-                      </TextButton>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.manage.years")}</h2>
+              {years.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.manage.noYears")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {years.map((year) => (
+                    <li key={year.id} className="space-y-2">
+                      {editingYear === year.id ? (
+                        <form
+                          className="space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void run(async () => {
+                              await updateYearLevel(
+                                token,
+                                organisationId,
+                                year.id,
+                                editYearName,
+                                editYearOrder
+                              );
+                              setEditingYear(null);
+                            });
+                          }}
+                        >
+                          <Field
+                            label={t("organisation.manage.yearName")}
+                            value={editYearName}
+                            onChange={setEditYearName}
+                          />
+                          <Field
+                            label={t("organisation.manage.sortOrder")}
+                            value={String(editYearOrder)}
+                            onChange={(value) => setEditYearOrder(Number(value))}
+                            type="number"
+                          />
+                          <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>{year.name}</span>
+                          <span className="flex gap-3">
+                            <TextButton
+                              onClick={() => {
+                                setEditingYear(year.id);
+                                setEditYearName(year.name);
+                                setEditYearOrder(year.sortOrder);
+                              }}
+                            >
+                              {t("organisation.manage.edit")}
+                            </TextButton>
+                            <TextButton
+                              onClick={() => {
+                                void run(() => deleteYearLevel(token, organisationId, year.id));
+                              }}
+                            >
+                              {t("organisation.manage.remove")}
+                            </TextButton>
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FocusCard>
             {!firstTime ? (
-              <form
-                className="mt-4 space-y-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void run(async () => {
-                    await createYearLevel(token, organisationId, yearName, yearOrder);
-                    setYearName("");
-                  });
-                }}
-              >
-                <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
-                <Field
-                  label={t("organisation.manage.sortOrder")}
-                  value={String(yearOrder)}
-                  onChange={(value) => setYearOrder(Number(value))}
-                  type="number"
-                />
-                <PrimaryButton type="submit" disabled={busy}>
-                  {t("organisation.manage.addYear")}
-                </PrimaryButton>
-              </form>
+              <FocusCard>
+                <h2 className="font-medium">{t("organisation.manage.addYearTitle")}</h2>
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void run(async () => {
+                      await createYearLevel(token, organisationId, yearName, yearOrder);
+                      setYearName("");
+                    });
+                  }}
+                >
+                  <Field label={t("organisation.manage.yearName")} value={yearName} onChange={setYearName} />
+                  <Field
+                    label={t("organisation.manage.sortOrder")}
+                    value={String(yearOrder)}
+                    onChange={(value) => setYearOrder(Number(value))}
+                    type="number"
+                  />
+                  <PrimaryButton type="submit" disabled={busy}>
+                    {t("organisation.manage.addYear")}
+                  </PrimaryButton>
+                </form>
+              </FocusCard>
             ) : null}
-          </FocusCard>
+          </>
         ) : null}
 
         {tab === "classes" ? (
-          <FocusCard>
-            {classes.length === 0 ? (
-              <p className="text-sm text-black/60">{t("organisation.manage.noClasses")}</p>
-            ) : (
-              <ul className="space-y-3 text-sm">
-                {classes.map((schoolClass) => (
-                  <li key={schoolClass.id} className="space-y-2">
-                    {editingClass === schoolClass.id ? (
-                      <form
-                        className="space-y-3"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void run(async () => {
-                            await updateClass(
-                              token,
-                              organisationId,
-                              schoolClass.id,
-                              className,
-                              classCode,
-                              classYearId || schoolClass.yearLevelId
-                            );
-                            setEditingClass(null);
-                          });
-                        }}
-                      >
-                        <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
-                        <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
-                        <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
-                      </form>
-                    ) : (
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span>
-                          {schoolClass.name} ({schoolClass.code})
-                        </span>
-                        <span className="flex gap-3">
-                          <TextButton
-                            onClick={() => {
-                              setEditingClass(schoolClass.id);
-                              setClassName(schoolClass.name);
-                              setClassCode(schoolClass.code);
-                              setClassYearId(schoolClass.yearLevelId);
-                            }}
-                          >
-                            {t("organisation.manage.edit")}
-                          </TextButton>
-                          <TextButton
-                            onClick={() => {
-                              void run(() => deleteClass(token, organisationId, schoolClass.id));
-                            }}
-                          >
-                            {t("organisation.manage.remove")}
-                          </TextButton>
-                        </span>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+          <>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.manage.classes")}</h2>
+              {classes.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.manage.noClasses")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {classes.map((schoolClass) => (
+                    <li key={schoolClass.id} className="space-y-2">
+                      {editingClass === schoolClass.id ? (
+                        <form
+                          className="space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void run(async () => {
+                              await updateClass(
+                                token,
+                                organisationId,
+                                schoolClass.id,
+                                editClassName,
+                                editClassCode,
+                                classYearId || schoolClass.yearLevelId
+                              );
+                              setEditingClass(null);
+                            });
+                          }}
+                        >
+                          <Field
+                            label={t("organisation.manage.className")}
+                            value={editClassName}
+                            onChange={setEditClassName}
+                          />
+                          <Field
+                            label={t("organisation.manage.classCode")}
+                            value={editClassCode}
+                            onChange={setEditClassCode}
+                          />
+                          <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>
+                            {schoolClass.name} ({schoolClass.code})
+                          </span>
+                          <span className="flex gap-3">
+                            <TextButton
+                              onClick={() => {
+                                setEditingClass(schoolClass.id);
+                                setEditClassName(schoolClass.name);
+                                setEditClassCode(schoolClass.code);
+                                setClassYearId(schoolClass.yearLevelId);
+                              }}
+                            >
+                              {t("organisation.manage.edit")}
+                            </TextButton>
+                            <TextButton
+                              onClick={() => {
+                                void run(() => deleteClass(token, organisationId, schoolClass.id));
+                              }}
+                            >
+                              {t("organisation.manage.remove")}
+                            </TextButton>
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FocusCard>
             {!firstTime ? (
-              <form
-                className="mt-4 space-y-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void run(async () => {
-                    await createClass(token, organisationId, classYearId, className, classCode);
-                    setClassName("");
-                    setClassCode("");
-                  });
-                }}
-              >
-                <label className="block space-y-1 text-sm">
-                  <span>{t("organisation.manage.yearName")}</span>
-                  <select
-                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
-                    value={classYearId}
-                    onChange={(event) => setClassYearId(event.target.value)}
-                  >
-                    {years.map((year) => (
-                      <option key={year.id} value={year.id}>
-                        {year.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
-                <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
-                <PrimaryButton type="submit" disabled={busy}>
-                  {t("organisation.manage.addClass")}
-                </PrimaryButton>
-              </form>
+              <FocusCard>
+                <h2 className="font-medium">{t("organisation.manage.addClassTitle")}</h2>
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void run(async () => {
+                      await createClass(token, organisationId, classYearId, className, classCode);
+                      setClassName("");
+                      setClassCode("");
+                    });
+                  }}
+                >
+                  <label className="block space-y-1 text-sm">
+                    <span>{t("organisation.manage.yearName")}</span>
+                    <select
+                      className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                      value={classYearId}
+                      onChange={(event) => setClassYearId(event.target.value)}
+                    >
+                      {years.map((year) => (
+                        <option key={year.id} value={year.id}>
+                          {year.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
+                  <Field label={t("organisation.manage.classCode")} value={classCode} onChange={setClassCode} />
+                  <PrimaryButton type="submit" disabled={busy}>
+                    {t("organisation.manage.addClass")}
+                  </PrimaryButton>
+                </form>
+              </FocusCard>
             ) : null}
-          </FocusCard>
+          </>
         ) : null}
 
         {tab === "staff" || tab === "students" ? (
-          <FocusCard>
-            <ClassPicker
-              label={t("organisation.manage.classLabel")}
-              classes={classes}
-              classId={classId}
-              onChange={setClassId}
-            />
-            {people.length === 0 ? (
-              <p className="mt-3 text-sm text-black/60">{t("organisation.manage.noPeople")}</p>
-            ) : (
-              <ul className="mt-3 space-y-2 text-sm">
-                {people.map((person) => (
-                  <li key={person.userId} className="flex items-center justify-between gap-2">
-                    <span>{personName(directory, person.userId, t("organisation.manage.unknownPerson"))}</span>
-                    <TextButton
-                      onClick={() => {
-                        void run(async () => {
-                          if (tab === "staff") {
-                            await unassignTeacher(token, organisationId, classId, person.userId);
-                          } else {
-                            await unenrollStudent(token, organisationId, classId, person.userId);
-                          }
-                          const load = tab === "staff" ? listTeachers : listEnrollments;
-                          setPeople(await load(token, organisationId, classId));
-                        });
-                      }}
-                    >
-                      {t("organisation.manage.remove")}
-                    </TextButton>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <form
-              className="mt-4 space-y-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void run(async () => {
-                  if (tab === "staff") {
-                    await assignTeacher(token, organisationId, classId, userId);
-                    setPeople(await listTeachers(token, organisationId, classId));
-                  } else {
-                    await enrollStudent(token, organisationId, classId, userId);
-                    setPeople(await listEnrollments(token, organisationId, classId));
-                  }
-                  setUserId("");
-                });
-              }}
-            >
-              <PersonSelect
-                label={t("organisation.manage.userId")}
-                value={userId}
-                onChange={setUserId}
-                people={directory.filter((person) =>
-                  person.roles.includes(tab === "staff" ? "Teacher" : "Student")
-                )}
+          <>
+            <FocusCard>
+              <h2 className="font-medium">
+                {tab === "staff" ? t("organisation.manage.staff") : t("organisation.manage.students")}
+              </h2>
+              <ClassPicker
+                label={t("organisation.manage.classLabel")}
+                classes={classes}
+                classId={classId}
+                onChange={setClassId}
               />
-              <PrimaryButton type="submit" disabled={busy || !classId}>
-                {t("organisation.manage.addPerson")}
-              </PrimaryButton>
-            </form>
-          </FocusCard>
+              {people.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.manage.noPeople")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {people.map((person) => (
+                    <li key={person.userId} className="space-y-2">
+                      {editingPerson === person.userId ? (
+                        <form
+                          className="space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void run(async () => {
+                              if (tab === "staff") {
+                                await unassignTeacher(token, organisationId, classId, person.userId);
+                                await assignTeacher(token, organisationId, classId, editPersonId);
+                                setPeople(await listTeachers(token, organisationId, classId));
+                              } else {
+                                await unenrollStudent(token, organisationId, classId, person.userId);
+                                await enrollStudent(token, organisationId, classId, editPersonId);
+                                setPeople(await listEnrollments(token, organisationId, classId));
+                              }
+                              setEditingPerson(null);
+                            });
+                          }}
+                        >
+                          <PersonSelect
+                            label={t("organisation.manage.userId")}
+                            value={editPersonId}
+                            onChange={setEditPersonId}
+                            people={directory.filter((entry) =>
+                              entry.roles.includes(tab === "staff" ? "Teacher" : "Student")
+                            )}
+                          />
+                          <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>
+                            {personName(directory, person.userId, t("organisation.manage.unknownPerson"))}
+                          </span>
+                          <span className="flex gap-3">
+                            <TextButton
+                              onClick={() => {
+                                setEditingPerson(person.userId);
+                                setEditPersonId(person.userId);
+                              }}
+                            >
+                              {t("organisation.manage.edit")}
+                            </TextButton>
+                            <TextButton
+                              onClick={() => {
+                                void run(async () => {
+                                  if (tab === "staff") {
+                                    await unassignTeacher(token, organisationId, classId, person.userId);
+                                    setPeople(await listTeachers(token, organisationId, classId));
+                                  } else {
+                                    await unenrollStudent(token, organisationId, classId, person.userId);
+                                    setPeople(await listEnrollments(token, organisationId, classId));
+                                  }
+                                });
+                              }}
+                            >
+                              {t("organisation.manage.remove")}
+                            </TextButton>
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FocusCard>
+            <FocusCard>
+              <h2 className="font-medium">
+                {tab === "staff"
+                  ? t("organisation.manage.addStaffTitle")
+                  : t("organisation.manage.addStudentTitle")}
+              </h2>
+              <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(async () => {
+                    if (tab === "staff") {
+                      await assignTeacher(token, organisationId, classId, userId);
+                      setPeople(await listTeachers(token, organisationId, classId));
+                    } else {
+                      await enrollStudent(token, organisationId, classId, userId);
+                      setPeople(await listEnrollments(token, organisationId, classId));
+                    }
+                    setUserId("");
+                  });
+                }}
+              >
+                <PersonSelect
+                  label={t("organisation.manage.userId")}
+                  value={userId}
+                  onChange={setUserId}
+                  people={directory.filter((person) =>
+                    person.roles.includes(tab === "staff" ? "Teacher" : "Student")
+                  )}
+                />
+                <PrimaryButton type="submit" disabled={busy || !classId}>
+                  {t("organisation.manage.addPerson")}
+                </PrimaryButton>
+              </form>
+            </FocusCard>
+          </>
         ) : null}
 
         {tab === "families" ? (
-          <FocusCard>
-            <form
-              className="space-y-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void run(async () => {
-                  await linkParentChild(token, parentId, studentId);
-                  setLinks(await listParentChildren(token, parentId));
-                  setStudentId("");
-                });
-              }}
-            >
+          <>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.manage.families")}</h2>
               <PersonSelect
                 label={t("organisation.manage.parentId")}
                 value={parentId}
-                onChange={setParentId}
+                onChange={(value) => {
+                  setParentId(value);
+                  if (!value) {
+                    setLinks([]);
+                    return;
+                  }
+                  void listParentChildren(token, value)
+                    .then(setLinks)
+                    .catch(() => {
+                      setStatusError(true);
+                      setStatus(t("organisation.manage.failed"));
+                    });
+                }}
                 people={directory.filter((person) => person.roles.includes("Parent"))}
               />
-              <PersonSelect
-                label={t("organisation.manage.studentId")}
-                value={studentId}
-                onChange={setStudentId}
-                people={directory.filter((person) => person.roles.includes("Student"))}
-              />
-              <PrimaryButton type="submit" disabled={busy}>
-                {t("organisation.manage.addPerson")}
-              </PrimaryButton>
-            </form>
-            <TextButton
-              onClick={() => {
-                if (!parentId) {
-                  return;
-                }
-                void listParentChildren(token, parentId)
-                  .then(setLinks)
-                  .catch(() => {
-                    setStatusError(true);
-                    setStatus(t("organisation.manage.failed"));
+              {links.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.manage.noLinks")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {links.map((link) => (
+                    <li key={link.studentUserId} className="space-y-2">
+                      {editingLink === link.studentUserId ? (
+                        <form
+                          className="space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void run(async () => {
+                              await unlinkParentChild(token, link.parentUserId, link.studentUserId);
+                              await linkParentChild(token, link.parentUserId, editLinkStudentId);
+                              setLinks(await listParentChildren(token, link.parentUserId));
+                              setEditingLink(null);
+                            });
+                          }}
+                        >
+                          <PersonSelect
+                            label={t("organisation.manage.studentId")}
+                            value={editLinkStudentId}
+                            onChange={setEditLinkStudentId}
+                            people={directory.filter((person) => person.roles.includes("Student"))}
+                          />
+                          <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>
+                            {personName(directory, link.studentUserId, t("organisation.manage.unknownPerson"))}
+                          </span>
+                          <span className="flex gap-3">
+                            <TextButton
+                              onClick={() => {
+                                setEditingLink(link.studentUserId);
+                                setEditLinkStudentId(link.studentUserId);
+                              }}
+                            >
+                              {t("organisation.manage.edit")}
+                            </TextButton>
+                            <TextButton
+                              onClick={() => {
+                                void run(async () => {
+                                  await unlinkParentChild(token, link.parentUserId, link.studentUserId);
+                                  setLinks(await listParentChildren(token, link.parentUserId));
+                                });
+                              }}
+                            >
+                              {t("organisation.manage.remove")}
+                            </TextButton>
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FocusCard>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.manage.addFamilyTitle")}</h2>
+              <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(async () => {
+                    await linkParentChild(token, parentId, studentId);
+                    setLinks(await listParentChildren(token, parentId));
+                    setStudentId("");
                   });
-              }}
-            >
-              {t("organisation.manage.lookup")}
-            </TextButton>
-            {links.length === 0 ? (
-              <p className="mt-3 text-sm text-black/60">{t("organisation.manage.noLinks")}</p>
-            ) : (
-              <ul className="mt-3 space-y-2 text-sm">
-                {links.map((link) => (
-                  <li key={link.studentUserId} className="flex items-center justify-between gap-2">
-                    <span>
-                      {personName(directory, link.studentUserId, t("organisation.manage.unknownPerson"))}
-                    </span>
-                    <TextButton
-                      onClick={() => {
-                        void run(async () => {
-                          await unlinkParentChild(token, link.parentUserId, link.studentUserId);
-                          setLinks(await listParentChildren(token, link.parentUserId));
-                        });
-                      }}
-                    >
-                      {t("organisation.manage.remove")}
-                    </TextButton>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FocusCard>
+                }}
+              >
+                <PersonSelect
+                  label={t("organisation.manage.studentId")}
+                  value={studentId}
+                  onChange={setStudentId}
+                  people={directory.filter((person) => person.roles.includes("Student"))}
+                />
+                <PrimaryButton type="submit" disabled={busy || !parentId}>
+                  {t("organisation.manage.addPerson")}
+                </PrimaryButton>
+              </form>
+            </FocusCard>
+          </>
         ) : null}
       </div>
     </LearningFrame>
