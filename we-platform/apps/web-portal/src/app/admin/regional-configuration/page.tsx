@@ -42,6 +42,14 @@ function emptyForm(): UpdateRegionalConfigurationRequest {
   };
 }
 
+function hasRealUpdate(updatedAt: string | null): boolean {
+  if (!updatedAt) {
+    return false;
+  }
+  const time = Date.parse(updatedAt);
+  return Number.isFinite(time) && time > Date.UTC(1970, 0, 2);
+}
+
 function toForm(config: RegionalConfiguration): UpdateRegionalConfigurationRequest {
   return {
     academicCalendar: config.academicCalendar,
@@ -143,7 +151,7 @@ export default function RegionalConfigurationAdminPage() {
             <p className="text-sm text-black/70">
               {t("admin.regional.subtitle")}
             </p>
-            {updatedAt ? (
+            {hasRealUpdate(updatedAt) ? (
               <p className="text-xs text-black/50 mt-1">
                 {t("admin.regional.lastUpdated", {
                   date: new Date(updatedAt).toLocaleString(),
