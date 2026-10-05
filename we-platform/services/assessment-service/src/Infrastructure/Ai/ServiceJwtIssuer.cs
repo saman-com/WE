@@ -3,13 +3,19 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure.Ai;
 
 public sealed class ServiceJwtIssuer(IConfiguration configuration)
 {
-    public string CreatePlatformServiceToken()
+    public string CreatePlatformServiceToken(Guid tenantId)
     {
+        if (tenantId == Guid.Empty)
+        {
+            throw new ArgumentException("Tenant id is required for AI gateway service tokens.", nameof(tenantId));
+        }
+
         var jwtSection = configuration.GetSection("Jwt");
         var issuer = jwtSection["Issuer"]
             ?? throw new InvalidOperationException("JWT issuer is not configured.");
@@ -22,7 +28,8 @@ public sealed class ServiceJwtIssuer(IConfiguration configuration)
         {
             new Claim(JwtRegisteredClaimNames.Sub, "assessment-service"),
             new Claim(ClaimTypes.NameIdentifier, "assessment-service"),
-            new Claim(ClaimTypes.Role, "PlatformService")
+            new Claim(ClaimTypes.Role, "PlatformService"),
+            new Claim(TenantClaimTypes.TenantId, tenantId.ToString())
         };
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));

@@ -95,6 +95,49 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
     }
 
     [Fact]
+    public async Task SchoolBTeacher_AiFeedbackDraft_IsLoggedUnderSchoolBTenant()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var schoolBTenantId = Guid.Parse("00000000-0000-4000-8000-000000000002");
+        var classId = Guid.NewGuid();
+        var microSkillId = Guid.CreateVersion7();
+        _accessChecker.AllowTeacher(teacherId, schoolBTenantId, classId);
+        _accessChecker.AllowStudent(studentId, schoolBTenantId, classId);
+
+        var published = await PublishAssessmentAsync(
+            teacherId,
+            schoolBTenantId,
+            classId,
+            "School B AI feedback quiz",
+            null,
+            [microSkillId]);
+        var submission = await SubmitAssessmentAsync(
+            studentId,
+            published.Id,
+            schoolBTenantId,
+            "School B student work.");
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{published.Id}/submissions/{submission.Id}/ai-feedback-draft",
+            teacherId,
+            schoolBTenantId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new RequestAiFeedbackDraftRequest(microSkillId));
+
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var draft = await response.Content.ReadFromJsonAsync<AiFeedbackDraftResponse>()
+            ?? throw new InvalidOperationException("Missing draft payload.");
+
+        var audit = await LoadAuditLogAsync(draft.AuditLogId);
+        Assert.NotNull(audit);
+        Assert.Equal(schoolBTenantId, audit.TenantId);
+        Assert.NotEqual(DefaultTenant.Id, audit.TenantId);
+    }
+
+    [Fact]
     public async Task AiDraft_IsNotAutoApplied_SubmissionUnchanged()
     {
         var teacherId = Guid.NewGuid().ToString();

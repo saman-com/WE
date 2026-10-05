@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using AssessmentService.Application;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using WePlatform.Tenancy;
 
 namespace AssessmentService.Infrastructure.Ai;
 
@@ -10,6 +11,7 @@ public sealed class HttpAiGatewayClient(
     HttpClient httpClient,
     IConfiguration configuration,
     ServiceJwtIssuer serviceJwtIssuer,
+    ITenantContext tenantContext,
     ILogger<HttpAiGatewayClient> logger) : IAiGatewayClient
 {
     public async Task<AiCompletionResult?> CompleteAsync(
@@ -23,12 +25,18 @@ public sealed class HttpAiGatewayClient(
             return null;
         }
 
+        if (!tenantContext.HasTenant || tenantContext.TenantId is null)
+        {
+            logger.LogWarning("AI Gateway request skipped because the request has no tenant.");
+            return null;
+        }
+
         using var httpRequest = new HttpRequestMessage(
             HttpMethod.Post,
             $"{baseUrl.TrimEnd('/')}/api/v1/ai/complete");
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            serviceJwtIssuer.CreatePlatformServiceToken());
+            serviceJwtIssuer.CreatePlatformServiceToken(tenantContext.TenantId.Value));
         httpRequest.Content = JsonContent.Create(request);
 
         using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
