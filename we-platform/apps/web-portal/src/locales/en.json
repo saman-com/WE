@@ -271,7 +271,7 @@
   "organisation.adminOnly": "Only system administrators can set up organisations.",
   "organisation.requestFailedCheckForm": "Request failed. Check the form values and try again.",
   "organisation.loading": "Loading organisation setup...",
-  "organisation.intro": "Create a school, add a year level and class, assign a teacher, and enroll a student. Seed student id: {seedId}",
+  "organisation.intro": "Create a school, add a year level and class, assign a teacher, and enroll a student.",
   "organisation.createdSchool": "Created school {name}.",
   "organisation.step1Title": "1. Create school",
   "organisation.schoolNamePlaceholder": "School name",

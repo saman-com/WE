@@ -271,7 +271,7 @@
   "organisation.adminOnly": "يمكن لمسؤولي النظام فقط إعداد المؤسسات.",
   "organisation.requestFailedCheckForm": "فشل الطلب. تحقق من قيم النموذج وحاول مرة أخرى.",
   "organisation.loading": "جارٍ تحميل إعداد المؤسسة...",
-  "organisation.intro": "أنشئ مدرسة، وأضف مستوى دراسياً وصفاً، وعيّن معلماً، وسجّل طالباً. معرّف الطالب التجريبي: {seedId}",
+  "organisation.intro": "أنشئ مدرسة، وأضف مستوى دراسياً وصفاً، وعيّن معلماً، وسجّل طالباً.",
   "organisation.createdSchool": "تم إنشاء المدرسة {name}.",
   "organisation.step1Title": "1. إنشاء مدرسة",
   "organisation.schoolNamePlaceholder": "اسم المدرسة",

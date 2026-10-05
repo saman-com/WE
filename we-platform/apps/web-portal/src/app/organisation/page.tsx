@@ -117,7 +117,7 @@ export default function OrganisationSetupPage() {
         </div>
 
         <p className="text-sm text-black/60">
-          {t("organisation.intro", { seedId: STUDENT_SEED_ID })}
+          {t("organisation.intro")}
         </p>
 
         {schools.length > 0 ? (
