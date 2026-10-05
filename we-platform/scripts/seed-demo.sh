@@ -143,7 +143,7 @@ api POST "$LEARNING/api/v1/students/$STUDENT/profile/enrollments" "$ADMIN_TOKEN"
 
 existing_assessment() {
   api GET "$ASSESSMENT/api/v1/assessments?organisationId=$ORG&classId=$CLASS" "$TEACHER_TOKEN" \
-    | jq -r --arg title "$1" '[.[] | select(.title == $title)][0].id // empty'
+    | jq -r --arg title "$1" '[.items[] | select(.title == $title)][0].id // empty'
 }
 
 published_assessment() {
@@ -169,7 +169,7 @@ if [[ -z $SUBMISSION ]]; then
   SUBMISSION=$(api POST "$ASSESSMENT/api/v1/assessments/$SHEET/submissions" "$STUDENT_TOKEN" \
     '{"responses":"x + 3 = 7, so x = 4."}' | jq -r .id)
 fi
-if [[ $(api GET "$EVIDENCE/api/v1/evidence?assessmentId=$SHEET" "$TEACHER_TOKEN" | jq length) == 0 ]]; then
+if [[ $(api GET "$EVIDENCE/api/v1/evidence?assessmentId=$SHEET" "$TEACHER_TOKEN" | jq '.items | length') == 0 ]]; then
   api POST "$EVIDENCE/api/v1/evidence" "$TEACHER_TOKEN" "$(jq -n \
     --arg org "$ORG" --arg class "$CLASS" --arg assessment "$SHEET" --arg submission "$SUBMISSION" \
     --arg student "$STUDENT" --arg read "$SKILL_READ" --arg substitute "$SKILL_SUBSTITUTE" \
