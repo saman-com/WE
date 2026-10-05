@@ -45,11 +45,17 @@ public static class OrganisationEndpoints
 
     private static async Task<IResult> ListOrganisations(
         ClaimsPrincipal principal,
-        OrganisationDbContext db)
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
     {
-        var query = principal.IsAdmin()
-            ? db.Organisations.IgnoreQueryFilters().AsQueryable()
-            : db.Organisations.AsQueryable();
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
+        // School admins are tenant-scoped; never bypass query filters to list other schools.
+        var tenantId = tenantContext.TenantId!.Value;
+        var query = db.Organisations.Where(org => org.TenantId == tenantId);
         if (!principal.IsAdmin())
         {
             var userId = principal.UserId();

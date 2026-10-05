@@ -44,6 +44,26 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task Admin_ListOrganisations_DoesNotReturnOtherSchool()
+    {
+        // Regression: Admin previously used IgnoreQueryFilters and listed every school.
+        var adminA = Guid.NewGuid().ToString();
+        var adminB = Guid.NewGuid().ToString();
+        var schoolA = await CreateOrganisationAsAdminAsync(adminA, "List Isolation A", UniqueCode("LIA"));
+        var schoolB = await CreateOrganisationAsAdminAsync(adminB, "List Isolation B", UniqueCode("LIB"));
+
+        var listed = await SendAsAsync<List<OrganisationResponse>>(
+            HttpMethod.Get,
+            "/api/v1/organisations",
+            adminA,
+            schoolA.Id,
+            TestJwt.AdminRole);
+
+        Assert.Contains(listed, org => org.Id == schoolA.Id);
+        Assert.DoesNotContain(listed, org => org.Id == schoolB.Id);
+    }
+
+    [Fact]
     public async Task Admin_CanCrudOrganisationYearLevelAndClass()
     {
         var adminId = Guid.NewGuid().ToString();
@@ -57,7 +77,7 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
             HttpMethod.Get,
             "/api/v1/organisations",
             adminId,
-            null,
+            createdOrg.Id,
             TestJwt.AdminRole);
         Assert.Contains(listed, org => org.Id == createdOrg.Id);
 

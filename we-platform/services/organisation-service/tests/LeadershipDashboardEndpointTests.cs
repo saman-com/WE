@@ -211,7 +211,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             HttpMethod.Get,
             "/api/v1/organisations",
             leaderId,
-            null,
+            org.Id,
             TestJwt.SchoolLeaderRole);
         Assert.Single(organisations);
         Assert.Equal(org.Id, organisations[0].Id);
