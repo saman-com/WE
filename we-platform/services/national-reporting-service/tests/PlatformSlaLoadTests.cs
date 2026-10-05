@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NationalReportingService.Domain;
 using NationalReportingService.Infrastructure.Data;
 using NationalReportingService.Infrastructure.Security;
+using Xunit.Abstractions;
 
 namespace NationalReportingService.Tests;
 
@@ -18,11 +19,13 @@ public class PlatformSlaLoadTests : IClassFixture<NationalReportingWebApplicatio
     private static readonly DateOnly AsOf = new(2026, 10, 1);
     private readonly HttpClient _client;
     private readonly NationalReportingWebApplicationFactory _factory;
+    private readonly ITestOutputHelper _output;
 
-    public PlatformSlaLoadTests(NationalReportingWebApplicationFactory factory)
+    public PlatformSlaLoadTests(NationalReportingWebApplicationFactory factory, ITestOutputHelper output)
     {
         _client = factory.CreateClient();
         _factory = factory;
+        _output = output;
     }
 
     [Fact]
@@ -58,7 +61,11 @@ public class PlatformSlaLoadTests : IClassFixture<NationalReportingWebApplicatio
         await Task.WhenAll(tasks);
 
         var maxLatency = latencies.Max();
+        var minLatency = latencies.Min();
+        var avgLatency = (long)latencies.Average();
         var p95 = Percentile(latencies, 0.95);
+        _output.WriteLine(
+            $"National enrollment API (n={ConcurrentRequests}): min={minLatency}ms avg={avgLatency}ms p95={p95}ms max={maxLatency}ms SLA={ApiSlaMilliseconds}ms");
         Assert.True(
             maxLatency <= ApiSlaMilliseconds,
             $"National enrollment API max latency {maxLatency}ms exceeded {ApiSlaMilliseconds}ms SLA (p95={p95}ms).");
@@ -97,9 +104,14 @@ public class PlatformSlaLoadTests : IClassFixture<NationalReportingWebApplicatio
         await Task.WhenAll(tasks);
 
         var maxLatency = latencies.Max();
+        var minLatency = latencies.Min();
+        var avgLatency = (long)latencies.Average();
+        var p95 = Percentile(latencies, 0.95);
+        _output.WriteLine(
+            $"Policy trends API (n={ConcurrentRequests}): min={minLatency}ms avg={avgLatency}ms p95={p95}ms max={maxLatency}ms SLA={ApiSlaMilliseconds}ms");
         Assert.True(
             maxLatency <= ApiSlaMilliseconds,
-            $"Policy trends API max latency {maxLatency}ms exceeded {ApiSlaMilliseconds}ms SLA.");
+            $"Policy trends API max latency {maxLatency}ms exceeded {ApiSlaMilliseconds}ms SLA (p95={p95}ms).");
     }
 
     private static long Percentile(long[] values, double percentile)
