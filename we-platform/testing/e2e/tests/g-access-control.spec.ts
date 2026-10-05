@@ -24,6 +24,16 @@ test.describe("g. Access control", () => {
     { role: "teacher", path: "/authority", kind: "redirect" },
     { role: "teacher", path: "/admin/ai-audit", kind: "redirect" },
     { role: "parent", path: "/admin/federation", kind: "redirect" },
+    // Cheap role×route extensions (portal redirects / permission messages — not every API)
+    { role: "parent", path: "/teacher", kind: "redirect" },
+    { role: "student", path: "/parent", kind: "redirect" },
+    { role: "leader", path: "/admin/ai-audit", kind: "redirect" },
+    {
+      role: "authority",
+      path: "/organisation",
+      kind: "error",
+      error: /system administrators/i,
+    },
     {
       role: "student",
       path: "/assessments",

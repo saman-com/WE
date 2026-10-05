@@ -6,6 +6,7 @@ using IdentityService.Application.Auth;
 using IdentityService.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using WePlatform.Tenancy;
 
 namespace IdentityService.Tests;
 
@@ -85,9 +86,39 @@ public class AuthEndpointTests : IClassFixture<IdentityWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Me_WithExpiredToken_ReturnsUnauthorized()
+    {
+        var expired = TestJwt.CreateExpired(
+            Guid.CreateVersion7().ToString(),
+            DefaultTenant.Id,
+            "Teacher");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/auth/me");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", expired);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task AdminEndpoint_WithoutAdminRole_ReturnsForbidden()
     {
         var token = await LoginAndGetTokenAsync(IdentityDataSeeder.TeacherEmail, IdentityDataSeeder.TeacherPassword);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/auth/admin");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(IdentityDataSeeder.StudentEmail, IdentityDataSeeder.StudentPassword)]
+    [InlineData(IdentityDataSeeder.ParentEmail, IdentityDataSeeder.ParentPassword)]
+    [InlineData(IdentityDataSeeder.SchoolLeaderEmail, IdentityDataSeeder.SchoolLeaderPassword)]
+    public async Task AdminEndpoint_NonAdminRoles_ReturnForbidden(string email, string password)
+    {
+        var token = await LoginAndGetTokenAsync(email, password);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/auth/admin");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 

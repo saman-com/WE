@@ -9,7 +9,16 @@ namespace IdentityService.Tests;
 
 internal static class TestJwt
 {
-    public static string Create(string userId, Guid tenantId, params string[] roles)
+    public static string Create(string userId, Guid tenantId, params string[] roles) =>
+        Create(userId, tenantId, DateTime.UtcNow.AddMinutes(15), roles);
+
+    /// <summary>
+    /// Builds a token that is already expired past the default JWT clock skew (5 minutes).
+    /// </summary>
+    public static string CreateExpired(string userId, Guid tenantId, params string[] roles) =>
+        Create(userId, tenantId, DateTime.UtcNow.AddMinutes(-10), roles);
+
+    private static string Create(string userId, Guid tenantId, DateTime expiresUtc, string[] roles)
     {
         var claims = new List<Claim>
         {
@@ -24,7 +33,7 @@ internal static class TestJwt
             issuer: "we-platform-identity-test",
             audience: "we-platform-test",
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(15),
+            expires: expiresUtc,
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
         return new JwtSecurityTokenHandler().WriteToken(token);
