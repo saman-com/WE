@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { moveGradingLevel, validateGradingLevels } from "@/lib/grading-levels";
 import {
   fetchRegionalConfiguration,
   updateRegionalConfiguration,
+  type GradingLevel,
   type RegionalConfiguration,
   type UpdateRegionalConfigurationRequest,
 } from "@/lib/regional-configuration";
@@ -72,6 +74,11 @@ export default function RegionalConfigurationAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("calendar");
+  const [draftLevel, setDraftLevel] = useState<GradingLevel>({
+    label: "",
+    minScore: 0,
+    maxScore: 0,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -110,6 +117,13 @@ export default function RegionalConfigurationAdminPage() {
     setSaving(true);
     setError(null);
     setSuccess(null);
+
+    const problem = validateGradingLevels(form.gradingScale.levels);
+    if (problem) {
+      setError(t(problem === "overlap" ? "admin.regional.levelOverlap" : "admin.regional.levelRange"));
+      setSaving(false);
+      return;
+    }
 
     try {
       const saved = await updateRegionalConfiguration(token, form);
@@ -303,6 +317,7 @@ export default function RegionalConfigurationAdminPage() {
           ) : null}
 
           {tab === "grading" ? (
+          <>
           <FocusCard>
             <h2 className="font-medium">{t("admin.regional.gradingTitle")}</h2>
             <label className="text-sm space-y-1 block">
@@ -318,7 +333,101 @@ export default function RegionalConfigurationAdminPage() {
                 }
               />
             </label>
+            <h3 className="font-medium">{t("admin.regional.levelsTitle")}</h3>
+            {form.gradingScale.levels.length === 0 ? (
+              <p className="text-sm text-black/60">{t("admin.regional.noLevels")}</p>
+            ) : (
+              <ul className="space-y-4">
+                {form.gradingScale.levels.map((level, index) => (
+                  <li key={index} className="space-y-2">
+                    <LevelFields
+                      level={level}
+                      onChange={(next) =>
+                        setForm((current) => ({
+                          ...current,
+                          gradingScale: {
+                            ...current.gradingScale,
+                            levels: current.gradingScale.levels.map((item, itemIndex) =>
+                              itemIndex === index ? next : item
+                            ),
+                          },
+                        }))
+                      }
+                    />
+                    <div className="flex flex-wrap gap-3">
+                      <TextButton
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            gradingScale: {
+                              ...current.gradingScale,
+                              levels: moveGradingLevel(current.gradingScale.levels, index, -1),
+                            },
+                          }))
+                        }
+                      >
+                        {t("admin.regional.moveUp")}
+                      </TextButton>
+                      <TextButton
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            gradingScale: {
+                              ...current.gradingScale,
+                              levels: moveGradingLevel(current.gradingScale.levels, index, 1),
+                            },
+                          }))
+                        }
+                      >
+                        {t("admin.regional.moveDown")}
+                      </TextButton>
+                      <TextButton
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            gradingScale: {
+                              ...current.gradingScale,
+                              levels: current.gradingScale.levels.filter(
+                                (_, itemIndex) => itemIndex !== index
+                              ),
+                            },
+                          }))
+                        }
+                      >
+                        {t("organisation.manage.remove")}
+                      </TextButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </FocusCard>
+          <FocusCard>
+            <h2 className="font-medium">{t("admin.regional.addLevelTitle")}</h2>
+            <LevelFields level={draftLevel} onChange={setDraftLevel} />
+            <TextButton
+              onClick={() => {
+                const next = [...form.gradingScale.levels, draftLevel];
+                const problem = validateGradingLevels(next);
+                if (problem) {
+                  setSuccess(null);
+                  setError(
+                    t(problem === "overlap" ? "admin.regional.levelOverlap" : "admin.regional.levelRange")
+                  );
+                  return;
+                }
+                setForm((current) => ({
+                  ...current,
+                  gradingScale: { ...current.gradingScale, levels: next },
+                }));
+                setDraftLevel({ label: "", minScore: 0, maxScore: 0 });
+                setError(null);
+              }}
+            >
+              {t("admin.regional.addLevel")}
+            </TextButton>
+          </FocusCard>
+          </>
           ) : null}
 
           {tab === "models" ? (
@@ -456,5 +565,57 @@ export default function RegionalConfigurationAdminPage() {
         </form>
       </div>
     </LearningFrame>
+  );
+}
+
+function LevelFields({
+  level,
+  onChange,
+}: {
+  level: GradingLevel;
+  onChange: (level: GradingLevel) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      <label className="block space-y-1 text-sm">
+        <span>{t("admin.regional.levelLabel")}</span>
+        <input
+          className="w-full rounded border border-black/20 px-2 py-1"
+          value={level.label}
+          onChange={(event) => onChange({ ...level, label: event.target.value })}
+        />
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>{t("admin.regional.minScore")}</span>
+        <input
+          type="number"
+          className="w-full rounded border border-black/20 px-2 py-1"
+          value={level.minScore}
+          onChange={(event) => onChange({ ...level, minScore: Number(event.target.value) })}
+        />
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>{t("admin.regional.maxScore")}</span>
+        <input
+          type="number"
+          className="w-full rounded border border-black/20 px-2 py-1"
+          value={level.maxScore}
+          onChange={(event) => onChange({ ...level, maxScore: Number(event.target.value) })}
+        />
+      </label>
+    </div>
+  );
+}
+
+function TextButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-sm text-black/60 underline-offset-2 hover:underline"
+    >
+      {children}
+    </button>
   );
 }
