@@ -6,7 +6,8 @@ public record AiFeedbackDraftResponse(
     Guid AuditLogId,
     string DraftFeedback,
     string PromptId,
-    string PromptVersion);
+    string PromptVersion,
+    string ProviderName);
 
 public record FinalizeAiFeedbackAuditRequest(
     string TeacherEditedFeedback,

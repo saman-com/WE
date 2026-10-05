@@ -460,6 +460,7 @@
   "assessments.review.mark": "الدرجة",
   "assessments.review.feedback": "الملاحظات",
   "assessments.review.draftWithAi": "صياغة بالذكاء الاصطناعي",
+  "assessments.review.mockPreviewLabel": "معاينة الذكاء الاصطناعي (نص تجريبي)",
   "assessments.review.approveEvidence": "اعتماد الدليل",
 
   "student.profile.noAccess": "ليس لديك صلاحية الوصول إلى هذا الملف.",

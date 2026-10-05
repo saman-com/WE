@@ -18,7 +18,7 @@ public sealed class FakeAiGatewayClient : IAiGatewayClient
             DraftContent,
             request.PromptId,
             request.PromptVersion,
-            "mock",
+            "Mock",
             true));
     }
 }

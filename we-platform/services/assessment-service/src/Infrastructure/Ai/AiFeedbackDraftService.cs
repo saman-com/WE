@@ -81,7 +81,8 @@ public sealed class AiFeedbackDraftService(
             auditLog.Id,
             completion.Content,
             completion.PromptId,
-            completion.PromptVersion);
+            completion.PromptVersion,
+            completion.ProviderName);
     }
 
     public async Task<FinalizeAiFeedbackAuditResponse?> FinalizeAuditAsync(

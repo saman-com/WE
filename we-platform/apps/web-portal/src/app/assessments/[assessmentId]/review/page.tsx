@@ -12,6 +12,7 @@ import {
   type Assessment,
   type AssessmentSubmission,
 } from "@/lib/assessment";
+import { AiMockPreviewLabel } from "@/components/ai-mock-preview-label";
 import {
   approveEvidence,
   listEvidenceForAssessment,
@@ -27,6 +28,7 @@ type MarkDraft = {
   mark: string;
   feedback: string;
   auditLogId?: string;
+  providerName?: string;
 };
 
 export default function AssessmentReviewPage() {
@@ -87,7 +89,18 @@ export default function AssessmentReviewPage() {
       .catch(() => {
         setError(t("assessments.review.loadError"));
       });
-  }, [router, assessmentId, message, t]);
+  // Catalogue lookup is stable; omit `t` so toast messages do not wipe AI drafts.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reload via reloadReviewData after approve
+  }, [router, assessmentId]);
+
+  async function reloadReviewData(accessToken: string) {
+    const [loadedSubmissions, loadedEvidence] = await Promise.all([
+      listSubmissions(accessToken, assessmentId),
+      listEvidenceForAssessment(accessToken, assessmentId),
+    ]);
+    setSubmissions(loadedSubmissions);
+    setEvidence(loadedEvidence);
+  }
 
   function evidenceFor(submissionId: string): Evidence | undefined {
     return evidence.find((item) => item.submissionId === submissionId);
@@ -137,6 +150,7 @@ export default function AssessmentReviewPage() {
             ...current[submission.id]?.[microSkillId],
             feedback: draft.draftFeedback,
             auditLogId: draft.auditLogId,
+            providerName: draft.providerName,
           },
         },
       }));
@@ -190,6 +204,7 @@ export default function AssessmentReviewPage() {
       }
 
       setMessage(t("assessments.review.approved"));
+      await reloadReviewData(token);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("assessments.review.approvalFailed"));
     } finally {
@@ -310,6 +325,15 @@ export default function AssessmentReviewPage() {
                           </label>
                           <label className="block space-y-1">
                             <span className="text-sm">{t("assessments.review.feedback")}</span>
+                            {(drafts[submission.id]?.[microSkillId]?.feedback ?? "").length >
+                            0 ? (
+                              <AiMockPreviewLabel
+                                providerName={
+                                  drafts[submission.id]?.[microSkillId]?.providerName
+                                }
+                                label={t("assessments.review.mockPreviewLabel")}
+                              />
+                            ) : null}
                             <textarea
                               className="w-full border rounded px-3 py-2"
                               rows={2}

@@ -1,7 +1,7 @@
 # WE Platform feature test matrix
 
 Coverage map for delivery feature checks. Paths are relative to the repo root (`edu_app/`).  
-Status: `covered` | `partial` | `missing` | `linked`.
+Status: `covered` | `partial` | `missing` | `linked` | `deferred` | `not required`.
 
 Updated: 2026-10-05 (batch 19 NFR; batches 18 Arabic + 8–10 homes/interventions; 3–5; 14 leadership; 15 analytics; 16 federation/config).
 
@@ -95,7 +95,8 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 |---------|-------|-------|--------------------|--------|
 | AI | Unsafe / PII / prohibited content blocked | backend | `ai-gateway-service/tests/GovernanceSafetyFilterTests.cs`, `AiGovernanceEndpointTests.cs` (`Complete_BlocksPiiInPromptVariables`, `Complete_BlocksProhibitedActions`) | covered |
 | AI | Every call written to audit log under correct school/tenant | backend | `AiGovernanceEndpointTests.Complete_LogsSuccessfulRequestWithAuditMetadata`; `assessment-service/tests/AiFeedbackDraftEndpointTests.cs` (`SchoolBTeacher_AiFeedbackDraft_IsLoggedUnderSchoolBTenant`); `ai-gateway TenantIsolationEndpointTests` | covered |
-| AI | Student never sees a draft | backend / e2e | `AiFeedbackDraftEndpointTests.Student_CannotRequestAiFeedbackDraft`; e2e `d-ai-feedback.spec.ts` (teacher draft → student after approve). No explicit student-UI assertion that draft text is absent before finalise | partial |
+| AI | Student never sees a draft | backend / e2e | `AiFeedbackDraftEndpointTests.Student_CannotRequestAiFeedbackDraft`; e2e `d-ai-feedback.spec.ts` (teacher draft → student after approve; draft text absent on student UI before approve) | covered |
+| AI | Real provider retest (non-Mock end-to-end) | deferred | Mock adapter only until a real AI provider is integrated; Production refuses Mock unless `AiProvider:AllowMockInProduction=true`; portal shows “AI preview (sample text)” on Mock drafts | deferred |
 
 ## 12–13. Parent, messages, notifications
 
@@ -105,6 +106,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | Messages | Parent ↔ teacher messaging scoped to student / class | backend / e2e | `communication-service/tests/CommunicationEndpointTests.cs`; `testing/e2e/tests/c-messages.spec.ts` | covered |
 | Notifications | Mark as read | backend / e2e | `notification-service/tests/NotificationEndpointTests.cs` (`User_CanMarkNotificationAsRead`); e2e `c-messages.spec.ts` | covered |
 | Notifications | Unread count | — | not required (absent from UX-001 / SP-001) | not required |
+| Notifications | Email delivery (SMTP / real provider) | deferred | `MockEmailNotifier` only until a real email provider is integrated; Production refuses Mock unless `Email:AllowMockInProduction=true` | deferred |
 
 ## 14. Leadership
 
@@ -170,8 +172,8 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 | 6 Evidence | e2e UI locked; re-verify PUT/DELETE (fix product if editable) |
 | 17 National | Small-count suppression + OpenAPI path completeness; note SP-001 missing min group size |
 | 1 Sign-in | Role×API matrix remains partial (portal + identity admin covered) |
-| 11 AI | Student never sees draft text in UI before approve |
-| 12–13 | Unread count (API + UI/e2e) |
+| 11 AI | Student never sees draft; real provider retest deferred |
+| 12–13 | Unread count not required; email delivery deferred |
 | 3 Org | Duplicates; delete class with students; explicit assign-leader assertion | ✓ filled |
 | 4 Curriculum | Dedicated variant-links assertion if incomplete | ✓ filled |
 | 5 Assessments | Edit/delete after publish tests; clarify late-submit product rule | ✓ filled |

@@ -43,15 +43,10 @@ public static class DependencyInjection
         services.AddScoped<IAiAuditQueryService, AiAuditQueryService>();
         services.AddScoped<IAiCompletionService, AiCompletionService>();
 
-        var provider = configuration["AiProvider:Provider"] ?? "Mock";
-        if (environment.IsEnvironment("Testing") || string.Equals(provider, "Mock", StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddSingleton<IAiProviderAdapter, MockAiProviderAdapter>();
-        }
-        else
-        {
-            services.AddSingleton<IAiProviderAdapter, MockAiProviderAdapter>();
-        }
+        // Real AI providers are deferred — only Mock is registered today.
+        MockAiProviderStartup.EnsureMockAllowedInEnvironment(environment, configuration);
+        services.AddSingleton<IAiProviderAdapter, MockAiProviderAdapter>();
+        services.AddHostedService<MockAiProviderStartupWarning>();
 
         return services;
     }

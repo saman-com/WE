@@ -37,7 +37,11 @@ public static class DependencyInjection
         });
 
         services.AddScoped<INotificationCreator, NotificationCreator>();
+
+        // Real email providers are deferred — only Mock is registered today.
+        MockEmailStartup.EnsureMockAllowedInEnvironment(environment, configuration);
         services.AddSingleton<IEmailNotifier, MockEmailNotifier>();
+        services.AddHostedService<MockEmailStartupWarning>();
 
         if (!environment.IsEnvironment("Testing"))
         {

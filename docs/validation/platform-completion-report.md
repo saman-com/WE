@@ -67,6 +67,15 @@ All **46** vertical slices under `issues/` are implemented and gated:
 | Local/compose stack | `we-platform/docker-compose.yml` |
 | CI | `.github/workflows/ci.yml` |
 
+## Known limitations (deferred)
+
+| Limitation | Current behaviour | Unblock when |
+|------------|-------------------|--------------|
+| **Real AI provider** | `ai-gateway-service` uses `MockAiProviderAdapter` only (canned draft text). Startup logs a warning when Mock is active. Production refuses to start with Mock unless `AiProvider:AllowMockInProduction=true`. Teacher review UI labels Mock drafts as “AI preview (sample text)”. | Wire a production provider adapter and retest end-to-end (matrix §11). |
+| **Email delivery** | `notification-service` uses `MockEmailNotifier` (logs only; no SMTP). Startup logs a warning when Mock is active. Production refuses to start with Mock unless `Email:AllowMockInProduction=true`. | Integrate a real email provider and verify delivery (matrix §13). |
+
+Tracked in `docs/validation/feature-test-matrix.md` as status `deferred`.
+
 ## Next horizon (out of scope for this gate)
 
-Per EP-001 §18.13 Continuous Innovation Phase: new AI capabilities, research integrations, advanced analytics, and immersive learning may follow while preserving architectural consistency (SP-001 / TD-001 / EP-001).
+Per EP-001 §18.13 Continuous Innovation Phase: new AI capabilities, research integrations, advanced analytics, and immersive learning may follow while preserving architectural consistency (SP-001 / TD-001 / EP-001). Real AI provider and email delivery are deferred known limitations (above), not part of the closed 001–046 gate.

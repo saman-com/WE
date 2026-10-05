@@ -196,6 +196,7 @@ export type AiFeedbackDraft = {
   draftFeedback: string;
   promptId: string;
   promptVersion: string;
+  providerName: string;
 };
 
 export function requestAiFeedbackDraft(

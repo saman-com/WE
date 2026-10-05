@@ -460,6 +460,7 @@
   "assessments.review.mark": "Mark",
   "assessments.review.feedback": "Feedback",
   "assessments.review.draftWithAi": "Draft with AI",
+  "assessments.review.mockPreviewLabel": "AI preview (sample text)",
   "assessments.review.approveEvidence": "Approve evidence",
 
   "student.profile.noAccess": "You do not have access to this profile.",

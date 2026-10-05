@@ -58,6 +58,7 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
         Assert.False(string.IsNullOrWhiteSpace(draft.DraftFeedback));
         Assert.Equal("assessment-feedback", draft.PromptId);
         Assert.Equal("1.0.0", draft.PromptVersion);
+        Assert.Equal("Mock", draft.ProviderName);
         Assert.NotEqual(Guid.Empty, draft.AuditLogId);
         Assert.Single(_aiGateway.Calls);
         Assert.Equal("assessment-feedback", _aiGateway.Calls[0].PromptId);
