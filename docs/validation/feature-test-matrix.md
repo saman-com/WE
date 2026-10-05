@@ -3,7 +3,7 @@
 Coverage map for delivery feature checks. Paths are relative to the repo root (`edu_app/`).  
 Status: `covered` | `partial` | `missing` | `linked`.
 
-Updated: 2026-10-05 (batch 2b IgnoreQueryFilters audit, fail-closed tenant filter, federation isolation).
+Updated: 2026-10-05 (batches 18 Arabic + 8–10 homes/interventions; 3–5; 14 leadership; 15 analytics; 16 federation/config).
 
 ---
 
@@ -16,10 +16,10 @@ Updated: 2026-10-05 (batch 2b IgnoreQueryFilters audit, fail-closed tenant filte
 | Sign-in | `/me` with valid token returns user and roles | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`Me_WithValidToken_ReturnsUserAndRoles`) | covered |
 | Sign-in | `/me` without token returns 401 | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`Me_WithoutToken_ReturnsUnauthorized`) | covered |
 | Sign-in | `/admin` requires Admin role (403 otherwise) | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`AdminEndpoint_WithoutAdminRole_ReturnsForbidden`, `AdminEndpoint_WithAdminRole_ReturnsOk`) | covered |
-| Sign-in | Expired token rejected on protected endpoints | backend | missing | missing |
-| Sign-in | Each role gets 403 on other roles' endpoints (matrix across portal routes / APIs) | e2e | `we-platform/testing/e2e/tests/g-access-control.spec.ts` (role×path blocked cases; not every API) | partial |
-| Sign-in | Token survives page refresh | e2e | missing (auth stores token in localStorage via setup helpers only) | missing |
-| Sign-in | Logout clears session and blocks protected pages | e2e | missing (no logout flow assertion; identity has no logout API test) | missing |
+| Sign-in | Expired token rejected on protected endpoints | backend | `we-platform/services/identity-service/tests/AuthEndpointTests.cs` (`Me_WithExpiredToken_ReturnsUnauthorized`) | covered |
+| Sign-in | Each role gets 403 on other roles' endpoints (matrix across portal routes / APIs) | e2e + backend | `we-platform/testing/e2e/tests/g-access-control.spec.ts` (role×path blocked cases); identity `AdminEndpoint_NonAdminRoles_ReturnForbidden` — not every API | partial |
+| Sign-in | Token survives page refresh | e2e | `we-platform/testing/e2e/tests/signin.spec.ts` (`token survives page refresh`) | covered |
+| Sign-in | Logout clears session and blocks protected pages | e2e | `we-platform/testing/e2e/tests/signin.spec.ts` (`logout clears session…`; identity has no logout API — UI clears `localStorage`) | covered |
 
 ## 2. School isolation
 
@@ -38,11 +38,11 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 |---------|-------|-------|--------------------|--------|
 | Organisation setup | Create / edit / delete schools, year levels, classes | backend | `we-platform/services/organisation-service/tests/OrganisationEndpointTests.cs` (`Admin_CanCrudOrganisationYearLevelAndClass`) | covered |
 | Organisation setup | Assign teachers | backend | `we-platform/services/organisation-service/tests/OrganisationEndpointTests.cs` (`Admin_CanAssignTeacherAndEnrollStudent`) | covered |
-| Organisation setup | Assign school leaders | backend | `we-platform/services/organisation-service/tests/LeadershipDashboardEndpointTests.cs` (helper `AssignSchoolLeaderAsync` used by dashboard tests) | partial |
+| Organisation setup | Assign school leaders | backend | `LeadershipDashboardEndpointTests.Admin_CanAssignSchoolLeader` | covered |
 | Organisation setup | Enrol students | backend | `we-platform/services/organisation-service/tests/OrganisationEndpointTests.cs` (`Admin_CanAssignTeacherAndEnrollStudent`, `EnrollStudent_AutoCreatesStudentLearningProfile`) | covered |
 | Organisation setup | Link parents to students | backend | `we-platform/services/organisation-service/tests/ParentWorkspaceEndpointTests.cs` (`Admin_LinksParentToStudent`) | covered |
-| Organisation setup | Duplicate school / year / class / enrolment / parent-link rejected | backend | missing | missing |
-| Organisation setup | Deleting a class that has students is rejected or handled safely | backend | missing (delete tested only on empty class in CRUD happy path) | missing |
+| Organisation setup | Duplicate school / year / class / enrolment / parent-link rejected | backend | `OrganisationEndpointTests` (`DuplicateOrganisationCode_IsRejected`, `DuplicateYearLevelName_IsRejected`, `DuplicateClassCode_IsRejected`, `DuplicateEnrollment_IsRejected`); `ParentWorkspaceEndpointTests.DuplicateParentLink_IsRejected` | covered |
+| Organisation setup | Deleting a class that has students is rejected or handled safely | backend | `OrganisationEndpointTests.DeleteClass_WithEnrolledStudents_CascadesSafely` (cascade delete is the product behaviour) | covered |
 
 ## 4. Curriculum
 
@@ -51,7 +51,7 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | Curriculum | Full hierarchy (subject → unit → LO → micro-skill) | backend | `we-platform/services/curriculum-service/tests/CurriculumEndpointTests.cs`, `LearningObjectiveEndpointTests.cs` | covered |
 | Curriculum | `/tree` returns navigable hierarchy | backend | `CurriculumEndpointTests.Tree_ReturnsNavigableSubjectUnitHierarchy`; `LearningObjectiveEndpointTests.Tree_ReturnsLearningObjectiveMicroSkillHierarchyUnderUnit` | covered |
 | Curriculum | Inherit regional variant into school | backend | `we-platform/services/curriculum-service/tests/CurriculumVariantEndpointTests.cs` (`School_InheritsRegionalCurriculumVariant_WithClonedTreeAndSourceLinks`) | covered |
-| Curriculum | Variant-links endpoint / source links | backend | `CurriculumVariantEndpointTests` (calls `/variant-links` in assessment-link scenario; inherit asserts source IDs) | partial |
+| Curriculum | Variant-links endpoint / source links | backend | `CurriculumVariantEndpointTests.VariantLinks_ReturnsOnlyVariantSpecificLearningObjectiveAndMicroSkillIds`; also covered in assessment-link scenario | covered |
 | Curriculum | School override must not change parent (regional) curriculum | backend | `CurriculumVariantEndpointTests.School_CanOverrideUnitAndLearningObjective_WithoutAffectingRegionalOrOtherSchools` | covered |
 
 ## 5. Assessments
@@ -59,10 +59,10 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
 | Assessments | Drafts hidden from students | backend | `we-platform/services/assessment-service/tests/AssessmentEndpointTests.cs` (`Student_CannotSeeDraftAssessments`, `Student_CanListPublishedAssessments_ForEnrolledClassOnly`) | covered |
-| Assessments | Editing after publishing rejected | backend | missing (API returns Conflict for non-draft; no dedicated test) | missing |
-| Assessments | Deleting after publishing rejected | backend | missing (API returns Conflict for non-draft; no dedicated test) | missing |
+| Assessments | Editing after publishing rejected | backend | `AssessmentEndpointTests.Teacher_CannotEditPublishedAssessment` | covered |
+| Assessments | Deleting after publishing rejected | backend | `AssessmentEndpointTests.Teacher_CannotDeletePublishedAssessment` | covered |
 | Assessments | One submission per student | backend | `we-platform/services/assessment-service/tests/SubmissionEndpointTests.cs` (`Student_CannotSubmitTwice`) | covered |
-| Assessments | Submitting after due date | backend | `SubmissionEndpointTests.Student_LateSubmission_IsAcceptedAndMarkedLate` (late accepted + flagged; confirm product intent if reject expected) | partial |
+| Assessments | Submitting after due date | backend | `SubmissionEndpointTests.Student_LateSubmission_IsAcceptedAndMarkedLate` (accepted + `IsLate=true`; documented product behaviour) | covered |
 
 ## 6. Evidence
 
@@ -83,11 +83,11 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
 | Student home | Core progress / assessments / feedback surfaces | e2e | `we-platform/testing/e2e/tests/a-core-learning-loop.spec.ts`, `h-student-wording.spec.ts`, `j-smoke.spec.ts` | partial |
-| Student home | Empty states | e2e / unit | `apps/web-portal/src/lib/student-focus.test.ts` (empty headline); no browser empty-state coverage | partial |
-| Teacher home | Assigned classes / empty no-class state | unit / e2e | `apps/web-portal/src/app/teacher/page.test.tsx`; smoke in `j-smoke.spec.ts` | partial |
-| Teacher insights | Class EI insights RBAC + aggregation | backend / e2e | `ei-service/tests/EiEndpointTests.cs`; class UI empty copy exists but no dedicated e2e empty/filter cases | partial |
-| Interventions | Create / list / status lifecycle / filters | backend / e2e | `intervention-service/tests/InterventionEndpointTests.cs` (status transitions, org list filter); `testing/e2e/tests/b-interventions.spec.ts` | partial |
-| Interventions | UI empty state + list status filter | e2e | missing (UI has filters/empty copy; no automated browser check) | missing |
+| Student home | Empty states | unit | `apps/web-portal/src/lib/student-focus.test.ts` (empty headline); `apps/web-portal/src/app/student/page.test.tsx` (Today quiet + Skills/Next/Notes/Growth empty copy) | covered |
+| Teacher home | Assigned classes / empty no-class state | unit / e2e | `apps/web-portal/src/app/teacher/page.test.tsx`; smoke in `j-smoke.spec.ts` | covered |
+| Teacher insights | Class EI insights RBAC + aggregation | backend / unit | `ei-service/tests/EiEndpointTests.cs`; `apps/web-portal/src/app/teacher/classes/[classId]/page.test.tsx` (empty EI sections + EI-request failure fallback) | covered |
+| Interventions | Create / list / status lifecycle / filters | backend / e2e | `intervention-service/tests/InterventionEndpointTests.cs` (status transitions, org list filter); `testing/e2e/tests/b-interventions.spec.ts` | covered |
+| Interventions | UI empty state + list status filter | unit / e2e | `apps/web-portal/src/app/teacher/interventions/page.test.tsx` (empty + status filter); `testing/e2e/tests/b-interventions.spec.ts` (Active/Closed/Planned/All filter) | covered |
 
 ## 11. AI
 
@@ -111,21 +111,21 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
 | Leadership | Dashboard loads / report generation | e2e | `we-platform/testing/e2e/tests/e-leadership.spec.ts` | partial |
-| Leadership | Dashboard numbers match seeded source data (compute expected from seed) | backend | missing (`LeadershipDashboardEndpointTests` uses fakes/mocks, not Identity/demo seed arithmetic) | missing |
+| Leadership | Dashboard numbers match seeded source data (compute expected from seed) | backend | `organisation-service/tests/LeadershipDashboardEndpointTests.cs` (`SchoolLeader_DashboardNumbers_MatchComputedExpectationsFromSeededOrgClassData` — multi-class seed + `LeadershipDashboardAggregator` expected KPIs/year/class comparisons) | covered |
 
 ## 15. Analytics
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Analytics | `/api/v1/analytics` aggregates match known seeded events | backend | `reporting-service/tests/EffectivenessAnalyticsEndpointTests.cs`, `LongitudinalAnalyticsEndpointTests.cs` (seeded EDW facts) | partial |
-| Analytics | Charts handle empty data | e2e / unit | missing (UI empty strings exist; no automated empty-chart assertion) | missing |
+| Analytics | `/api/v1/analytics` aggregates match known seeded events | backend | `reporting-service/tests/EffectivenessAnalyticsEndpointTests.cs`, `LongitudinalAnalyticsEndpointTests.cs` (seeded EDW facts; effectiveness asserts seed sums + school-average underperforming rule) | covered |
+| Analytics | Charts handle empty data | e2e / unit | `apps/web-portal/src/components/effectiveness-charts.test.tsx`, `longitudinal-charts.test.tsx` (empty i18n copy); backend empty EDW: `SchoolLeader_EffectivenessAnalysis_ReturnsEmptyCollections_WhenNoEdwFacts`, `SchoolLeader_OrganisationLongitudinalAnalysis_ReturnsEmptyCollections_WhenNoEdwFacts` | covered |
 
 ## 16. Regional configuration and federation
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Federation | Only FederationAdmin can use federation endpoints | backend | `federation-service/tests/FederationEndpointTests.cs` (`SchoolAdmin_CannotAccessFederationEndpoints`, FederationAdmin happy paths) | covered |
-| Regional configuration | School admins / leaders create schools and set policies | backend | `configuration-service/tests/ConfigurationEndpointTests.cs`; federation provisioning + `FederationAdmin_ManagesFederationPolicies`; school create via organisation/federation tests | partial |
+| Federation | Only FederationAdmin can use federation endpoints | backend | `federation-service/tests/FederationEndpointTests.cs` (`SchoolAdmin_CannotAccessFederationEndpoints` incl. policies get/put; FederationAdmin happy paths) | covered |
+| Regional configuration | School admins / leaders create schools and set policies | backend | School create: org `Admin_CanCrudOrganisationYearLevelAndClass` + federation `FederationAdmin_CreatesSchoolTenant_AndAssignsSchoolAdmin`; leaders/admins denied org create (`SchoolLeader_CannotCreateOrganisation`); policies: `SchoolLeader_ConfiguresAndTeacher_ReadsTenantConfiguration`, `SchoolAdmin_ConfiguresRegionalPolicies_ForOwnTenant`; federation policies FederationAdmin-only | covered |
 
 ## 17. National API
 
@@ -143,9 +143,9 @@ Services with at least one isolation test today: ai-gateway, assessment, communi
 
 | feature | check | layer | existing test file | status |
 |---------|-------|-------|--------------------|--------|
-| Arabic | Pages render RTL | e2e / unit | `testing/e2e/tests/i-arabic.spec.ts` (student + teacher); `apps/web-portal/src/components/language-switcher.test.tsx`; `i18n/i18n.test.ts` | partial (not every page) |
-| Arabic | No hard-coded English in source (locale scan) | unit / script | missing (no source scan for untranslated literals; i18n tests cover keys/helpers only) | missing |
-| Arabic | API error codes map to translated messages | unit / backend | `i18n/i18n.test.ts` (`API error code translation`); identity `Login_WithInvalidCredentials_ReturnsTranslatableErrorCode`; assessment validation error code — not a full code↔locale catalogue | partial |
+| Arabic | Pages render RTL | e2e / unit | `testing/e2e/tests/i-arabic.spec.ts` (student + teacher + parent); `apps/web-portal/src/components/language-switcher.test.tsx`; `i18n/i18n.test.ts` | partial (homes covered; not every admin page) |
+| Arabic | No hard-coded English in source (locale scan) | unit | `i18n/i18n.test.ts` (en↔ar key lockstep; empty-state key coverage; scan for hard-coded English catalogue literals in `app/` + `components/`, allow-listed metadata) | covered |
+| Arabic | API error codes map to translated messages | unit / backend | `i18n/i18n.test.ts` (all `errors.*` catalogue entries + `errorMessageKey`); identity `Login_WithInvalidCredentials_ReturnsTranslatableErrorCode`; assessment validation error code | covered |
 
 ## 19. Non-functional
 
@@ -169,17 +169,17 @@ Planned fill order: **2 → 6 → 17 → 1 → 11 → 12–13 → 3 → 4 → 5 
 | 2 School isolation | Exhaustive table-driven isolation (batch 2 + 2b complete: endpoint guard, IgnoreQueryFilters allow-list, fail-closed filter, federation A↔B) |
 | 6 Evidence | e2e UI locked; re-verify PUT/DELETE (fix product if editable) |
 | 17 National | Small-count suppression + OpenAPI path completeness; note SP-001 missing min group size |
-| 1 Sign-in | Expired token, refresh persistence, logout |
+| 1 Sign-in | Role×API matrix remains partial (portal + identity admin covered) |
 | 11 AI | Student never sees draft text in UI before approve |
 | 12–13 | Unread count (API + UI/e2e) |
-| 3 Org | Duplicates; delete class with students; explicit assign-leader assertion |
-| 4 Curriculum | Dedicated variant-links assertion if incomplete |
-| 5 Assessments | Edit/delete after publish tests; clarify late-submit product rule |
-| 14 Leadership | Seeded expected values vs dashboard |
-| 15 Analytics | Empty chart behaviour; tighten seed aggregate assertions |
-| 16 Federation / config | School-admin policy/school create completeness |
-| 18 Arabic | Full-page RTL + source literal scan + error catalogue |
-| 8–10 Homes / interventions | Empty states, filters, status changes in e2e |
+| 3 Org | Duplicates; delete class with students; explicit assign-leader assertion | ✓ filled |
+| 4 Curriculum | Dedicated variant-links assertion if incomplete | ✓ filled |
+| 5 Assessments | Edit/delete after publish tests; clarify late-submit product rule | ✓ filled |
+| 14 Leadership | Seeded expected values vs dashboard | ✓ filled |
+| 15 Analytics | Empty chart behaviour; tighten seed aggregate assertions | ✓ filled |
+| 16 Federation / config | School-admin policy/school create completeness | ✓ filled |
+| 18 Arabic | Full-page RTL + source literal scan + error catalogue | ✓ filled (RTL homes; catalogue scan; errors.*) |
+| 8–10 Homes / interventions | Empty states, filters, status changes in e2e | ✓ filled |
 | 19 Non-functional | k6, vuln scan, headers/CORS/secrets, backup/restore, compose health — scripts + report |
 
 ## Existing suite anchors (baseline)

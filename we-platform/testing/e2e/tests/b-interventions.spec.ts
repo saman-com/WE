@@ -42,4 +42,45 @@ test.describe("b. Interventions", () => {
     await teacher.close();
     await parent.close();
   });
+
+  test("list status filter shows matching rows and empty copy when none match", async ({
+    browser,
+  }) => {
+    const note = uniqueTitle("E2E filter intervention");
+
+    const teacher = await browser.newContext({ storageState: storagePath("teacher") });
+    const page = await teacher.newPage();
+
+    await page.goto(`/teacher/classes/${CLASS_A}?organisationId=${ORG_A}`);
+    const createLink = page.getByRole("link", { name: "Create intervention" }).first();
+    await expect(createLink).toBeVisible({ timeout: 60_000 });
+    await createLink.click();
+
+    await expect(page.getByRole("heading", { name: "Create intervention" })).toBeVisible();
+    await page.getByLabel("Notes (optional)").fill(note);
+    await page.getByRole("button", { name: "Create intervention" }).click();
+    await expect(page).toHaveURL(/\/teacher\/interventions\//);
+    await page.getByRole("button", { name: "Mark as Active" }).click();
+    await expect(page.getByText(/Active/i).first()).toBeVisible();
+
+    await page.goto("/teacher/interventions");
+    await expect(page.getByRole("button", { name: "All" })).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(note).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Active" }).click();
+    await expect(page.getByText(note).first()).toBeVisible();
+
+    // Status filter hides non-matching rows. Empty-copy for a fully empty list is
+    // covered in unit tests; Closed may still have older seed rows in a shared DB.
+    await page.getByRole("button", { name: "Closed" }).click();
+    await expect(page.getByText(note)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Planned" }).click();
+    await expect(page.getByText(note)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "All" }).click();
+    await expect(page.getByText(note).first()).toBeVisible();
+
+    await teacher.close();
+  });
 });

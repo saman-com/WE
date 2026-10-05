@@ -27,17 +27,25 @@ export default defineConfig({
     actionTimeout: 20_000,
     navigationTimeout: 45_000,
   },
-  webServer: {
-    command: `pnpm exec next dev --turbopack --port ${PORT} --hostname localhost`,
-    cwd: path.join(__dirname, "../../apps/web-portal"),
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-    env: {
-      ...process.env,
-      PORT: String(PORT),
-    },
-  },
+  ...(process.env.E2E_SKIP_WEBSERVER === "1"
+    ? {}
+    : {
+        webServer: {
+          // Invoke next directly: packageManager-pinned `pnpm exec` can fail when the
+          // store-linked pnpm binary is missing from this environment.
+          command: `./node_modules/.bin/next dev --port ${PORT} --hostname localhost`,
+          cwd: path.join(__dirname, "../../apps/web-portal"),
+          url: baseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 180_000,
+          env: {
+            ...process.env,
+            PORT: String(PORT),
+            WATCHPACK_POLLING: "true",
+            CHOKIDAR_USEPOLLING: "true",
+          },
+        },
+      }),
   projects: [
     {
       name: "setup",
