@@ -378,6 +378,7 @@
   "admin.aiAudit.col.provider": "Provider",
   "admin.aiAudit.col.blockReason": "Block reason",
   "admin.aiAudit.noEntries": "No audit log entries found.",
+  "admin.aiAudit.shown": "Showing {count} entries.",
 
   "admin.regional.saved": "Regional configuration saved for your school.",
   "admin.regional.saveError": "Unable to save regional configuration.",

@@ -378,6 +378,7 @@
   "admin.aiAudit.col.provider": "المزوّد",
   "admin.aiAudit.col.blockReason": "سبب الحظر",
   "admin.aiAudit.noEntries": "لم يتم العثور على إدخالات في السجل.",
+  "admin.aiAudit.shown": "يُعرض {count} من السجلات.",
 
   "admin.regional.saved": "تم حفظ الإعدادات الإقليمية لمدرستك.",
   "admin.regional.saveError": "تعذّر حفظ الإعدادات الإقليمية.",

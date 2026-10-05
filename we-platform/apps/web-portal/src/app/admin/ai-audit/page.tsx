@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LearningFrame } from "@/components/learning-frame";
+import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { searchAiAuditLogs, type AiAuditLogEntry } from "@/lib/ai-gateway";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -14,6 +14,8 @@ export default function AiAuditAdminPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [logs, setLogs] = useState<AiAuditLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [noticeError, setNoticeError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [promptId, setPromptId] = useState("");
   const [outcome, setOutcome] = useState("");
@@ -34,8 +36,14 @@ export default function AiAuditAdminPage() {
         }
 
         setProfile(loaded);
-        const entries = await searchAiAuditLogs(token);
-        setLogs(entries);
+        try {
+          const entries = await searchAiAuditLogs(token);
+          setLogs(entries);
+          setNotice(t("admin.aiAudit.shown", { count: String(entries.length) }));
+        } catch {
+          setNoticeError(true);
+          setNotice(t("admin.aiAudit.loadError"));
+        }
       })
       .catch(() => {
         localStorage.removeItem("we_access_token");
@@ -53,7 +61,8 @@ export default function AiAuditAdminPage() {
     }
 
     setLoading(true);
-    setError(null);
+    setNotice(null);
+    setNoticeError(false);
 
     try {
       const entries = await searchAiAuditLogs(token, {
@@ -62,14 +71,16 @@ export default function AiAuditAdminPage() {
         search: search.trim() || undefined,
       });
       setLogs(entries);
+      setNotice(t("admin.aiAudit.shown", { count: String(entries.length) }));
     } catch {
-      setError(t("admin.aiAudit.loadError"));
+      setNoticeError(true);
+      setNotice(t("admin.aiAudit.loadError"));
     } finally {
       setLoading(false);
     }
   }
 
-  if (error) {
+  if (error && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
@@ -104,91 +115,99 @@ export default function AiAuditAdminPage() {
       }}
       signOutLabel={t("common.signOut")}
     >
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">{t("dashboard.nav.aiAuditLogs")}</h1>
-          <p className="text-sm text-black/70">{t("admin.aiAudit.subtitle")}</p>
-        </div>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold">{t("dashboard.nav.aiAuditLogs")}</h1>
+        {notice ? (
+          <p role="status" className={`text-sm ${noticeError ? "text-red-700" : "text-green-800"}`}>
+            {notice}
+          </p>
+        ) : null}
 
-        <form onSubmit={handleSearch} className="rounded-lg border border-black/10 p-4 grid gap-3 md:grid-cols-4">
-          <label className="text-sm space-y-1">
-            <span>{t("admin.aiAudit.promptId")}</span>
-            <input
-              className="w-full border border-black/20 rounded px-2 py-1"
-              value={promptId}
-              onChange={(event) => setPromptId(event.target.value)}
-              placeholder="assessment-feedback"
-            />
-          </label>
-          <label className="text-sm space-y-1">
-            <span>{t("admin.aiAudit.outcome")}</span>
-            <select
-              className="w-full border border-black/20 rounded px-2 py-1"
-              value={outcome}
-              onChange={(event) => setOutcome(event.target.value)}
-            >
-              <option value="">{t("admin.aiAudit.all")}</option>
-              <option value="success">success</option>
-              <option value="blocked">blocked</option>
-              <option value="validation_failed">validation_failed</option>
-            </select>
-          </label>
-          <label className="text-sm space-y-1 md:col-span-2">
-            <span>{t("admin.aiAudit.search")}</span>
-            <input
-              className="w-full border border-black/20 rounded px-2 py-1"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={t("admin.aiAudit.searchPlaceholder")}
-            />
-          </label>
-          <button
-            type="submit"
-            className="md:col-span-4 justify-self-start rounded border border-black/20 px-3 py-1 text-sm"
-          >
-            {t("admin.aiAudit.applyFilters")}
-          </button>
-        </form>
+        <FocusCard>
+          <form onSubmit={handleSearch} className="space-y-3">
+            <label className="block space-y-1 text-sm">
+              <span>{t("admin.aiAudit.promptId")}</span>
+              <input
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                value={promptId}
+                onChange={(event) => setPromptId(event.target.value)}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{t("admin.aiAudit.outcome")}</span>
+              <select
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                value={outcome}
+                onChange={(event) => setOutcome(event.target.value)}
+              >
+                <option value="">{t("admin.aiAudit.all")}</option>
+                <option value="success">success</option>
+                <option value="blocked">blocked</option>
+                <option value="validation_failed">validation_failed</option>
+              </select>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{t("admin.aiAudit.search")}</span>
+              <input
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+            <PrimaryButton type="submit" disabled={loading}>
+              {t("admin.aiAudit.applyFilters")}
+            </PrimaryButton>
+          </form>
+        </FocusCard>
 
-        <div className="rounded-lg border border-black/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-black/5 text-left">
-              <tr>
-                <th className="p-3">{t("admin.aiAudit.col.timestamp")}</th>
-                <th className="p-3">{t("admin.aiAudit.col.caller")}</th>
-                <th className="p-3">{t("admin.aiAudit.col.prompt")}</th>
-                <th className="p-3">{t("admin.aiAudit.outcome")}</th>
-                <th className="p-3">{t("admin.aiAudit.col.provider")}</th>
-                <th className="p-3">{t("admin.aiAudit.col.blockReason")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.length === 0 ? (
-                <tr>
-                  <td className="p-3 text-black/60" colSpan={6}>
-                    {t("admin.aiAudit.noEntries")}
-                  </td>
-                </tr>
-              ) : (
-                logs.map((entry) => (
-                  <tr key={entry.id} className="border-t border-black/10 align-top">
-                    <td className="p-3 whitespace-nowrap">
+        {logs.length === 0 ? (
+          <p className="text-sm text-black/60">{t("admin.aiAudit.noEntries")}</p>
+        ) : (
+          <>
+            <ul className="space-y-3 md:hidden">
+              {logs.map((entry) => (
+                <li key={entry.id}>
+                  <FocusCard>
+                    <p className="font-medium">{entry.promptId}</p>
+                    <p className="text-sm">{entry.outcome}</p>
+                    <p className="text-sm text-black/60">{entry.providerName}</p>
+                    <p className="text-sm text-black/60">
                       {new Date(entry.createdAt).toLocaleString()}
-                    </td>
-                    <td className="p-3 font-mono text-xs">{entry.callerUserId}</td>
-                    <td className="p-3">
-                      <div>{entry.promptId}</div>
-                      <div className="text-xs text-black/60">v{entry.promptVersion}</div>
-                    </td>
-                    <td className="p-3">{entry.outcome}</td>
-                    <td className="p-3">{entry.providerName}</td>
-                    <td className="p-3 text-black/70">{entry.blockReason ?? "—"}</td>
+                    </p>
+                  </FocusCard>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto rounded-xl bg-black/[0.04] md:block">
+              <table className="w-full text-sm">
+                <thead className="text-start">
+                  <tr>
+                    <th className="p-3 text-start">{t("admin.aiAudit.col.timestamp")}</th>
+                    <th className="p-3 text-start">{t("admin.aiAudit.col.caller")}</th>
+                    <th className="p-3 text-start">{t("admin.aiAudit.col.prompt")}</th>
+                    <th className="p-3 text-start">{t("admin.aiAudit.outcome")}</th>
+                    <th className="p-3 text-start">{t("admin.aiAudit.col.provider")}</th>
+                    <th className="p-3 text-start">{t("admin.aiAudit.col.blockReason")}</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {logs.map((entry) => (
+                    <tr key={entry.id} className="border-t border-black/10 align-top">
+                      <td className="p-3 whitespace-nowrap">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-3 font-mono text-xs">{entry.callerUserId}</td>
+                      <td className="p-3">{entry.promptId}</td>
+                      <td className="p-3">{entry.outcome}</td>
+                      <td className="p-3">{entry.providerName}</td>
+                      <td className="p-3 text-black/70">{entry.blockReason ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </LearningFrame>
   );

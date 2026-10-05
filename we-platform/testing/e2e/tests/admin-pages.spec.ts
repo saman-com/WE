@@ -28,3 +28,16 @@ test("regional configuration shows the saved calendar and one save action", asyn
     await expect(page.getByLabel("Time zone")).toHaveValue("UTC");
   });
 });
+
+test("AI audit lists a real gateway entry", async ({ browser }) => {
+  await withRole(browser, "admin", async (page) => {
+    await page.goto("/admin/ai-audit");
+    await expect(page.getByRole("heading", { name: /AI audit/i })).toBeVisible();
+    await expect(page.getByLabel("Prompt id")).toHaveValue("");
+    await expect(page.getByRole("cell", { name: "assessment-feedback" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole("status")).toContainText("Showing");
+    await expect(page.getByRole("button", { name: "Apply filters" })).toBeVisible();
+  });
+});
