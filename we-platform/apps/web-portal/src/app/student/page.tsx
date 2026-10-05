@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
 import {
   FocusCard,
   LearningFrame,
@@ -121,20 +122,37 @@ export default function StudentWorkspacePage() {
       return;
     }
 
+    let cancelled = false;
     fetchProfile(token)
       .then(async (loaded) => {
+        if (cancelled) {
+          return;
+        }
         if (!isStudent(loaded)) {
           router.replace("/dashboard");
           return;
         }
         setProfile(loaded);
         const data = await fetchStudentWorkspace(token, loaded.id);
-        setWorkspace(data);
+        if (!cancelled) {
+          setWorkspace(data);
+        }
       })
-      .catch(() => {
-        localStorage.removeItem("we_access_token");
-        setError(t("common.sessionExpired"));
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem("we_access_token");
+          setError(t("common.sessionExpired"));
+          return;
+        }
+        setError(t("common.requestFailed"));
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, t]);
 
   function handleSignOut() {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
 import {
   assignSchoolAdmin,
   createFederationSchool,
@@ -56,21 +57,46 @@ export default function FederationAdminPage() {
       return;
     }
 
+    let cancelled = false;
     fetchProfile(token)
       .then(async (loaded) => {
+        if (cancelled) {
+          return;
+        }
         if (!isFederationAdmin(loaded)) {
           router.replace("/dashboard");
           return;
         }
 
         setProfile(loaded);
-        await reload(token);
+        try {
+          await reload(token);
+        } catch {
+          if (!cancelled) {
+            setError(t("common.requestFailed"));
+          }
+        }
       })
-      .catch(() => {
-        localStorage.removeItem("we_access_token");
-        setError(t("common.sessionExpired"));
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem("we_access_token");
+          setError(t("common.sessionExpired"));
+          return;
+        }
+        setError(t("common.requestFailed"));
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, t]);
 
   async function handleCreateSchool(event: React.FormEvent<HTMLFormElement>) {

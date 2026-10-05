@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
 import {
   fetchChildProgress,
   fetchLinkedChildren,
@@ -32,26 +33,46 @@ export default function ParentWorkspacePage() {
       return;
     }
 
+    let cancelled = false;
     fetchProfile(token)
       .then(async (loaded) => {
+        if (cancelled) {
+          return;
+        }
         if (!isParent(loaded)) {
           router.replace("/dashboard");
           return;
         }
         setProfile(loaded);
         const linked = await fetchLinkedChildren(token);
+        if (cancelled) {
+          return;
+        }
         setChildren(linked);
         if (linked.length > 0) {
           const firstChild = linked[0].studentUserId;
           setSelectedStudentId(firstChild);
           const childProgress = await fetchChildProgress(token, firstChild);
-          setProgress(childProgress);
+          if (!cancelled) {
+            setProgress(childProgress);
+          }
         }
       })
-      .catch(() => {
-        localStorage.removeItem("we_access_token");
-        setError(t("common.sessionExpired"));
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem("we_access_token");
+          setError(t("common.sessionExpired"));
+          return;
+        }
+        setError(t("common.requestFailed"));
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, t]);
 
   async function handleSelectChild(studentUserId: string) {

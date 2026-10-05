@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -219,7 +220,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <Link href="/" className="text-sm underline">
+        <Link href={roleHome(profile.roles)} className="text-sm underline">
           {t("dashboard.backToHome")}
         </Link>
       </div>
