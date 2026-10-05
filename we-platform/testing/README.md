@@ -39,11 +39,13 @@ This must pass twice in a row (unique titles + idempotent seed data).
 ### Run against an already-running stack
 
 ```bash
-# terminal 1: docker compose up -d && ./scripts/seed-demo.sh && pnpm dev
+# terminal 1: docker compose up -d --build && ./scripts/seed-demo.sh && pnpm dev
 pnpm e2e:test
 # or UI mode
 pnpm e2e:ui
 ```
+
+`scripts/check-stale-images.sh` (also run at the end of `scripts/check-health.sh`) warns when a running service image was built before the latest commit touching that service directory or `shared/`. Service Dockerfiles copy `shared/`, so a shared change such as paging leaves every service image stale until `docker compose up -d --build`. A stale assessment image returns a list shape the portal does not expect. The warning does not fail the health check.
 
 ### Auth / storageState
 

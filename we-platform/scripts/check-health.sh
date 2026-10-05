@@ -54,3 +54,6 @@ if (( failed != 0 )); then
 fi
 
 echo "All ${#ENDPOINTS[@]} /health endpoints healthy."
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$script_dir/check-stale-images.sh"
