@@ -5,7 +5,7 @@ import { ALGEBRA_SKILLS } from "../helpers/users";
 import { uniqueTitle } from "../helpers/unique";
 
 test.describe("d. AI feedback draft", () => {
-  test("teacher drafts/edits/finalises AI feedback; student sees after approve; admin sees audit", async ({
+  test("teacher drafts/edits/finalises AI feedback; student never sees draft before approve; admin sees audit", async ({
     browser,
   }) => {
     test.setTimeout(180_000);
@@ -45,9 +45,6 @@ test.describe("d. AI feedback draft", () => {
     await studentPage.getByRole("button", { name: "Submit assessment" }).click();
     await expect(studentPage.getByText(/Assessment submitted/i)).toBeVisible();
 
-    await studentPage.goto("/student/feedback");
-    await expect(studentPage.getByText(editedFeedback)).toHaveCount(0);
-
     await teacherPage.goto("/assessments");
     await teacherPage
       .locator("li")
@@ -82,6 +79,10 @@ test.describe("d. AI feedback draft", () => {
       await expect(feedback).toHaveValue(feedbackText);
     }
     await expect(feedbackInputs.first()).toHaveValue(editedFeedback);
+
+    // Draft exists only for the teacher until approve — student UI must not show it yet.
+    await studentPage.goto("/student/feedback");
+    await expect(studentPage.getByText(editedFeedback)).toHaveCount(0);
 
     await teacherPage.getByRole("button", { name: "Approve evidence" }).click();
     await expect(teacherPage.getByText(/Submission approved/i)).toBeVisible();
