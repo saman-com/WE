@@ -28,6 +28,7 @@ services:
       - ./databases/configuration/init.sql:/docker-entrypoint-initdb.d/16-create-we-configuration.sql:ro
       - ./databases/federation/init.sql:/docker-entrypoint-initdb.d/17-create-we-federation.sql:ro
       - ./databases/national-reporting/init.sql:/docker-entrypoint-initdb.d/18-create-we-national-reporting.sql:ro
+      - ./databases/notification/init.sql:/docker-entrypoint-initdb.d/19-create-we-notifications.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U we -d we_platform"]
       interval: 5s
