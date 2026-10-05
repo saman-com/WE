@@ -110,6 +110,24 @@ public class FederationEndpointTests : IClassFixture<FederationWebApplicationFac
         createRequest.Content = JsonContent.Create(new CreateFederationSchoolRequest("Blocked School", UniqueCode("BLK")));
         var createResponse = await _client.SendAsync(createRequest);
         Assert.Equal(HttpStatusCode.Forbidden, createResponse.StatusCode);
+
+        using var policiesGet = TestJwt.SchoolAdminAuthorized(
+            HttpMethod.Get,
+            "/api/v1/federation/policies",
+            schoolAdminId,
+            tenantId);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(policiesGet)).StatusCode);
+
+        using var policiesPut = TestJwt.SchoolAdminAuthorized(
+            HttpMethod.Put,
+            "/api/v1/federation/policies",
+            schoolAdminId,
+            tenantId);
+        policiesPut.Content = JsonContent.Create(new UpdateFederationPoliciesRequest(
+        [
+            new FederationPolicyDto("shared-curriculum", "blocked")
+        ]));
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(policiesPut)).StatusCode);
     }
 
     [Fact]

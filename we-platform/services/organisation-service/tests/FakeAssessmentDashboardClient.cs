@@ -6,6 +6,7 @@ public sealed class FakeAssessmentDashboardClient : IAssessmentDashboardClient
 {
     public List<(Guid OrganisationId, Guid ClassId)> RequestedClasses { get; } = [];
     public IReadOnlyList<AssessmentSummaryData> Summaries { get; set; } = [];
+    public Dictionary<Guid, IReadOnlyList<AssessmentSummaryData>> SummariesByClass { get; set; } = new();
 
     public Task<IReadOnlyList<AssessmentSummaryData>> ListClassAssessmentSummariesAsync(
         Guid organisationId,
@@ -14,6 +15,11 @@ public sealed class FakeAssessmentDashboardClient : IAssessmentDashboardClient
         CancellationToken cancellationToken = default)
     {
         RequestedClasses.Add((organisationId, classId));
+        if (SummariesByClass.TryGetValue(classId, out var classSummaries))
+        {
+            return Task.FromResult(classSummaries);
+        }
+
         return Task.FromResult(Summaries);
     }
 

@@ -120,6 +120,26 @@ public class LongitudinalAnalyticsEndpointTests : IClassFixture<ReportingWebAppl
     }
 
     [Fact]
+    public async Task SchoolLeader_OrganisationLongitudinalAnalysis_ReturnsEmptyCollections_WhenNoEdwFacts()
+    {
+        var leaderId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+
+        _accessChecker.AllowSchoolLeader(leaderId, organisationId);
+
+        var response = await SendAsAsync<OrganisationLongitudinalResponse>(
+            HttpMethod.Get,
+            $"/api/v1/analytics/organisations/{organisationId}/longitudinal",
+            leaderId,
+            organisationId,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(organisationId, response.OrganisationId);
+        Assert.Empty(response.StudentSummaries);
+        Assert.Empty(response.SchoolMasteryTrend);
+    }
+
+    [Fact]
     public async Task SchoolLeader_CannotViewOrganisationLongitudinalAnalysis_ForUnassignedOrganisation()
     {
         var leaderId = Guid.NewGuid().ToString();

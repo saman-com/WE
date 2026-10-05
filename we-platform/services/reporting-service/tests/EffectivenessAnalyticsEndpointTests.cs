@@ -52,33 +52,66 @@ public class EffectivenessAnalyticsEndpointTests : IClassFixture<ReportingWebApp
 
         Assert.Equal(3, response.CurriculumEffectiveness.Count);
 
+        // Seed arithmetic: mastered 6+2+3=11 over total 8+5+6=19 → school avg ≈ 0.5789
+        const int seededMastered = 6 + 2 + 3;
+        const int seededTotal = 8 + 5 + 6;
+        Assert.Equal(seededMastered, response.CurriculumEffectiveness.Sum(c => c.MasteredMicroSkills));
+        Assert.Equal(seededTotal, response.CurriculumEffectiveness.Sum(c => c.TotalMicroSkills));
+        var schoolAverage = (double)seededMastered / seededTotal;
+
         var forces = response.CurriculumEffectiveness.Single(c => c.UnitId == forcesUnitId);
         Assert.Equal("Science", forces.SubjectName);
         Assert.Equal("Forces", forces.UnitName);
-        Assert.Equal(0.75, forces.MasteryRate, precision: 2);
+        Assert.Equal(6.0 / 8.0, forces.MasteryRate, precision: 4);
         Assert.Equal(8, forces.TotalMicroSkills);
         Assert.Equal(6, forces.MasteredMicroSkills);
         Assert.False(forces.IsUnderperforming);
+        Assert.True(forces.MasteryRate >= schoolAverage);
 
         var algebra = response.CurriculumEffectiveness.Single(c => c.UnitId == algebraUnitId);
-        Assert.Equal(0.40, algebra.MasteryRate, precision: 2);
+        Assert.Equal(2.0 / 5.0, algebra.MasteryRate, precision: 4);
         Assert.True(algebra.IsUnderperforming);
+        Assert.True(algebra.MasteryRate < schoolAverage);
 
         var fractions = response.CurriculumEffectiveness.Single(c => c.UnitId == fractionsUnitId);
-        Assert.Equal(0.50, fractions.MasteryRate, precision: 2);
+        Assert.Equal(3.0 / 6.0, fractions.MasteryRate, precision: 4);
         Assert.True(fractions.IsUnderperforming);
+        Assert.True(fractions.MasteryRate < schoolAverage);
 
         Assert.Equal(2, response.InterventionEffectiveness.Count);
 
+        // GuidedPractice: 2 Closed of 3; OneToOne: 1 Closed of 2
         var guidedPractice = response.InterventionEffectiveness.Single(i => i.InterventionType == "GuidedPractice");
         Assert.Equal(3, guidedPractice.TotalCount);
         Assert.Equal(2, guidedPractice.SuccessfulCount);
-        Assert.Equal(0.67, guidedPractice.SuccessRate, precision: 2);
+        Assert.Equal(2.0 / 3.0, guidedPractice.SuccessRate, precision: 2);
 
         var oneToOne = response.InterventionEffectiveness.Single(i => i.InterventionType == "OneToOne");
         Assert.Equal(2, oneToOne.TotalCount);
         Assert.Equal(1, oneToOne.SuccessfulCount);
-        Assert.Equal(0.50, oneToOne.SuccessRate, precision: 2);
+        Assert.Equal(1.0 / 2.0, oneToOne.SuccessRate, precision: 2);
+        Assert.Equal(5, response.InterventionEffectiveness.Sum(i => i.TotalCount));
+        Assert.Equal(3, response.InterventionEffectiveness.Sum(i => i.SuccessfulCount));
+    }
+
+    [Fact]
+    public async Task SchoolLeader_EffectivenessAnalysis_ReturnsEmptyCollections_WhenNoEdwFacts()
+    {
+        var leaderId = Guid.NewGuid().ToString();
+        var organisationId = Guid.CreateVersion7();
+
+        _accessChecker.AllowSchoolLeader(leaderId, organisationId);
+
+        var response = await SendAsAsync<OrganisationEffectivenessResponse>(
+            HttpMethod.Get,
+            $"/api/v1/analytics/organisations/{organisationId}/effectiveness",
+            leaderId,
+            organisationId,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(organisationId, response.OrganisationId);
+        Assert.Empty(response.CurriculumEffectiveness);
+        Assert.Empty(response.InterventionEffectiveness);
     }
 
     [Fact]

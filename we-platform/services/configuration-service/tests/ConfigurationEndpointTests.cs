@@ -80,6 +80,47 @@ public class ConfigurationEndpointTests : IClassFixture<ConfigurationWebApplicat
         Assert.Equal("en-NZ", config.LocaleSettings.LanguageCode);
     }
 
+    [Fact]
+    public async Task SchoolAdmin_ConfiguresRegionalPolicies_ForOwnTenant()
+    {
+        var tenantId = Guid.CreateVersion7();
+        var schoolAdminId = Guid.NewGuid().ToString();
+        var requestBody = SampleRequest() with
+        {
+            LocaleSettings = new LocaleSettingsDto("ar-AE", "AE", "dd/MM/yyyy", "Asia/Dubai"),
+            GradingScale = new GradingScaleDto(
+                "Percentage",
+                [new GradingLevelDto("Pass", 50m, 100m), new GradingLevelDto("Fail", 0m, 49.99m)])
+        };
+
+        using var updateRequest = TestJwt.Authorized(
+            HttpMethod.Put,
+            "/api/v1/regional-configuration",
+            schoolAdminId,
+            tenantId,
+            TestJwt.AdminRole);
+        updateRequest.Content = JsonContent.Create(requestBody);
+        var updateResponse = await _client.SendAsync(updateRequest);
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        using var readRequest = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/regional-configuration",
+            schoolAdminId,
+            tenantId,
+            TestJwt.AdminRole);
+        var readResponse = await _client.SendAsync(readRequest);
+        readResponse.EnsureSuccessStatusCode();
+
+        var config = await readResponse.Content.ReadFromJsonAsync<RegionalConfigurationResponse>();
+        Assert.NotNull(config);
+        Assert.Equal(tenantId, config.TenantId);
+        Assert.Equal("Percentage", config.GradingScale.Name);
+        Assert.Equal("ar-AE", config.LocaleSettings.LanguageCode);
+        Assert.Equal("Asia/Dubai", config.LocaleSettings.TimeZone);
+        Assert.Equal(schoolAdminId, config.UpdatedByUserId);
+    }
+
     private static UpdateRegionalConfigurationRequest SampleRequest() =>
         new(
             new AcademicCalendarDto(
