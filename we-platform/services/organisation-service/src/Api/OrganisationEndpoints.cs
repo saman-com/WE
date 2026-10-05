@@ -100,7 +100,9 @@ public static class OrganisationEndpoints
             return Results.BadRequest();
         }
 
-        if (await db.Organisations.AnyAsync(org => org.Code == request.Code))
+        var code = request.Code.Trim();
+        // Org codes are globally unique; ignore tenant filter (create often has no tenant yet).
+        if (await db.Organisations.IgnoreQueryFilters().AnyAsync(org => org.Code == code))
         {
             return Results.Conflict();
         }
@@ -109,7 +111,7 @@ public static class OrganisationEndpoints
         {
             Id = Guid.CreateVersion7(),
             Name = request.Name.Trim(),
-            Code = request.Code.Trim(),
+            Code = code,
             CreatedAt = DateTimeOffset.UtcNow
         };
         organisation.TenantId = organisation.Id;
@@ -180,13 +182,15 @@ public static class OrganisationEndpoints
             return Results.BadRequest();
         }
 
-        if (await db.Organisations.AnyAsync(org => org.Code == request.Code && org.Id != organisationId))
+        var code = request.Code.Trim();
+        if (await db.Organisations.IgnoreQueryFilters()
+                .AnyAsync(org => org.Code == code && org.Id != organisationId))
         {
             return Results.Conflict();
         }
 
         organisation.Name = request.Name.Trim();
-        organisation.Code = request.Code.Trim();
+        organisation.Code = code;
         await db.SaveChangesAsync();
         return Results.Ok(ToOrganisation(organisation));
     }
@@ -268,12 +272,19 @@ public static class OrganisationEndpoints
             return Results.BadRequest();
         }
 
+        var name = request.Name.Trim();
+        if (await db.YearLevels.AnyAsync(level =>
+                level.OrganisationId == organisationId && level.Name == name))
+        {
+            return Results.Conflict();
+        }
+
         var yearLevel = new YearLevel
         {
             Id = Guid.CreateVersion7(),
             TenantId = organisationId,
             OrganisationId = organisationId,
-            Name = request.Name.Trim(),
+            Name = name,
             SortOrder = request.SortOrder
         };
 
@@ -430,6 +441,12 @@ public static class OrganisationEndpoints
             return Results.BadRequest();
         }
 
+        var code = request.Code.Trim();
+        if (await db.Classes.AnyAsync(c => c.OrganisationId == organisationId && c.Code == code))
+        {
+            return Results.Conflict();
+        }
+
         var schoolClass = new SchoolClass
         {
             Id = Guid.CreateVersion7(),
@@ -437,7 +454,7 @@ public static class OrganisationEndpoints
             OrganisationId = organisationId,
             YearLevelId = yearLevel.Id,
             Name = request.Name.Trim(),
-            Code = request.Code.Trim()
+            Code = code
         };
 
         db.Classes.Add(schoolClass);
