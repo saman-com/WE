@@ -1023,6 +1023,16 @@
     {
       "service": "identity-service",
       "method": "GET",
+      "route": "/api/v1/users",
+      "ids": [],
+      "kind": "exempt",
+      "reason": "caller-tenant-directory",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": null
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
       "route": "/health",
       "ids": [],
       "kind": "exempt",
