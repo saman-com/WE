@@ -204,6 +204,35 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
     }
 
     [Fact]
+    public async Task CreateUser_FederationAdmin_JoinsTheCallerTenantFederation()
+    {
+        var adminId = await ResolveAdminUserIdAsync();
+        var email = $"fed.{Guid.NewGuid():N}@school.local";
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/users",
+            adminId,
+            DefaultTenant.Id,
+            PlatformRoles.SystemAdministrator);
+        request.Content = JsonContent.Create(new CreateUserRequest(
+            email,
+            "Password123!",
+            "New Federation Admin",
+            PlatformRoles.FederationAdmin));
+
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, "Password123!"));
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var body = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(body);
+        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(body.AccessToken);
+        var federationClaim = jwt.Claims.Single(claim => claim.Type == FederationClaimTypes.FederationId);
+        Assert.Equal(IdentityDataSeeder.DemoFederationId, federationClaim.Value);
+    }
+
+    [Fact]
     public async Task CreateUser_ForTeacher_IsForbidden()
     {
         using var request = TestJwt.Authorized(

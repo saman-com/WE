@@ -185,8 +185,19 @@ app.MapPost("/api/v1/users", [Authorize(Roles = PlatformRoles.SystemAdministrato
         Email = email,
         DisplayName = name,
         EmailConfirmed = true,
-        TenantId = tenantContext.TenantId.Value
+        TenantId = tenantContext.TenantId.Value,
+        FederationId = role == PlatformRoles.FederationAdmin
+            ? await userManager.Users
+                .Where(existing => existing.TenantId == tenantContext.TenantId && existing.FederationId != null)
+                .Select(existing => existing.FederationId)
+                .FirstOrDefaultAsync()
+            : null
     };
+
+    if (role == PlatformRoles.FederationAdmin && user.FederationId is null)
+    {
+        return Results.Json(new ApiErrorResponse("users.invalid"), statusCode: StatusCodes.Status400BadRequest);
+    }
 
     var created = await userManager.CreateAsync(user, request.Password);
     if (!created.Succeeded)
