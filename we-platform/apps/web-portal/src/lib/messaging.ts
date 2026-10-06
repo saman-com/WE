@@ -1,3 +1,5 @@
+import { readApiError } from "@/lib/api-error";
+
 const communicationApiUrl =
   process.env.NEXT_PUBLIC_COMMUNICATION_API_URL ?? "http://localhost:8094";
 
@@ -46,7 +48,7 @@ async function messagingRequest<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Messaging request failed (${response.status}).`);
+    throw await readApiError(response, "messages.send_failed");
   }
 
   return response.json() as Promise<T>;

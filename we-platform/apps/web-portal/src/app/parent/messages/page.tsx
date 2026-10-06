@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
 import {
   fetchConversation,
   fetchMessageInbox,
@@ -21,7 +22,7 @@ function isParent(profile: UserProfile): boolean {
 
 export default function ParentMessagesPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
@@ -31,6 +32,7 @@ export default function ParentMessagesPage() {
   const [newTeacherId, setNewTeacherId] = useState("");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -97,6 +99,7 @@ export default function ParentMessagesPage() {
     try {
       await sendMessage(token, studentUserId, recipientUserId, draft.trim());
       setDraft("");
+      setFormError(null);
       const inbox = await fetchMessageInbox(token);
       setThreads(inbox.threads);
       const thread =
@@ -107,8 +110,12 @@ export default function ParentMessagesPage() {
       if (thread) {
         await openThread(thread);
       }
-    } catch {
-      setError(t("parent.messages.sendError"));
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "messages.invalid_teacher") {
+        setFormError(translateError(err.code));
+        return;
+      }
+      setFormError(t("parent.messages.sendError"));
     }
   }
 
@@ -201,6 +208,7 @@ export default function ParentMessagesPage() {
               ? t("parent.messages.reply")
               : t("parent.messages.newMessage")}
           </h2>
+          {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
           {!selectedThread ? (
             <>
               <label className="block text-sm">

@@ -69,7 +69,9 @@ public static class CommunicationEndpoints
 
             if (!await accessChecker.TeacherCanViewStudentAsync(teacherUserId, studentUserId, bearerToken))
             {
-                return Results.Forbid();
+                return Results.Json(
+                    new ApiErrorResponse("messages.invalid_teacher"),
+                    statusCode: StatusCodes.Status400BadRequest);
             }
         }
         else if (principal.IsTeacher())

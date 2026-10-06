@@ -1,5 +1,7 @@
 namespace CommunicationService.Application;
 
+public sealed record ApiErrorResponse(string Code);
+
 public sealed record SendMessageRequest(
     string StudentUserId,
     string RecipientUserId,

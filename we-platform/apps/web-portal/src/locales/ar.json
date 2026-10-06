@@ -86,6 +86,7 @@
   "errors.auth.invalid_credentials": "فشل تسجيل الدخول. تحقق من بريدك وكلمة المرور.",
   "errors.auth.unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
   "errors.federation.duplicate_school_code": "رمز المدرسة هذا مستخدم بالفعل.",
+  "errors.messages.invalid_teacher": "هذا المعلم غير صالح.",
   "errors.validation.invalid_request": "فشل الطلب.",
   "errors.unknown": "حدث خطأ ما.",
   "errors.users.email_taken": "هذا البريد مستخدم بالفعل.",

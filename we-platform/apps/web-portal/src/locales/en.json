@@ -86,6 +86,7 @@
   "errors.auth.invalid_credentials": "Login failed. Check your email and password.",
   "errors.auth.unauthorized": "You are not authorized to perform this action.",
   "errors.federation.duplicate_school_code": "That school code is already in use.",
+  "errors.messages.invalid_teacher": "That teacher is not valid.",
   "errors.validation.invalid_request": "Request failed.",
   "errors.unknown": "Something went wrong.",
   "errors.users.email_taken": "That email is already in use.",

@@ -242,6 +242,34 @@ public class CommunicationEndpointTests : IClassFixture<CommunicationWebApplicat
     }
 
     [Fact]
+    public async Task Parent_SendToUnknownTeacher_ReturnsInvalidTeacher()
+    {
+        var parentId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        _accessChecker.AllowParent(parentId, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/messages",
+            parentId,
+            TestJwt.ParentRole);
+        request.Content = JsonContent.Create(
+            new SendMessageRequest(studentId, "not-a-teacher", "Please look at this."));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("messages.invalid_teacher", error?.Code);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CommunicationDbContext>();
+        Assert.DoesNotContain(
+            db.Messages.IgnoreQueryFilters(),
+            message => message.Body == "Please look at this.");
+    }
+
+    [Fact]
     public async Task MessageHistory_IsPersistedAndAuditable()
     {
         var parentId = Guid.NewGuid().ToString();
