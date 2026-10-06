@@ -96,6 +96,7 @@
   "errors.organisation.duplicate_class_code": "That class code is already in use.",
   "errors.organisation.duplicate_year_name": "That year level already exists.",
   "errors.organisation.year_name_too_short": "A year level name needs at least 2 characters.",
+  "errors.intervention.text_contains_id": "Intervention text cannot include an id. Use the skill name.",
   "errors.unknown": "Something went wrong.",
   "errors.users.cannot_deactivate_self": "You cannot deactivate your own account.",
   "errors.users.cannot_remove_own_admin": "You cannot remove your own administrator role.",

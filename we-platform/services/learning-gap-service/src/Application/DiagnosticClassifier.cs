@@ -16,7 +16,7 @@ public static class DiagnosticClassifier
     {
         var status = ClassifyMark(result.Mark);
         var reason =
-            $"Evidence {evidence.EvidenceId}: micro-skill {result.MicroSkillId} marked {result.Mark}/5. " +
+            $"Marked {result.Mark}/5. " +
             $"Teacher feedback: \"{result.Feedback}\". Classification: {status}.";
 
         return new MicroSkillDiagnosticInput(

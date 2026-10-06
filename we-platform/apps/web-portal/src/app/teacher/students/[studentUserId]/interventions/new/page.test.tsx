@@ -120,4 +120,43 @@ describe("new intervention page", () => {
     );
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });
+
+  it("rewrites a stored gap explanation to the skill name and keeps ids out of the saved text", async () => {
+    const evidenceId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    fetchStudentGaps.mockResolvedValue({
+      studentUserId: studentId,
+      gaps: [
+        {
+          id: gapId,
+          evidenceId,
+          assessmentId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          microSkillId: skillId,
+          learningObjectiveId: null,
+          expectedMastery: "Mastered",
+          actualMastery: "Developing",
+          mark: 2,
+          severity: "Medium",
+          urgency: "Medium",
+          explanation:
+            `Micro-skill ${skillId} has a medium-severity gap. ` +
+            `Based on diagnostic: Evidence ${evidenceId}`,
+          createdAt: "2026-10-01T00:00:00Z",
+        },
+      ],
+    });
+
+    const { container } = render(
+      <I18nProvider>
+        <CreateInterventionPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText(/Micro-skill: Read an equation/)).toBeInTheDocument();
+    expect(container.textContent ?? "").toContain("Read an equation");
+    expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+    const planned = screen.getByLabelText("Planned actions") as HTMLTextAreaElement;
+    expect(planned.value).toContain("Read an equation");
+    expect(planned.value).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+    expect(planned.value).not.toContain("Unknown skill");
+  });
 });

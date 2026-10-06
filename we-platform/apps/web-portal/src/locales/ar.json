@@ -96,6 +96,7 @@
   "errors.organisation.duplicate_class_code": "رمز الصف هذا مستخدم بالفعل.",
   "errors.organisation.duplicate_year_name": "مستوى السنة هذا موجود بالفعل.",
   "errors.organisation.year_name_too_short": "يحتاج اسم مستوى السنة إلى حرفين على الأقل.",
+  "errors.intervention.text_contains_id": "لا يمكن أن يتضمن نص التدخل معرّفًا. استخدم اسم المهارة.",
   "errors.unknown": "حدث خطأ ما.",
   "errors.users.cannot_deactivate_self": "لا يمكنك إيقاف حسابك.",
   "errors.users.cannot_remove_own_admin": "لا يمكنك إزالة دور المسؤول من حسابك.",

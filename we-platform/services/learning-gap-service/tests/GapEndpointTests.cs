@@ -45,7 +45,8 @@ public class GapEndpointTests : IClassFixture<GapWebApplicationFactory>
         Assert.Equal("High", gap.Urgency);
         Assert.Equal("Struggling", gap.ActualMastery);
         Assert.Contains("Expected mastery: Mastered", gap.Explanation);
-        Assert.Contains(evidence.EvidenceId.ToString(), gap.Explanation);
+        Assert.DoesNotContain(evidence.EvidenceId.ToString(), gap.Explanation);
+        Assert.DoesNotContain(evidence.MicroSkillMarks[1].MicroSkillId.ToString(), gap.Explanation);
     }
 
     [Fact]

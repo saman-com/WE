@@ -39,7 +39,9 @@ public class GapCalculationEngineTests
         Assert.Equal(expectedUrgency, gap.Urgency);
         Assert.Contains("Expected mastery: Mastered", gap.Explanation);
         Assert.Contains(status, gap.Explanation);
-        Assert.Contains(microSkillId.ToString(), gap.Explanation);
+        Assert.Contains("This micro-skill", gap.Explanation);
+        Assert.DoesNotContain(microSkillId.ToString(), gap.Explanation);
+        Assert.DoesNotContain(diagnostic.EvidenceId.ToString(), gap.Explanation);
     }
 
     [Fact]
@@ -72,6 +74,6 @@ public class GapCalculationEngineTests
             skillId,
             status,
             mark,
-            $"Evidence {evidenceId}: micro-skill {skillId} marked {mark}/5. Classification: {status}.");
+            $"Marked {mark}/5. Classification: {status}.");
     }
 }

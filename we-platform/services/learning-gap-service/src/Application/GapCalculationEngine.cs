@@ -16,7 +16,7 @@ public sealed class GapCalculationEngine : IGapCalculationEngine
         var explanation =
             $"Expected mastery: {ExpectedMastery.Mastered}. " +
             $"Demonstrated: {diagnostic.Status} (mark {diagnostic.Mark}/5). " +
-            $"Micro-skill {diagnostic.MicroSkillId} has a {severity.ToLowerInvariant()}-severity gap. " +
+            $"This micro-skill has a {severity.ToLowerInvariant()}-severity gap. " +
             $"Based on diagnostic: {diagnostic.DiagnosticReason}";
 
         return new CalculatedLearningGap(

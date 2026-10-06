@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
+import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import { fetchStudentGaps, type LearningGap } from "@/lib/gaps";
 import {
   buildSuggestedInterventionActions,
   createIntervention,
+  withoutStoredIds,
   type GapInterventionContext,
 } from "@/lib/interventions";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -99,7 +100,6 @@ export default function CreateInterventionPage() {
           searchParams,
           studentUserId
         );
-        setGapContext(resolvedContext);
         if (resolvedContext) {
           setLearningGapId(resolvedContext.learningGapId);
           const skillName = learningLabel(
@@ -107,15 +107,20 @@ export default function CreateInterventionPage() {
             resolvedContext.microSkillId,
             t("assessments.review.unknownSkill")
           );
+          const namesById = { [resolvedContext.microSkillId]: skillName };
+          const visibleExplanation = withoutStoredIds(resolvedContext.explanation, namesById);
+          setGapContext({ ...resolvedContext, explanation: visibleExplanation });
           setPlannedActions(
-            replaceVisibleIds(
-              buildSuggestedInterventionActions(resolvedContext, skillName),
-              directory,
-              names,
-              t("organisation.manage.unknownPerson"),
-              t("assessments.review.unknownSkill")
+            withoutStoredIds(
+              buildSuggestedInterventionActions(
+                { ...resolvedContext, explanation: visibleExplanation },
+                skillName
+              ),
+              namesById
             )
           );
+        } else {
+          setGapContext(null);
         }
       })
       .catch(() => {
@@ -134,12 +139,25 @@ export default function CreateInterventionPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const namesById = gapContext
+        ? {
+            [gapContext.microSkillId]: learningLabel(
+              learningNames,
+              gapContext.microSkillId,
+              t("assessments.review.unknownSkill")
+            ),
+          }
+        : {};
+      const actions = withoutStoredIds(plannedActions.trim(), namesById);
+      const cleanedNotes = notes.trim()
+        ? withoutStoredIds(notes.trim(), namesById)
+        : undefined;
       const created = await createIntervention(token, {
         organisationId,
         studentUserId,
         learningGapId,
-        plannedActions: plannedActions.trim(),
-        notes: notes.trim() || undefined,
+        plannedActions: actions,
+        notes: cleanedNotes,
       });
       router.push(`/teacher/interventions/${created.id}`);
     } catch {

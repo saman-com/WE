@@ -49,6 +49,35 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
     }
 
     [Fact]
+    public async Task CreateIntervention_RejectsStoredIdsInTheText()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        _accessChecker.AllowTeacher(teacherId, studentId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/interventions",
+            teacherId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateInterventionRequest(
+            DefaultTenant.Id,
+            studentId,
+            Guid.CreateVersion7(),
+            "Address the gap in micro-skill 00000000-0000-4000-8000-000000001004.",
+            "Evidence 01a10b8d-70ab-7d9c-aebc-de762c4d9f47",
+            null,
+            null,
+            null));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+        Assert.Equal("intervention.text_contains_id", body?["code"]);
+    }
+
+    [Fact]
     public async Task Teacher_ListsInterventionsForStudent()
     {
         var teacherId = Guid.NewGuid().ToString();

@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using InterventionService.Application;
 using InterventionService.Domain;
 using InterventionService.Infrastructure.Data;
@@ -51,6 +52,11 @@ public static class InterventionEndpoints
             || string.IsNullOrWhiteSpace(request.PlannedActions))
         {
             return Results.BadRequest();
+        }
+
+        if (ContainsStoredId(request.PlannedActions) || ContainsStoredId(request.Notes))
+        {
+            return Results.BadRequest(new { code = "intervention.text_contains_id" });
         }
 
         var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
@@ -328,6 +334,11 @@ public static class InterventionEndpoints
 
         if (request.Notes is not null)
         {
+            if (ContainsStoredId(request.Notes))
+            {
+                return Results.BadRequest(new { code = "intervention.text_contains_id" });
+            }
+
             intervention.Notes = request.Notes.Trim();
         }
 
@@ -338,6 +349,11 @@ public static class InterventionEndpoints
 
         if (request.PlannedActions is not null)
         {
+            if (ContainsStoredId(request.PlannedActions))
+            {
+                return Results.BadRequest(new { code = "intervention.text_contains_id" });
+            }
+
             intervention.PlannedActions = request.PlannedActions.Trim();
         }
 
@@ -446,6 +462,13 @@ public static class InterventionEndpoints
             intervention.Status,
             intervention.PlannedStartAt,
             intervention.PlannedEndAt);
+
+    private static readonly Regex StoredId = new(
+        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static bool ContainsStoredId(string? text) =>
+        !string.IsNullOrEmpty(text) && StoredId.IsMatch(text);
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

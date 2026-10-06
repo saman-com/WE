@@ -211,6 +211,7 @@ describe("API error code translation", () => {
       "errors.auth.invalid_credentials",
       "errors.auth.unauthorized",
       "errors.federation.duplicate_school_code",
+      "errors.intervention.text_contains_id",
       "errors.messages.invalid_teacher",
       "errors.organisation.duplicate_class_code",
       "errors.organisation.duplicate_year_name",

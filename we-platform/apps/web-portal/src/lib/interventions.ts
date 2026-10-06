@@ -55,6 +55,28 @@ export type CreateInterventionFromGapParams = {
   returnTo?: string;
 };
 
+const storedId = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+export function withoutStoredIds(
+  text: string,
+  namesById: Record<string, string>
+): string {
+  let named = text;
+  for (const [id, name] of Object.entries(namesById)) {
+    if (id && name) {
+      named = named.replaceAll(id, name);
+    }
+  }
+  return named
+    .replace(/Evidence\s+[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")
+    .replace(storedId, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+([.,:;])/g, "$1")
+    .trim();
+}
+
 export function buildSuggestedInterventionActions(
   context: GapInterventionContext,
   skillName?: string
