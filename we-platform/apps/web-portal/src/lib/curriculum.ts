@@ -115,6 +115,20 @@ export type CurriculumTree = {
   parentCurriculumId: string | null;
 };
 
+export function collectMicroSkillNames(tree: CurriculumTree): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const subject of tree.subjects ?? []) {
+    for (const unit of subject.units ?? []) {
+      for (const objective of unit.learningObjectives ?? []) {
+        for (const skill of objective.microSkills ?? []) {
+          names[skill.id] = skill.name;
+        }
+      }
+    }
+  }
+  return names;
+}
+
 async function curriculumRequest<T>(
   token: string,
   path: string,

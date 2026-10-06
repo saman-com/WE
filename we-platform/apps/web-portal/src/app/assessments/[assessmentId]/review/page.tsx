@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import {
   getAssessment,
   listSubmissions,
@@ -20,6 +20,7 @@ import {
   type Evidence,
 } from "@/lib/evidence";
 import { fetchAllPages } from "@/lib/paging";
+import { collectMicroSkillNames, getCurriculumTree, listCurricula } from "@/lib/curriculum";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function canReview(profile: UserProfile): boolean {
@@ -48,6 +49,8 @@ export default function AssessmentReviewPage() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [submissions, setSubmissions] = useState<AssessmentSubmission[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [skillNames, setSkillNames] = useState<Record<string, string>>({});
   const [drafts, setDrafts] = useState<Record<string, Record<string, MarkDraft>>>(
     {}
   );
@@ -69,12 +72,25 @@ export default function AssessmentReviewPage() {
         setProfile(loaded);
         const loadedAssessment = await getAssessment(stored, assessmentId);
         setAssessment(loadedAssessment);
-        const [loadedSubmissions, loadedEvidence] = await Promise.all([
+        const [loadedSubmissions, loadedEvidence, directory, curricula] = await Promise.all([
           listSubmissions(stored, assessmentId),
           fetchAllPages((cursor) =>
             listEvidenceForAssessment(stored, assessmentId, { cursor })
           ),
+          listDirectoryUsers(stored).catch(() => [] as DirectoryUser[]),
+          listCurricula(stored, loadedAssessment.organisationId).catch(() => []),
         ]);
+        const trees = await Promise.all(
+          curricula.map((curriculum) => getCurriculumTree(stored, curriculum.id).catch(() => null))
+        );
+        const names: Record<string, string> = {};
+        for (const tree of trees) {
+          if (tree) {
+            Object.assign(names, collectMicroSkillNames(tree));
+          }
+        }
+        setPeople(directory);
+        setSkillNames(names);
         setSubmissions(loadedSubmissions);
         setEvidence(loadedEvidence);
 
@@ -106,6 +122,10 @@ export default function AssessmentReviewPage() {
     ]);
     setSubmissions(loadedSubmissions);
     setEvidence(loadedEvidence);
+  }
+
+  function skillLabel(microSkillId: string): string {
+    return skillNames[microSkillId] ?? t("assessments.review.unknownSkill");
   }
 
   function evidenceFor(submissionId: string): Evidence | undefined {
@@ -278,10 +298,19 @@ export default function AssessmentReviewPage() {
                 <li key={submission.id} className="rounded-lg border border-black/10 p-6 space-y-4">
                   <div className="flex items-center justify-between gap-4">
                     <p className="font-medium">
-                      {t("assessments.review.studentLabel", { id: submission.studentUserId })}
+                      {t("assessments.review.studentLabel")}{" "}
+                      <DataText>
+                        {personName(
+                          people,
+                          submission.studentUserId,
+                          t("organisation.manage.unknownPerson")
+                        )}
+                      </DataText>
                     </p>
-                    <span className="text-xs uppercase tracking-wide">
-                      {approved ? t("assessments.review.approvedBadge") : submission.status}
+                    <span className="text-xs tracking-wide">
+                      {approved
+                        ? t("assessments.review.approvedBadge")
+                        : t(`assessments.review.status.${submission.status}`)}
                     </span>
                   </div>
                   <p className="text-sm text-black/70">
@@ -308,7 +337,8 @@ export default function AssessmentReviewPage() {
                     <ul className="text-sm space-y-2">
                       {approved.microSkillMarks.map((mark) => (
                         <li key={mark.microSkillId}>
-                          {mark.microSkillId}: {mark.mark} — <DataText>{mark.feedback}</DataText>
+                          <DataText>{skillLabel(mark.microSkillId)}</DataText>: {mark.mark} —{" "}
+                          <DataText>{mark.feedback}</DataText>
                         </li>
                       ))}
                     </ul>
@@ -316,7 +346,9 @@ export default function AssessmentReviewPage() {
                     <div className="space-y-3">
                       {assessment.microSkillIds.map((microSkillId) => (
                         <div key={microSkillId} className="border rounded p-3 space-y-2">
-                          <p className="text-sm font-medium">{microSkillId}</p>
+                          <p className="text-sm font-medium">
+                            <DataText>{skillLabel(microSkillId)}</DataText>
+                          </p>
                           <label className="block space-y-1">
                             <span className="text-sm">{t("assessments.review.mark")}</span>
                             <input
