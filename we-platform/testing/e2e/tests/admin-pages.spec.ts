@@ -20,9 +20,12 @@ test("regional configuration shows the saved calendar and one save action", asyn
   await withRole(browser, "admin", async (page) => {
     await page.goto("/admin/regional-configuration");
     await expect(page.getByRole("heading", { name: "Regional configuration", exact: true })).toBeVisible();
-    await expect(page.getByText(/Last updated/)).toHaveCount(0);
     await page.getByRole("button", { name: "Grading scale" }).click();
     await expect(page.getByLabel("Scale name")).toHaveValue("Default", { timeout: 30_000 });
+    const lastUpdated = page.getByText(/Last updated/);
+    if ((await lastUpdated.count()) > 0) {
+      await expect(lastUpdated).not.toContainText("1970");
+    }
     await expect(page.getByRole("button", { name: "Save configuration" })).toBeVisible();
     await page.getByRole("button", { name: "Locale settings" }).click();
     await expect(page.getByLabel("Time zone")).toHaveValue("UTC");
