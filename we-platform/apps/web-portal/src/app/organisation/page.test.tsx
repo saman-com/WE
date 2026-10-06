@@ -87,7 +87,9 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
-    expect(await screen.findByRole("option", { name: "Demo school" })).toBeInTheDocument();
+    const school = await screen.findByRole("option", { name: "Demo school" });
+    expect(school).toHaveAttribute("dir", "auto");
+    expect(school.querySelector("bdi")).toBeNull();
     expect(await screen.findByText("Year 11")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Add a year level" })).toBeInTheDocument();
     expect(screen.getByLabelText("Sort order")).toHaveValue(12);

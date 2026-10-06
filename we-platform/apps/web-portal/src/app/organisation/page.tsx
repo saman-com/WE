@@ -228,8 +228,8 @@ export default function OrganisationSetupPage() {
             onChange={(event) => setOrganisationId(event.target.value)}
           >
             {schools.map((school) => (
-              <option key={school.id} value={school.id}>
-                <DataText>{school.name}</DataText>
+              <option key={school.id} value={school.id} dir="auto">
+                {school.name}
               </option>
             ))}
           </select>
@@ -461,8 +461,8 @@ export default function OrganisationSetupPage() {
                       onChange={(event) => setClassYearId(event.target.value)}
                     >
                       {years.map((year) => (
-                        <option key={year.id} value={year.id}>
-                          <DataText>{year.name}</DataText>
+                        <option key={year.id} value={year.id} dir="auto">
+                          {year.name}
                         </option>
                       ))}
                     </select>

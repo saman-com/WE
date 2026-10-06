@@ -103,7 +103,9 @@ describe("curriculum tree", () => {
     );
 
     expect(await screen.findByRole("button", { name: /Mathematics \(MATH\)/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Year 11 Mathematics" })).toBeInTheDocument();
+    const curriculum = screen.getByRole("option", { name: "Year 11 Mathematics" });
+    expect(curriculum).toHaveAttribute("dir", "auto");
+    expect(curriculum.querySelector("bdi")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Add" }).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Subject")).not.toBeInTheDocument();
   });

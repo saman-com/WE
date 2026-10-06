@@ -335,8 +335,8 @@ export default function LeadershipDashboardPage() {
               onChange={(event) => handleSelectOrganisation(event.target.value)}
             >
               {organisations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  <DataText>{org.name}</DataText>
+                <option key={org.id} value={org.id} dir="auto">
+                  {org.name}
                 </option>
               ))}
             </select>
@@ -578,7 +578,7 @@ export default function LeadershipDashboardPage() {
               >
                 <option value="">{t("leadership.monitoring.allYearLevels")}</option>
                 {dashboard.yearLevels.map((yearLevel) => (
-                  <option key={yearLevel.yearLevelId} value={yearLevel.yearLevelId}>
+                  <option key={yearLevel.yearLevelId} value={yearLevel.yearLevelId} dir="auto">
                     {yearLevel.yearLevelName}
                   </option>
                 ))}
@@ -605,8 +605,8 @@ export default function LeadershipDashboardPage() {
                       schoolClass.yearLevelId === interventionFilters.yearLevelId
                   )
                   .map((schoolClass) => (
-                    <option key={schoolClass.classId} value={schoolClass.classId}>
-                      <DataText>{`${schoolClass.className} (${schoolClass.yearLevelName})`}</DataText>
+                    <option key={schoolClass.classId} value={schoolClass.classId} dir="auto">
+                      {`${schoolClass.className} (${schoolClass.yearLevelName})`}
                     </option>
                   ))}
               </select>

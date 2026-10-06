@@ -241,8 +241,8 @@ export default function StudentAssessmentsPage() {
               onChange={(event) => setSelectedClassId(event.target.value)}
             >
               {classScopes.map((scope) => (
-                <option key={scope.schoolClass.id} value={scope.schoolClass.id}>
-                  <DataText>{`${scope.schoolClass.name} (${scope.schoolClass.code})`}</DataText>
+                <option key={scope.schoolClass.id} value={scope.schoolClass.id} dir="auto">
+                  {`${scope.schoolClass.name} (${scope.schoolClass.code})`}
                 </option>
               ))}
             </select>

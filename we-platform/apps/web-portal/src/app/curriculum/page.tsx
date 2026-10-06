@@ -288,8 +288,8 @@ export default function CurriculumPage() {
                   onChange={(event) => setOrganisationId(event.target.value)}
                 >
                   {organisations.map((organisation) => (
-                    <option key={organisation.id} value={organisation.id}>
-                      <DataText>{organisation.name}</DataText>
+                    <option key={organisation.id} value={organisation.id} dir="auto">
+                      {organisation.name}
                     </option>
                   ))}
                 </select>
@@ -319,8 +319,8 @@ export default function CurriculumPage() {
                   }}
                 >
                   {curricula.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      <DataText>{item.name}</DataText>
+                    <option key={item.id} value={item.id} dir="auto">
+                      {item.name}
                     </option>
                   ))}
                 </select>
@@ -688,8 +688,8 @@ export default function CurriculumPage() {
                 >
                   <option value="">{t("curriculum.label.parent")}</option>
                   {curricula.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      <DataText>{item.name}</DataText>
+                    <option key={item.id} value={item.id} dir="auto">
+                      {item.name}
                     </option>
                   ))}
                 </select>
@@ -822,7 +822,7 @@ function NodeSelect({
         onChange={(event) => onChange(event.target.value)}
       >
         {options.map((option) => (
-          <option key={option.id} value={option.id}>
+          <option key={option.id} value={option.id} dir="auto">
             {option.label}
           </option>
         ))}

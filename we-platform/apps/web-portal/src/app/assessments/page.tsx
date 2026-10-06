@@ -292,7 +292,7 @@ export default function AssessmentsPage() {
               onChange={(event) => setOrganisationId(event.target.value)}
             >
               {organisations.map((organisation) => (
-                <option key={organisation.id} value={organisation.id}>
+                <option key={organisation.id} value={organisation.id} dir="auto">
                   {organisation.name}
                 </option>
               ))}
@@ -307,7 +307,7 @@ export default function AssessmentsPage() {
               onChange={(event) => setSelectedClassId(event.target.value)}
             >
               {classes.map((schoolClass) => (
-                <option key={schoolClass.id} value={schoolClass.id}>
+                <option key={schoolClass.id} value={schoolClass.id} dir="auto">
                   {schoolClass.name} ({schoolClass.code})
                 </option>
               ))}
@@ -350,7 +350,7 @@ export default function AssessmentsPage() {
               }}
             >
               {curricula.map((curriculum) => (
-                <option key={curriculum.id} value={curriculum.id}>
+                <option key={curriculum.id} value={curriculum.id} dir="auto">
                   {curriculum.name} ({curriculum.version})
                 </option>
               ))}
