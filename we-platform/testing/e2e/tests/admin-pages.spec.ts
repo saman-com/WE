@@ -32,6 +32,24 @@ test("regional configuration shows the saved calendar and one save action", asyn
   });
 });
 
+test("organisation tabs show each section on desktop and phone", async ({ browser }) => {
+  await withRole(browser, "admin", async (page) => {
+    const tabs = ["Year levels", "Classes", "Staff", "Students", "Parent links"] as const;
+    for (const viewport of [
+      { width: 1280, height: 800 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/organisation");
+      await expect(page.getByRole("heading", { name: "Organisation setup", exact: true })).toBeVisible();
+      for (const tab of tabs) {
+        await page.getByRole("button", { name: tab, exact: true }).click();
+        await expect(page.getByRole("heading", { name: tab, exact: true })).toBeInViewport();
+      }
+    }
+  });
+});
+
 test("AI audit lists a real gateway entry", async ({ browser }) => {
   await withRole(browser, "admin", async (page) => {
     await page.goto("/admin/ai-audit");

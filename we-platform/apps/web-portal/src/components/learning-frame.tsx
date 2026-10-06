@@ -71,7 +71,7 @@ export function LearningFrame({
       </div>
 
       {tabs && onTabChange ? (
-        <nav className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-[#f4f1ea] px-3 py-2 md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-black/10 bg-[#f4f1ea] px-3 py-2 md:hidden">
           <div className="mx-auto flex max-w-5xl flex-wrap gap-2">
             {tabs.map((tab) => (
               <TabButton

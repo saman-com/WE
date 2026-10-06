@@ -5,7 +5,7 @@ import OrganisationSetupPage from "@/app/organisation/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { ApiError } from "@/lib/api-error";
 import type { UserProfile } from "@/lib/auth";
-import { createYearLevel } from "@/lib/organisation";
+import { createYearLevel, listEnrollments, listParentChildren, listTeachers } from "@/lib/organisation";
 
 const replace = vi.fn();
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
@@ -292,5 +292,35 @@ describe("organisation manage view", () => {
 
     expect(await screen.findByText("That year level already exists.")).toBeInTheDocument();
     expect(screen.queryByText("Could not save that change.")).not.toBeInTheDocument();
+  });
+
+  it("shows each tab's own section above the accounts list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listTeachers).mockResolvedValue([]);
+    vi.mocked(listEnrollments).mockResolvedValue([]);
+    vi.mocked(listParentChildren).mockResolvedValue([]);
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    const accounts = await screen.findByRole("heading", { name: "Accounts" });
+    const sections = [
+      ["Year levels", "Add a year level"],
+      ["Classes", "Add a class"],
+      ["Staff", "No one is listed yet."],
+      ["Students", "No one is listed yet."],
+      ["Parent links", "Add a parent link"],
+    ] as const;
+
+    for (const [tab, content] of sections) {
+      const [tabButton] = screen.getAllByRole("button", { name: tab });
+      await user.click(tabButton);
+      const panel = screen.getByRole("heading", { name: tab });
+      expect(screen.getByText(content)).toBeInTheDocument();
+      expect(panel.compareDocumentPosition(accounts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
   });
 });
