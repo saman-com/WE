@@ -25,6 +25,7 @@ import {
   MasteryTrendChart,
 } from "@/components/longitudinal-charts";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 export default function StudentProfilePage() {
   const router = useRouter();
@@ -374,7 +375,7 @@ export default function StudentProfilePage() {
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
                       {t("student.profile.mastery.levelAverage", {
-                        level: item.masteryLevel,
+                        level: codeLabel(t, item.masteryLevel),
                         average: item.weightedAverage,
                       })}
                     </p>
@@ -433,8 +434,8 @@ export default function StudentProfilePage() {
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
                       {t("student.profile.gaps.severityUrgency", {
-                        severity: item.severity,
-                        urgency: item.urgency,
+                        severity: codeLabel(t, item.severity),
+                        urgency: codeLabel(t, item.urgency),
                       })}
                     </p>
                     <p className="text-xs text-black/60">
@@ -449,8 +450,8 @@ export default function StudentProfilePage() {
                     </p>
                     <p className="text-xs text-black/60">
                       {t("student.profile.gaps.expectedDemonstrated", {
-                        expected: item.expectedMastery,
-                        actual: item.actualMastery,
+                        expected: codeLabel(t, item.expectedMastery),
+                        actual: codeLabel(t, item.actualMastery),
                         mark: item.mark,
                       })}
                     </p>
@@ -489,7 +490,7 @@ export default function StudentProfilePage() {
                 {interventions.interventions.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
-                      {item.status} —{" "}
+                      {codeLabel(t, item.status)} —{" "}
                       {replaceVisibleIds(
                         item.plannedActions,
                         people,
@@ -542,7 +543,7 @@ export default function StudentProfilePage() {
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
                       {t("student.profile.diagnostics.statusMark", {
-                        status: item.status,
+                        status: codeLabel(t, item.status),
                         mark: item.mark,
                       })}
                     </p>

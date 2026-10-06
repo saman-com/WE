@@ -28,6 +28,7 @@ import {
   type ReportResponse,
 } from "@/lib/reports";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -351,8 +352,8 @@ export default function TeacherClassDetailPage() {
                     <li key={gap.gapId} className="rounded border border-black/5 p-3 space-y-2">
                       <p className="text-sm font-medium">
                         {t("teacher.class.ei.gapSeverityUrgency", {
-                          severity: gap.severity,
-                          urgency: gap.urgency,
+                          severity: codeLabel(t, gap.severity),
+                          urgency: codeLabel(t, gap.urgency),
                         })}{" "}
                         ·{" "}
                         <Link href={`/students/${gap.studentUserId}/profile`} className="underline">
@@ -393,7 +394,7 @@ export default function TeacherClassDetailPage() {
                           trend.occurrenceCount === 1
                             ? "teacher.class.ei.occurrenceOne"
                             : "teacher.class.ei.occurrenceOther",
-                          { status: trend.status, count: trend.occurrenceCount }
+                          { status: codeLabel(t, trend.status), count: trend.occurrenceCount }
                         )}
                       </p>
                       <p className="text-xs text-black/60">
@@ -557,7 +558,7 @@ export default function TeacherClassDetailPage() {
                       </p>
                       <p className="text-sm text-black/60">
                         {t("teacher.class.assessments.statusDue", {
-                          status: assessment.status,
+                          status: codeLabel(t, assessment.status),
                           due: formatDate(assessment.dueAt),
                         })}
                       </p>

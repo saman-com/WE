@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ParentWorkspacePage from "@/app/parent/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { LOCALE_STORAGE_KEY } from "@/i18n";
 import type { UserProfile } from "@/lib/auth";
 
 const { studentId, skillId, organisationId } = vi.hoisted(() => ({
@@ -68,7 +69,26 @@ describe("parent home", () => {
     );
 
     expect(await screen.findByRole("button", { name: "Child Demo Student" })).toBeInTheDocument();
-    expect(await screen.findByText("Skill Read an equation — Developing")).toBeInTheDocument();
+    const skill = await screen.findByText("Read an equation");
+    expect(skill.tagName).toBe("BDI");
+    expect(skill.closest("li")).toHaveTextContent("Skill");
+    expect(skill.closest("li")).toHaveTextContent("Developing");
+    expect(skill).not.toHaveTextContent("Skill");
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it("translates the mastery level instead of showing the raw code", async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
+    render(
+      <I18nProvider>
+        <ParentWorkspacePage />
+      </I18nProvider>
+    );
+
+    const skill = await screen.findByText("Read an equation");
+    expect(skill.tagName).toBe("BDI");
+    expect(skill).not.toHaveTextContent("المهارة");
+    expect(skill.closest("li")).toHaveTextContent("نامٍ");
+    expect(screen.queryByText(/Developing/)).not.toBeInTheDocument();
   });
 });

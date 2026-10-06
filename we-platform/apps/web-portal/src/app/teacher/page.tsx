@@ -171,7 +171,7 @@ export default function TeacherWorkspacePage() {
               <PrimaryLink
                 href={`/teacher/classes/${firstClass.id}?organisationId=${firstClass.organisationId}`}
               >
-                {t("teacher.home.openClass", { name: firstClass.name })}
+                {t("teacher.home.openClass")} <DataText>{firstClass.name}</DataText>
               </PrimaryLink>
               {mutedLinks}
             </div>

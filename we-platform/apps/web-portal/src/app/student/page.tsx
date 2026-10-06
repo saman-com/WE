@@ -261,16 +261,18 @@ function Today({
       <div className="space-y-2">
         <p className="text-sm text-black/60">
           <DataText>{task.className}</DataText>
-          {task.dueAt
-            ? ` · ${t("student.focus.dueLine", {
-                date: new Date(task.dueAt).toLocaleDateString(locale, {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                }),
-              })}`
-            : null}
         </p>
+        {task.dueAt ? (
+          <p className="text-sm text-black/60">
+            {t("student.focus.dueLine", {
+              date: new Date(task.dueAt).toLocaleDateString(locale, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              }),
+            })}
+          </p>
+        ) : null}
         <p className="text-lg font-semibold">
           <DataText>{task.title}</DataText>
         </p>
@@ -286,9 +288,8 @@ function Today({
             <p className="text-sm font-semibold">{t("student.focus.stillShaky")}</p>
             <p className="text-sm">
               <DataText>{focus.label}</DataText>
-              {" · "}
-              {levelLabel(focus.level)}
             </p>
+            <p className="text-sm text-black/60">{levelLabel(focus.level)}</p>
           </div>
         ) : null}
         <PrimaryLink href={taskHref(task)}>{t("student.focus.openTask")}</PrimaryLink>

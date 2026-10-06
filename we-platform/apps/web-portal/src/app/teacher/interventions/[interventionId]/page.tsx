@@ -13,6 +13,7 @@ import {
   type InterventionStatus,
 } from "@/lib/interventions";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 const nextStatus: Partial<Record<InterventionStatus, InterventionStatus>> = {
   Planned: "Active",
@@ -163,7 +164,8 @@ export default function InterventionDetailPage() {
 
         <div className="rounded-lg border border-black/10 p-6 space-y-3">
           <p>
-            <span className="font-medium">{t("teacher.interventions.detail.status")}</span> {intervention.status}
+            <span className="font-medium">{t("teacher.interventions.detail.status")}</span>{" "}
+            {codeLabel(t, intervention.status)}
           </p>
           <p>
             <span className="font-medium">{t("teacher.interventions.studentLabel")}</span>{" "}

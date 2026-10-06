@@ -13,6 +13,7 @@ import {
 } from "@/lib/interventions";
 import { listClasses, listOrganisations } from "@/lib/organisation";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 const statusOrder: InterventionStatus[] = ["Planned", "Active", "Completed", "Closed"];
 
@@ -152,7 +153,7 @@ export default function TeacherInterventionsPage() {
               className={`rounded px-3 py-1 border ${statusFilter === status ? "border-black" : "border-black/20"}`}
               onClick={() => setStatusFilter(status)}
             >
-              {status}
+              {codeLabel(t, status)}
             </button>
           ))}
         </div>
@@ -178,7 +179,7 @@ export default function TeacherInterventionsPage() {
                     )}
                   </Link>
                   <span className={`text-xs rounded px-2 py-0.5 ${statusBadgeClass(item.status)}`}>
-                    {item.status}
+                    {codeLabel(t, item.status)}
                   </span>
                 </div>
                 <p className="text-xs text-black/60">

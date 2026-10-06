@@ -15,6 +15,7 @@ import {
 } from "@/lib/parent-workspace";
 import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 function isParent(profile: UserProfile): boolean {
   return profile.roles.includes("Parent");
@@ -187,14 +188,16 @@ export default function ParentWorkspacePage() {
                     <ul className="space-y-2">
                       {progress.mastery.map((item) => (
                         <li key={item.microSkillId} className="text-sm">
-                          {t("parent.home.skillLine", {
-                            id: learningLabel(
+                          {t("parent.home.skillLead")}{" "}
+                          <DataText>
+                            {learningLabel(
                               learningNames,
                               item.microSkillId,
                               t("assessments.review.unknownSkill")
-                            ),
-                            level: item.masteryLevel,
-                          })}
+                            )}
+                          </DataText>
+                          {" — "}
+                          {codeLabel(t, item.masteryLevel)}
                         </li>
                       ))}
                     </ul>
@@ -262,7 +265,9 @@ export default function ParentWorkspacePage() {
                           <p className="font-medium">
                             <DataText>{item.summary}</DataText>
                           </p>
-                          <p className="text-sm text-black/60">{t("parent.home.statusLine", { status: item.status })}</p>
+                          <p className="text-sm text-black/60">
+                            {t("parent.home.statusLine", { status: codeLabel(t, item.status) })}
+                          </p>
                         </li>
                       ))}
                     </ul>

@@ -20,6 +20,7 @@ import {
 } from "@/lib/assessment";
 import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 type ClassScope = {
   organisationId: string;
@@ -309,11 +310,11 @@ export default function StudentAssessmentsPage() {
             {submission ? (
               <div className="space-y-3">
                 <p className="text-sm text-green-700">
-                  {t("student.assessments.submittedOn", {
-                    date: new Date(submission.submittedAt).toLocaleString(),
-                    late: submission.isLate ? t("student.assessments.lateSuffix") : "",
-                    status: submission.status,
-                  })}
+                  {t("student.assessments.submittedLead")}{" "}
+                  <DataText>{new Date(submission.submittedAt).toLocaleString()}</DataText>
+                  {submission.isLate ? t("student.assessments.lateSuffix") : ""}
+                  {". "}
+                  {t("student.assessments.statusLead")} {codeLabel(t, submission.status)}
                 </p>
                 <label className="block space-y-1">
                   <span className="text-sm">{t("student.assessments.yourResponses")}</span>

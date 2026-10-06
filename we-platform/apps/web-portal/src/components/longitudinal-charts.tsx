@@ -3,6 +3,7 @@
 import type { MasteryTrendPoint } from "@/lib/longitudinal-analytics";
 import { formatPeriodKey } from "@/lib/longitudinal-analytics";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 type MasteryTrendChartProps = {
   points: MasteryTrendPoint[];
@@ -136,7 +137,7 @@ export function InterventionOutcomesTimeline({ outcomes, gapNames = {} }: Interv
               {gapNames[outcome.learningGapId] || t("assessments.review.unknownSkill")}
             </span>
             <span className="text-xs rounded px-2 py-0.5 bg-black/5">
-              {outcome.status}
+              {codeLabel(t, outcome.status)}
             </span>
             <span className="text-xs text-black/50">
               {new Date(outcome.createdAt).toLocaleDateString()}

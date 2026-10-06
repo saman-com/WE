@@ -39,6 +39,7 @@ import {
   InterventionEffectivenessTable,
 } from "@/components/effectiveness-charts";
 import { useI18n } from "@/i18n/I18nProvider";
+import { codeLabel } from "@/lib/code-labels";
 
 function isSchoolLeader(profile: UserProfile): boolean {
   return profile.roles.includes("SchoolLeader");
@@ -524,7 +525,7 @@ export default function LeadershipDashboardPage() {
             <ul className="space-y-1 text-sm">
               {Object.entries(dashboard.kpis.masteryLevelCounts).map(([level, count]) => (
                 <li key={level}>
-                  {level}: {count}
+                  {codeLabel(t, level)}: {count}
                 </li>
               ))}
             </ul>
@@ -662,7 +663,7 @@ export default function LeadershipDashboardPage() {
                 <option value="">{t("leadership.monitoring.allSeverities")}</option>
                 {severityOptions.map((severity) => (
                   <option key={severity} value={severity}>
-                    {severity}
+                    {codeLabel(t, severity)}
                   </option>
                 ))}
               </select>
@@ -683,7 +684,7 @@ export default function LeadershipDashboardPage() {
                 <option value="">{t("leadership.monitoring.defaultStatus")}</option>
                 {interventionStatusOrder.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {codeLabel(t, status)}
                   </option>
                 ))}
               </select>
@@ -727,12 +728,14 @@ export default function LeadershipDashboardPage() {
                         <DataText>{item.className}</DataText>
                         <span className="text-black/50"> ({item.yearLevelName})</span>
                       </td>
-                      <td className="py-3 pr-4">{item.gapSeverity ?? "—"}</td>
+                      <td className="py-3 pr-4">
+                        {item.gapSeverity ? codeLabel(t, item.gapSeverity) : "—"}
+                      </td>
                       <td className="py-3 pr-4">
                         <span
                           className={`text-xs rounded px-2 py-0.5 ${interventionStatusBadgeClass(item.status)}`}
                         >
-                          {item.status}
+                          {codeLabel(t, item.status)}
                         </span>
                       </td>
                       <td className="py-3">{formatTimeline(item, t)}</td>

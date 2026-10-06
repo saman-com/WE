@@ -147,7 +147,10 @@ describe("Teacher home (UX-001 §12)", () => {
     renderHome();
 
     expect(await screen.findByRole("heading", { name: "الصفوف التي تدرّسها." })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "فتح Year 11 Mathematics" })).toBeInTheDocument();
+    const openClass = screen.getByRole("link", { name: "فتح Year 11 Mathematics" });
+    const className = within(openClass).getByText("Year 11 Mathematics");
+    expect(className.tagName).toBe("BDI");
+    expect(className).not.toHaveTextContent("فتح");
     expect(screen.getByRole("link", { name: "التدخلات" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "رسائل أولياء الأمور" })).toBeInTheDocument();
   });
