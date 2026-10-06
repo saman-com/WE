@@ -173,6 +173,34 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
     }
 
     [Fact]
+    public async Task Student_MissingSubmissionIsEmptyRatherThanNotFound()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        _accessChecker.AllowStudent(studentId, organisationId, classId);
+
+        var published = await PublishAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "Unstarted quiz",
+            null);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            $"/api/v1/assessments/{published.Id}/submissions/me",
+            studentId,
+            organisationId,
+            TestJwt.StudentRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Teacher_CanListSubmissionsForReview()
     {
         var teacherId = Guid.NewGuid().ToString();

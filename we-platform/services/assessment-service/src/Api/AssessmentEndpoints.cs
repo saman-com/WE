@@ -748,7 +748,7 @@ public static class AssessmentEndpoints
             s => s.AssessmentId == assessmentId && s.StudentUserId == principal.UserId());
         if (submission is null)
         {
-            return Results.NotFound();
+            return Results.NoContent();
         }
 
         return Results.Ok(ToSubmissionResponse(submission));

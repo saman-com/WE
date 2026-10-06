@@ -168,7 +168,7 @@ export function getMySubmission(
       Authorization: `Bearer ${token}`,
     },
   }).then(async (response) => {
-    if (response.status === 404) {
+    if (response.status === 204 || response.status === 404) {
       return null;
     }
     if (!response.ok) {
