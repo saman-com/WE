@@ -138,4 +138,23 @@ describe("assessment review labels", () => {
     expect(screen.queryByText(microSkillId)).not.toBeInTheDocument();
     expect(screen.queryByText("APPROVED")).not.toBeInTheDocument();
   });
+
+  it("shows the Arabic denial after the locale has loaded", async () => {
+    localStorage.setItem("we_locale", "ar");
+    fetchProfile.mockResolvedValue({
+      id: "admin-1",
+      email: "admin@school.local",
+      name: "Demo Admin",
+      roles: ["SystemAdministrator"],
+    });
+
+    render(
+      <I18nProvider>
+        <AssessmentReviewPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("يمكن للمعلمين فقط اعتماد الأدلة.")).toBeInTheDocument();
+    expect(screen.queryByText("Only teachers can approve evidence.")).not.toBeInTheDocument();
+  });
 });

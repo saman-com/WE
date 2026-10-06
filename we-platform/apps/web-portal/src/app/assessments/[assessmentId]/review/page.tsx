@@ -43,6 +43,7 @@ export default function AssessmentReviewPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [denied, setDenied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -66,7 +67,7 @@ export default function AssessmentReviewPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!canReview(loaded)) {
-          setError(t("assessments.review.teachersOnly"));
+          setDenied(true);
           return;
         }
         setProfile(loaded);
@@ -238,11 +239,13 @@ export default function AssessmentReviewPage() {
     }
   }
 
-  if (error && !profile) {
+  if (denied || (error && !profile)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600" dir="auto">
+            {denied ? t("assessments.review.teachersOnly") : error}
+          </p>
           <Link href="/assessments" className="underline">
             {t("assessments.review.backToAssessments")}
           </Link>
