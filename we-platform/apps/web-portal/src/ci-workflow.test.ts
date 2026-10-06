@@ -13,5 +13,6 @@ describe("frontend CI", () => {
     const workflow = readFileSync(workflowPath, "utf8");
     const frontend = workflow.split(/^  e2e:/m)[0]?.split(/^  frontend:/m)[1] ?? "";
     expect(frontend).toMatch(/^\s+- name: Test\n\s+run: pnpm test$/m);
+    expect(frontend).toMatch(/node-version: "24"/);
   });
 });
