@@ -392,7 +392,10 @@ export default function LeadershipDashboardPage() {
           <KpiCard
             label={t("leadership.kpi.studentsNeedingAttention")}
             value={metricText(dashboard.kpis.studentsNeedingAttention, t("leadership.kpi.notAvailable"))}
-            detail={attentionDetail(dashboard.kpis.studentsNeedingAttentionReason, t)}
+            detail={[
+              attentionDetail(dashboard.kpis.studentsNeedingAttentionReason, t),
+              t("leadership.kpi.attention.criterion"),
+            ].filter(Boolean).join(" ")}
           />
           <KpiCard
             label={t("leadership.kpi.assessmentCompletion")}

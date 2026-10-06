@@ -259,6 +259,8 @@ describe("leadership dashboard", () => {
     );
     const attention = await screen.findByText("Students needing attention");
     expect(attention.parentElement).toHaveTextContent("High-severity gap");
+    expect(attention.parentElement).toHaveTextContent("not every gap on the class page");
+    expect(screen.getByRole("columnheader", { name: "Gap events from interventions" })).toBeInTheDocument();
     unmount();
 
     localStorage.setItem("we_locale", "ar");
@@ -267,7 +269,8 @@ describe("leadership dashboard", () => {
         <LeadershipDashboardPage />
       </I18nProvider>
     );
-    expect(await screen.findByText("فجوة عالية الخطورة")).toBeInTheDocument();
-    expect(screen.getByText("طلاب يحتاجون إلى اهتمام")).toBeInTheDocument();
+    const attentionAr = await screen.findByText("طلاب يحتاجون إلى اهتمام");
+    expect(attentionAr.parentElement).toHaveTextContent("فجوة عالية الخطورة");
+    expect(attentionAr.parentElement).toHaveTextContent("وليس كل فجوة في صفحة الصف");
   });
 });

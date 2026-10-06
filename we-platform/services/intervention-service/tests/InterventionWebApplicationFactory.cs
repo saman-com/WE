@@ -12,6 +12,8 @@ public sealed class InterventionWebApplicationFactory : WebApplicationFactory<Pr
 
     public FakeOrganisationAccessChecker AccessChecker { get; } = new();
 
+    public RecordingInterventionEvents Events { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -20,6 +22,8 @@ public sealed class InterventionWebApplicationFactory : WebApplicationFactory<Pr
         {
             services.RemoveAll<IOrganisationAccessChecker>();
             services.AddSingleton<IOrganisationAccessChecker>(AccessChecker);
+            services.RemoveAll<IInterventionEventPublisher>();
+            services.AddSingleton<IInterventionEventPublisher>(Events);
         });
     }
 }

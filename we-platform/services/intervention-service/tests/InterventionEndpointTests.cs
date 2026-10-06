@@ -10,11 +10,13 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
 {
     private readonly HttpClient _client;
     private readonly FakeOrganisationAccessChecker _accessChecker;
+    private readonly RecordingInterventionEvents _events;
 
     public InterventionEndpointTests(InterventionWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         _accessChecker = factory.AccessChecker;
+        _events = factory.Events;
     }
 
     [Fact]
@@ -46,6 +48,7 @@ public class InterventionEndpointTests : IClassFixture<InterventionWebApplicatio
         Assert.Equal(teacherId, created.AssignedTeacherUserId);
         Assert.Equal(InterventionStatuses.Planned, created.Status);
         Assert.Equal("Review conservation of mass with guided practice.", created.PlannedActions);
+        Assert.Contains(_events.Published, item => item.Id == created.Id && item.Status == InterventionStatuses.Planned);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddInterventionInfrastructure(builder.Configuration);
+builder.Services.AddInterventionInfrastructure(builder.Configuration, builder.Environment);
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["Key"]

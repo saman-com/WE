@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY shared/tenancy/WePlatform.Tenancy.csproj shared/tenancy/
 COPY shared/aspnet/WePlatform.AspNetCore.csproj shared/aspnet/
+COPY shared/events/WePlatform.Events.csproj shared/events/
 COPY services/intervention-service/src/Domain/InterventionService.Domain.csproj services/intervention-service/src/Domain/
 COPY services/intervention-service/src/Application/InterventionService.Application.csproj services/intervention-service/src/Application/
 COPY services/intervention-service/src/Infrastructure/InterventionService.Infrastructure.csproj services/intervention-service/src/Infrastructure/
@@ -9,6 +10,7 @@ COPY services/intervention-service/src/Api/InterventionService.Api.csproj servic
 RUN dotnet restore services/intervention-service/src/Api/InterventionService.Api.csproj
 COPY shared/tenancy/ shared/tenancy/
 COPY shared/aspnet/ shared/aspnet/
+COPY shared/events/ shared/events/
 COPY services/intervention-service/src/ services/intervention-service/src/
 RUN dotnet publish services/intervention-service/src/Api/InterventionService.Api.csproj -c Release -o /app/publish
 

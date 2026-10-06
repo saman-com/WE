@@ -59,6 +59,25 @@ public class EdwIngestProcessorTests
     }
 
     [Fact]
+    public async Task ProcessInterventionCreated_UpdatesStatusForTheSameIntervention()
+    {
+        await using var harness = CreateHarness();
+        var created = CreateInterventionCreated();
+
+        await harness.Processor.ProcessInterventionCreatedAsync(created);
+        await harness.Processor.ProcessInterventionCreatedAsync(created with
+        {
+            EventId = Guid.CreateVersion7(),
+            Status = "Completed",
+            OccurredAt = created.OccurredAt.AddMinutes(1)
+        });
+
+        var fact = await harness.Db.InterventionFacts.IgnoreQueryFilters().SingleAsync();
+        Assert.Equal(created.InterventionId, fact.InterventionId);
+        Assert.Equal("Completed", fact.Status);
+    }
+
+    [Fact]
     public async Task ProcessingSameEventTwice_DoesNotDuplicateFacts()
     {
         await using var harness = CreateHarness();

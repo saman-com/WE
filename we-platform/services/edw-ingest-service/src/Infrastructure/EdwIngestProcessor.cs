@@ -82,6 +82,20 @@ public sealed class EdwIngestProcessor(EdwDbContext db, ITenantContext tenantCon
     {
         tenantContext.SetTenant(intervention.OrganisationId);
 
+        var existing = await db.InterventionFacts
+            .FirstOrDefaultAsync(f => f.InterventionId == intervention.InterventionId, cancellationToken);
+        if (existing is not null)
+        {
+            if (existing.EventId == intervention.EventId || StatusRank(intervention.Status) < StatusRank(existing.Status))
+            {
+                return;
+            }
+
+            existing.Status = intervention.Status;
+            await db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
         if (await db.InterventionFacts.AnyAsync(f => f.EventId == intervention.EventId, cancellationToken))
         {
             return;
@@ -162,6 +176,13 @@ public sealed class EdwIngestProcessor(EdwDbContext db, ITenantContext tenantCon
 
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    private static int StatusRank(string status) => status switch
+    {
+        "Active" => 1,
+        "Completed" or "Closed" => 2,
+        _ => 0
+    };
 
     private async Task<int> EnsureTimeDimensionAsync(
         DateTimeOffset timestamp,

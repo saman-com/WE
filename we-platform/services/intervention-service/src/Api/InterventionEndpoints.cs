@@ -30,6 +30,7 @@ public static class InterventionEndpoints
         ClaimsPrincipal principal,
         InterventionDbContext db,
         IOrganisationAccessChecker accessChecker,
+        IInterventionEventPublisher eventPublisher,
         ITenantContext tenantContext,
         HttpContext httpContext)
     {
@@ -98,6 +99,7 @@ public static class InterventionEndpoints
 
         db.Interventions.Add(intervention);
         await db.SaveChangesAsync();
+        await eventPublisher.PublishAsync(intervention);
 
         return Results.Created($"/api/v1/interventions/{intervention.Id}", ToResponse(intervention));
     }
@@ -289,6 +291,7 @@ public static class InterventionEndpoints
         PatchInterventionRequest request,
         ClaimsPrincipal principal,
         InterventionDbContext db,
+        IInterventionEventPublisher eventPublisher,
         ITenantContext tenantContext)
     {
         var intervention = await db.Interventions
@@ -374,6 +377,7 @@ public static class InterventionEndpoints
 
         intervention.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
+        await eventPublisher.PublishAsync(intervention);
 
         return Results.Ok(ToResponse(intervention));
     }

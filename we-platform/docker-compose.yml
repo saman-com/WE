@@ -429,6 +429,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__InterventionDb: Host=postgres;Port=5432;Database=we_interventions;Username=we;Password=we_dev;Maximum Pool Size=30;Timeout=15
       Organisation__BaseUrl: http://organisation-service:8080
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: we
+      RabbitMQ__Password: we_dev
       Jwt__Issuer: we-platform-identity
       Jwt__Audience: we-platform
       Jwt__Key: ${JWT_KEY:-local-dev-only-change-in-production-32chars}
@@ -442,6 +445,8 @@ services:
       postgres:
         condition: service_healthy
       organisation-service:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   communication-service:
