@@ -100,6 +100,12 @@ describe("regional configuration last updated", () => {
     renderPage();
 
     await user.click((await screen.findAllByRole("button", { name: "Grading scale" }))[0]);
+    const addLevel = screen.getByRole("button", { name: "Add level" });
+    expect(addLevel.className).toContain("border");
+    expect(addLevel.className).not.toContain("bg-[#1c1917]");
+    expect(
+      screen.getByText("Levels are saved when you save the configuration.")
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue("A")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Add a level" })).toBeInTheDocument();
 

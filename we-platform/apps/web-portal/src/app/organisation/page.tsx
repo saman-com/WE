@@ -55,7 +55,10 @@ export default function OrganisationSetupPage() {
   const [busy, setBusy] = useState(false);
 
   const [yearName, setYearName] = useState("");
-  const [yearOrder, setYearOrder] = useState(1);
+  const [yearOrderOverride, setYearOrderOverride] = useState<number | null>(null);
+  const yearOrder =
+    yearOrderOverride ??
+    years.reduce((highest, year) => Math.max(highest, year.sortOrder), 0) + 1;
   const [className, setClassName] = useState("");
   const [classCode, setClassCode] = useState("");
   const [classYearId, setClassYearId] = useState("");
@@ -243,6 +246,7 @@ export default function OrganisationSetupPage() {
                   const year = await createYearLevel(token, organisationId, yearName, yearOrder);
                   await createClass(token, organisationId, year.id, className, classCode);
                   setYearName("");
+                  setYearOrderOverride(null);
                   setClassName("");
                   setClassCode("");
                 });
@@ -252,7 +256,7 @@ export default function OrganisationSetupPage() {
               <Field
                 label={t("organisation.manage.sortOrder")}
                 value={String(yearOrder)}
-                onChange={(value) => setYearOrder(Number(value))}
+                onChange={(value) => setYearOrderOverride(Number(value))}
                 type="number"
               />
               <Field label={t("organisation.manage.className")} value={className} onChange={setClassName} />
@@ -344,6 +348,7 @@ export default function OrganisationSetupPage() {
                     void run(async () => {
                       await createYearLevel(token, organisationId, yearName, yearOrder);
                       setYearName("");
+                      setYearOrderOverride(null);
                     });
                   }}
                 >
@@ -351,7 +356,7 @@ export default function OrganisationSetupPage() {
                   <Field
                     label={t("organisation.manage.sortOrder")}
                     value={String(yearOrder)}
-                    onChange={(value) => setYearOrder(Number(value))}
+                    onChange={(value) => setYearOrderOverride(Number(value))}
                     type="number"
                   />
                   <PrimaryButton type="submit" disabled={busy}>

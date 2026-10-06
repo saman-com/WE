@@ -416,6 +416,7 @@
   "admin.regional.maxScore": "Maximum score",
   "admin.regional.addLevelTitle": "Add a level",
   "admin.regional.addLevel": "Add level",
+  "admin.regional.levelsSavedWithConfiguration": "Levels are saved when you save the configuration.",
   "admin.regional.moveUp": "Move up",
   "admin.regional.moveDown": "Move down",
   "admin.regional.levelRange": "Each level needs a minimum score below its maximum.",

@@ -404,8 +404,9 @@ export default function RegionalConfigurationAdminPage() {
           </FocusCard>
           <FocusCard>
             <h2 className="font-medium">{t("admin.regional.addLevelTitle")}</h2>
+            <p className="text-sm text-black/60">{t("admin.regional.levelsSavedWithConfiguration")}</p>
             <LevelFields level={draftLevel} onChange={setDraftLevel} />
-            <TextButton
+            <SecondaryButton
               onClick={() => {
                 const next = [...form.gradingScale.levels, draftLevel];
                 const problem = validateGradingLevels(next);
@@ -425,7 +426,7 @@ export default function RegionalConfigurationAdminPage() {
               }}
             >
               {t("admin.regional.addLevel")}
-            </TextButton>
+            </SecondaryButton>
           </FocusCard>
           </>
           ) : null}
@@ -605,6 +606,18 @@ function LevelFields({
         />
       </label>
     </div>
+  );
+}
+
+function SecondaryButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex rounded-lg border border-[#1c1917] px-4 py-2.5 text-sm font-semibold text-[#1c1917]"
+    >
+      {children}
+    </button>
   );
 }
 

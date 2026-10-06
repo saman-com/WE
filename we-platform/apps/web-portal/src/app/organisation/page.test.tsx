@@ -90,6 +90,7 @@ describe("organisation manage view", () => {
     expect(await screen.findByRole("option", { name: "Demo school" })).toBeInTheDocument();
     expect(await screen.findByText("Year 11")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Add a year level" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Sort order")).toHaveValue(12);
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create the first class" })).not.toBeInTheDocument();
     expect(screen.queryByText(/22222222-2222-2222-2222-222222222222/)).not.toBeInTheDocument();

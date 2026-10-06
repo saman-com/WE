@@ -416,6 +416,7 @@
   "admin.regional.maxScore": "الحد الأعلى",
   "admin.regional.addLevelTitle": "إضافة مستوى",
   "admin.regional.addLevel": "أضف المستوى",
+  "admin.regional.levelsSavedWithConfiguration": "تُحفظ المستويات عند حفظ الإعدادات.",
   "admin.regional.moveUp": "تحريك لأعلى",
   "admin.regional.moveDown": "تحريك لأسفل",
   "admin.regional.levelRange": "يجب أن يكون الحد الأدنى لكل مستوى أقل من حده الأعلى.",
