@@ -15,7 +15,7 @@ test.describe("c. Parent and teacher messages", () => {
     await parentPage.goto("/parent/messages");
     await expect(parentPage.getByRole("button", { name: /send/i })).toBeVisible();
 
-    await parentPage.getByRole("textbox", { name: /Teacher user ID/i }).fill(users.teacher.userId);
+    await parentPage.getByLabel("Teacher").selectOption(users.teacher.userId);
     await parentPage.getByRole("textbox", { name: /^Message$/i }).fill(body);
     await parentPage.getByRole("button", { name: /Send message/i }).click();
     await expect(parentPage.getByText(body)).toBeVisible({ timeout: 30_000 });

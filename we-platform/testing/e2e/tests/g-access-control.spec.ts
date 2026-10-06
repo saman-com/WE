@@ -54,7 +54,7 @@ test.describe("g. Access control", () => {
       const page = await context.newPage();
       await page.goto(item.path);
       if (item.kind === "redirect") {
-        await expect(page).toHaveURL(/\/(dashboard|login)/);
+        await expect(page).toHaveURL(new RegExp(`${users[item.role].home.replace("/", "\\/")}$`));
       } else {
         await expect(page.getByText(item.error!)).toBeVisible();
       }
