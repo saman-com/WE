@@ -45,6 +45,7 @@ export default function AssessmentsPage() {
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [organisationId, setOrganisationId] = useState("");
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [classesLoaded, setClassesLoaded] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedClass, setSelectedClass] = useState<SchoolClass | null>(null);
 
@@ -113,6 +114,7 @@ export default function AssessmentsPage() {
       return;
     }
 
+    setClassesLoaded(false);
     listClasses(token, organisationId)
       .then((loaded) => {
         setClasses(loaded);
@@ -124,25 +126,54 @@ export default function AssessmentsPage() {
           setSelectedClass(null);
         }
       })
-      .catch(() => setClasses([]));
+      .catch(() => {
+        setClasses([]);
+        setSelectedClassId("");
+        setSelectedClass(null);
+      })
+      .finally(() => setClassesLoaded(true));
 
     listCurricula(token, organisationId)
-      .then(async (items) => {
-        setCurricula(items);
-        if (items[0]) {
-          setSelectedCurriculumId(items[0].id);
-          const loadedTree = await getCurriculumTree(token, items[0].id);
-          setTree(loadedTree);
-        } else {
-          setSelectedCurriculumId("");
-          setTree(null);
-        }
-      })
+      .then((items) => setCurricula(items))
       .catch(() => {
         setCurricula([]);
+        setSelectedCurriculumId("");
         setTree(null);
       });
   }, [token, organisationId]);
+
+  useEffect(() => {
+    if (!token || !classesLoaded || curricula.length === 0) {
+      return;
+    }
+
+    const schoolClass = classes.find((item) => item.id === selectedClassId) ?? null;
+    const linked = schoolClass
+      ? curricula.find((curriculum) => curriculum.name === schoolClass.name)
+      : undefined;
+    const chosen = linked ?? curricula[0];
+    if (!chosen) {
+      return;
+    }
+
+    let cancelled = false;
+    setSelectedCurriculumId(chosen.id);
+    getCurriculumTree(token, chosen.id)
+      .then((loadedTree) => {
+        if (!cancelled) {
+          setTree(loadedTree);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTree(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, classesLoaded, curricula, classes, selectedClassId]);
 
   useEffect(() => {
     if (!token || !organisationId || !selectedClassId) {

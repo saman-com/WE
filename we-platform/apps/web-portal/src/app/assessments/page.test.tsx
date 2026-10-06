@@ -5,6 +5,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { LOCALE_STORAGE_KEY } from "@/i18n";
 import type { UserProfile } from "@/lib/auth";
 import { listAssessments, type Assessment } from "@/lib/assessment";
+import { getCurriculumTree, listCurricula } from "@/lib/curriculum";
 
 const { studentUserId } = vi.hoisted(() => ({
   studentUserId: "22222222-2222-2222-2222-222222222222",
@@ -68,6 +69,13 @@ describe("assessment class roster", () => {
       name: "Demo Teacher",
       roles: ["Teacher"],
     } satisfies UserProfile);
+    vi.mocked(listCurricula).mockReset().mockResolvedValue([]);
+    vi.mocked(getCurriculumTree).mockReset();
+    vi.mocked(listAssessments).mockReset().mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   afterEach(cleanup);
@@ -116,5 +124,79 @@ describe("assessment class roster", () => {
     expect(screen.getByText("منشور")).toBeInTheDocument();
     expect(screen.queryByText("DRAFT")).not.toBeInTheDocument();
     expect(screen.queryByText("PUBLISHED")).not.toBeInTheDocument();
+  });
+
+  it("opens on the curriculum named like the selected class", async () => {
+    vi.mocked(listCurricula).mockResolvedValue([
+      {
+        id: "cambridge",
+        organisationId: "org-1",
+        name: "Cambridge Science",
+        version: "2027",
+        status: "Published",
+        regionCode: null,
+        scope: "Organisation",
+        parentCurriculumId: null,
+      },
+      {
+        id: "math",
+        organisationId: "org-1",
+        name: "Year 11 Mathematics",
+        version: "1.0",
+        status: "Published",
+        regionCode: null,
+        scope: "Organisation",
+        parentCurriculumId: null,
+      },
+    ]);
+    vi.mocked(getCurriculumTree).mockImplementation(async (_token, curriculumId) => ({
+      id: curriculumId,
+      organisationId: "org-1",
+      name: curriculumId === "math" ? "Year 11 Mathematics" : "Cambridge Science",
+      version: curriculumId === "math" ? "1.0" : "2027",
+      status: "Published",
+      regionCode: null,
+      scope: "Organisation",
+      parentCurriculumId: null,
+      subjects: curriculumId === "math"
+        ? [{
+            id: "subject-1",
+            name: "Mathematics",
+            code: "MATH",
+            sortOrder: 1,
+            sourceNodeId: null,
+            isOverridden: false,
+            units: [{
+              id: "unit-1",
+              name: "Algebra",
+              sortOrder: 1,
+              sourceNodeId: null,
+              isOverridden: false,
+              topics: [],
+              learningObjectives: [{
+                id: "objective-1",
+                title: "Solve linear equations",
+                sortOrder: 1,
+                sourceNodeId: null,
+                isOverridden: false,
+                microSkills: [
+                  { id: "skill-read", name: "Read an equation", sortOrder: 1, sourceNodeId: null, isOverridden: false },
+                  { id: "skill-solve", name: "Solve linear equations", sortOrder: 2, sourceNodeId: null, isOverridden: false },
+                ],
+              }],
+            }],
+          }]
+        : [],
+    }));
+
+    render(
+      <I18nProvider>
+        <AssessmentsPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("Read an equation")).toBeInTheDocument();
+    expect(screen.getAllByText("Solve linear equations").length).toBeGreaterThan(0);
+    expect(screen.getByRole("combobox", { name: "Curriculum (for LO / micro-skill links)" })).toHaveValue("math");
   });
 });
