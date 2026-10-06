@@ -137,6 +137,35 @@ if [[ -z $CURRICULUM_EXISTING ]]; then
   done
 fi
 
+echo "Align algebra micro-skill ids with the ids stored on assessments"
+# The create API assigns its own ids. Assessments, evidence, and gaps keep the
+# seed ids below, so the name lookup misses them unless these rows use the same keys.
+psql -d we_curriculum <<SQL
+update micro_skills as skill
+set id = mapped.canonical_id
+from (
+  values
+    ('Read an equation', '${SKILL_READ}'::uuid),
+    ('Substitute a value', '${SKILL_SUBSTITUTE}'::uuid),
+    ('Use inverse operations', '${SKILL_INVERSE}'::uuid),
+    ('Isolate the variable', '${SKILL_ISOLATE}'::uuid)
+) as mapped(name, canonical_id)
+where skill.name = mapped.name
+  and skill.id <> mapped.canonical_id
+  and not exists (
+    select 1 from micro_skills existing where existing.id = mapped.canonical_id
+  )
+  and skill.learning_objective_id in (
+    select objective.id
+    from learning_objectives objective
+    join units on units.id = objective.unit_id
+    join subjects on subjects.id = units.subject_id
+    join curricula on curricula.id = subjects.curriculum_id
+    where curricula.organisation_id = '${ORG}'
+      and curricula.name = 'Year 11 Mathematics'
+  );
+SQL
+
 echo "Learning profile enrollment"
 api POST "$LEARNING/api/v1/students/$STUDENT/profile/enrollments" "$ADMIN_TOKEN" \
   "{\"organisationId\":\"$ORG\",\"classId\":\"$CLASS\",\"className\":\"Year 11 Mathematics\",\"classCode\":\"11MAT\"}" >/dev/null || true
