@@ -371,6 +371,30 @@ public class FederationEndpointTests : IClassFixture<FederationWebApplicationFac
         Assert.Contains(policies, item => item.PolicyKey == "shared-curriculum" && item.PolicyValue == "enabled");
     }
 
+    [Fact]
+    public async Task FederationAdmin_RejectsAOneCharacterPolicyValue()
+    {
+        var federationId = Guid.CreateVersion7();
+        var adminId = Guid.NewGuid().ToString();
+
+        using var updateRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Put,
+            "/api/v1/federation/policies",
+            adminId,
+            federationId);
+        updateRequest.Content = JsonContent.Create(new UpdateFederationPoliciesRequest(
+        [
+            new FederationPolicyDto("qa-policy", "x")
+        ]));
+
+        var updateResponse = await _client.SendAsync(updateRequest);
+
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        var error = await updateResponse.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("federation.policy_value_too_short", error.Code);
+    }
+
     private async Task<FederationSchoolResponse> SeedSchoolAsync(
         Guid federationId,
         string name,

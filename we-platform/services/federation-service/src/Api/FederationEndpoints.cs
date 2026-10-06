@@ -223,6 +223,11 @@ public static class FederationEndpoints
                 return Results.BadRequest();
             }
 
+            if (policy.PolicyValue.Trim().Length < 2)
+            {
+                return Results.BadRequest(new ApiErrorResponse("federation.policy_value_too_short"));
+            }
+
             var existing = await db.FederationPolicies.FirstOrDefaultAsync(item =>
                 item.FederationId == federationId && item.PolicyKey == policy.PolicyKey.Trim());
             if (existing is null)

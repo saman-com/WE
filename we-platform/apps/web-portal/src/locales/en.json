@@ -91,6 +91,7 @@
   "errors.auth.invalid_credentials": "Login failed. Check your email and password.",
   "errors.auth.unauthorized": "You are not authorized to perform this action.",
   "errors.federation.duplicate_school_code": "That school code is already in use.",
+  "errors.federation.policy_value_too_short": "A policy value needs at least 2 characters.",
   "errors.messages.invalid_teacher": "That teacher is not valid.",
   "errors.validation.invalid_request": "Request failed.",
   "errors.organisation.duplicate_class_code": "That class code is already in use.",

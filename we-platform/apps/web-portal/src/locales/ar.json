@@ -91,6 +91,7 @@
   "errors.auth.invalid_credentials": "فشل تسجيل الدخول. تحقق من بريدك وكلمة المرور.",
   "errors.auth.unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
   "errors.federation.duplicate_school_code": "رمز المدرسة هذا مستخدم بالفعل.",
+  "errors.federation.policy_value_too_short": "تحتاج قيمة السياسة إلى حرفين على الأقل.",
   "errors.messages.invalid_teacher": "هذا المعلم غير صالح.",
   "errors.validation.invalid_request": "فشل الطلب.",
   "errors.organisation.duplicate_class_code": "رمز الصف هذا مستخدم بالفعل.",

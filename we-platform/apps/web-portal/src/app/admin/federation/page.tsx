@@ -169,7 +169,11 @@ export default function FederationAdminPage() {
       ]);
       setPolicies(updated);
       setSuccess(t("admin.federation.policyUpdated"));
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(translateError(err.code, "admin.federation.policyUpdateFailed"));
+        return;
+      }
       setError(t("admin.federation.policyUpdateFailed"));
     }
   }

@@ -5,7 +5,7 @@ import FederationAdminPage from "@/app/admin/federation/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { ApiError } from "@/lib/api-error";
 import type { UserProfile } from "@/lib/auth";
-import { createFederationSchool } from "@/lib/federation";
+import { createFederationSchool, updateFederationPolicies } from "@/lib/federation";
 
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
 const tenantId = "01a10e0a-1038-7cc4-aec9-7c08fe126deb";
@@ -104,5 +104,30 @@ describe("federation admin display", () => {
       "That school code is already in use."
     );
     expect(screen.queryByText("The school was not added. Configuration could not be saved.")).not.toBeInTheDocument();
+  });
+
+  it("rejects a one-character policy value", async () => {
+    vi.mocked(updateFederationPolicies).mockRejectedValue(
+      new ApiError("federation.policy_value_too_short", 400)
+    );
+    const user = userEvent.setup();
+    render(
+      <I18nProvider>
+        <FederationAdminPage />
+      </I18nProvider>
+    );
+
+    await screen.findByText("North Federation School (DFED)");
+    await user.click(screen.getAllByRole("button", { name: "Policy" })[0]);
+    await user.clear(screen.getByLabelText("Policy key"));
+    await user.clear(screen.getByLabelText("Policy value"));
+    await user.type(screen.getByLabelText("Policy key"), "qa-policy");
+    await user.type(screen.getByLabelText("Policy value"), "x");
+    await user.click(screen.getByRole("button", { name: "Save policy" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "A policy value needs at least 2 characters."
+    );
+    expect(screen.queryByText("Federation policy updated.")).not.toBeInTheDocument();
   });
 });
