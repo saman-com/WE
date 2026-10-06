@@ -11,6 +11,11 @@ using WePlatform.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    DownstreamServiceUrls.RequireConfigured(builder.Configuration);
+}
+
 builder.Services.AddOrganisationInfrastructure(builder.Configuration);
 
 var jwtSection = builder.Configuration.GetSection("Jwt");

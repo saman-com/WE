@@ -120,6 +120,8 @@ services:
       StudentLearning__BaseUrl: http://student-learning-service:8080
       Assessment__BaseUrl: http://assessment-service:8080
       Evidence__BaseUrl: http://evidence-service:8080
+      Ei__BaseUrl: ${Ei__BaseUrl:-http://ei-service:8080}
+      Intervention__BaseUrl: ${Intervention__BaseUrl:-http://intervention-service:8080}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 10s
