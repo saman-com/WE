@@ -97,6 +97,28 @@ public class AiFeedbackDraftEndpointTests : IClassFixture<AssessmentWebApplicati
     }
 
     [Fact]
+    public async Task NonTeacher_CannotFinalizeAiFeedbackAudit()
+    {
+        var auditLogId = Guid.NewGuid();
+        var evidenceId = Guid.NewGuid();
+        foreach (var role in new[] { TestJwt.StudentRole, TestJwt.SchoolLeaderRole, TestJwt.AdminRole })
+        {
+            using var request = TestJwt.Authorized(
+                HttpMethod.Post,
+                $"/api/v1/assessments/ai-feedback-audit/{auditLogId}/finalize",
+                Guid.NewGuid().ToString(),
+                role);
+            request.Content = JsonContent.Create(new FinalizeAiFeedbackAuditRequest(
+                "Approved feedback for the student.",
+                evidenceId));
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+    }
+
+    [Fact]
     public async Task SchoolBTeacher_AiFeedbackDraft_IsLoggedUnderSchoolBTenant()
     {
         var teacherId = Guid.NewGuid().ToString();
