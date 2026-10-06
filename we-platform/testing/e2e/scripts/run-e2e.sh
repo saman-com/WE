@@ -11,21 +11,30 @@ cd "$ROOT"
 
 # A service can exit 139 (SIGSEGV) in the first seconds on a GitHub runner
 # before it logs anything. Compose then fails the whole up. Retry once so a
-# single startup crash does not fail the job, and print the dead container's
-# logs if it happens again.
+# single startup crash does not fail the job, and print compose logs for every
+# exited container before that retry so the crash leaves evidence.
+dump_exited_compose_logs() {
+  echo "==> docker compose logs for exited containers" >&2
+  docker compose ps -a >&2 || true
+  local service
+  while read -r service; do
+    [[ -z "$service" ]] && continue
+    echo "==> docker compose logs ${service}" >&2
+    docker compose logs --no-color --tail 200 "$service" >&2 || true
+  done < <(docker compose ps -a --status exited --format '{{.Service}}')
+}
+
 compose_up() {
   if "$@"; then
     return 0
   fi
-  echo "==> docker compose up failed; container logs follow" >&2
-  docker compose ps -a >&2 || true
-  while read -r id; do
-    [[ -z "$id" ]] && continue
-    echo "==> logs ${id}" >&2
-    docker logs --tail 100 "$id" >&2 || true
-  done < <(docker compose ps -aq --status exited)
+  dump_exited_compose_logs
   echo "==> retrying docker compose up once" >&2
-  "$@"
+  if "$@"; then
+    return 0
+  fi
+  dump_exited_compose_logs
+  return 1
 }
 
 # Build each image alone. Parallel BuildKit publishes OOM Docker Desktop hosts
