@@ -9,11 +9,30 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 E2E_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# A service can exit 139 (SIGSEGV) in the first seconds on a GitHub runner
+# before it logs anything. Compose then fails the whole up. Retry once so a
+# single startup crash does not fail the job, and print the dead container's
+# logs if it happens again.
+compose_up() {
+  if "$@"; then
+    return 0
+  fi
+  echo "==> docker compose up failed; container logs follow" >&2
+  docker compose ps -a >&2 || true
+  while read -r id; do
+    [[ -z "$id" ]] && continue
+    echo "==> logs ${id}" >&2
+    docker logs --tail 100 "$id" >&2 || true
+  done < <(docker compose ps -aq --status exited)
+  echo "==> retrying docker compose up once" >&2
+  "$@"
+}
+
 # Build each image alone. Parallel BuildKit publishes OOM Docker Desktop hosts
 # with ~8GiB. Set E2E_COMPOSE_PARALLEL=1 on larger hosts / CI to build in one pass.
 if [[ "${E2E_COMPOSE_PARALLEL:-0}" == "1" ]]; then
   echo "==> docker compose up -d --build (parallel)"
-  docker compose up -d --build
+  compose_up docker compose up -d --build
 else
   echo "==> docker compose build (serial, one service at a time)"
   # shellcheck disable=SC2046
@@ -26,7 +45,7 @@ else
     fi
   done
   echo "==> docker compose up -d"
-  docker compose up -d
+  compose_up docker compose up -d
 fi
 
 echo "==> wait for /health"
