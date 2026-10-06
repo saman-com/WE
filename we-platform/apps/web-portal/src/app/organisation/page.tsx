@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
@@ -46,7 +46,7 @@ import {
 } from "@/lib/organisation";
 import { useI18n } from "@/i18n/I18nProvider";
 
-type Tab = "years" | "classes" | "staff" | "students" | "families";
+type Tab = "years" | "classes" | "staff" | "students" | "families" | "accounts";
 
 const accountRoles = [
   "Student",
@@ -73,7 +73,6 @@ export default function OrganisationSetupPage() {
   const [years, setYears] = useState<YearLevel[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [tab, setTab] = useState<Tab>("years");
-  const panelRef = useRef<HTMLDivElement>(null);
   const [classId, setClassId] = useState("");
   const [people, setPeople] = useState<ClassMember[]>([]);
   const [links, setLinks] = useState<ParentChildLink[]>([]);
@@ -109,6 +108,7 @@ export default function OrganisationSetupPage() {
   const [editAccountRole, setEditAccountRole] = useState<(typeof accountRoles)[number]>("Student");
   const [resettingAccount, setResettingAccount] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
+  const [accountQuery, setAccountQuery] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -235,7 +235,17 @@ export default function OrganisationSetupPage() {
     { id: "staff", label: t("organisation.manage.staff") },
     { id: "students", label: t("organisation.manage.students") },
     { id: "families", label: t("organisation.manage.families") },
+    { id: "accounts", label: t("organisation.accounts.title") },
   ];
+  const accountQueryText = accountQuery.trim().toLowerCase();
+  const visibleAccounts =
+    accountQueryText.length === 0
+      ? directory
+      : directory.filter(
+          (person) =>
+            person.name.toLowerCase().includes(accountQueryText) ||
+            person.email.toLowerCase().includes(accountQueryText)
+        );
 
   if (error && !profile) {
     return (
@@ -269,10 +279,7 @@ export default function OrganisationSetupPage() {
       signOutLabel={t("common.signOut")}
       tabs={tabs}
       activeTab={tab}
-      onTabChange={(id) => {
-        setTab(id as Tab);
-        panelRef.current?.scrollIntoView?.({ block: "nearest" });
-      }}
+      onTabChange={(id) => setTab(id as Tab)}
     >
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold">{t("dashboard.nav.organisationSetup")}</h1>
@@ -281,7 +288,6 @@ export default function OrganisationSetupPage() {
             {status}
           </p>
         ) : null}
-        <div ref={panelRef} className="scroll-mt-4 space-y-6">
         <label className="block space-y-1 text-sm">
           <span>{t("organisation.manage.school")}</span>
           <select
@@ -773,216 +779,231 @@ export default function OrganisationSetupPage() {
             </FocusCard>
           </>
         ) : null}
-        </div>
-        <FocusCard>
-          <h2 className="font-medium">{t("organisation.accounts.title")}</h2>
-          {directory.length === 0 ? (
-            <p className="text-sm text-black/60">{t("organisation.accounts.empty")}</p>
-          ) : (
-            <ul className="space-y-3 text-sm">
-              {directory.map((person) => {
-                const isSelf = person.id === profile.id;
-                const currentRole =
-                  accountRoles.find((role) => person.roles.includes(role)) ?? "Student";
-                const roleChoices =
-                  isSelf && person.roles.includes("SystemAdministrator")
-                    ? (["SystemAdministrator"] as const)
-                    : accountRoles;
-                return (
-                  <li key={person.id} className="space-y-2">
-                    {editingAccount === person.id ? (
-                      <form
-                        className="space-y-3"
-                        aria-label={t("organisation.accounts.editAccount", { name: person.name })}
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void saveAccount(async () => {
-                            await updateDirectoryUser(token, person.id, {
-                              name: editAccountName,
-                              role: editAccountRole,
-                            });
-                            setEditingAccount(null);
-                          });
-                        }}
-                      >
-                        <Field
-                          label={t("organisation.accounts.name")}
-                          value={editAccountName}
-                          onChange={setEditAccountName}
-                        />
-                        <label className="block space-y-1 text-sm">
-                          <span>{t("organisation.accounts.role")}</span>
-                          <select
-                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
-                            value={editAccountRole}
-                            onChange={(event) =>
-                              setEditAccountRole(event.target.value as (typeof accountRoles)[number])
-                            }
-                          >
-                            {roleChoices.map((role) => (
-                              <option key={role} value={role}>
-                                {t(`organisation.role.${role}`)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
-                      </form>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span>
-                            <DataText>{`${person.name} (${person.email})`}</DataText>
-                            {" · "}
-                            {person.roles.map((role) => t(`organisation.role.${role}`)).join(", ")}
-                            {person.active === false ? (
-                              <>
-                                {" · "}
-                                <span>{t("organisation.accounts.inactive")}</span>
-                              </>
-                            ) : null}
-                          </span>
-                          <span className="flex flex-wrap gap-3">
-                            <TextButton
-                              label={t("organisation.accounts.editAccount", { name: person.name })}
-                              onClick={() => {
-                                setEditingAccount(person.id);
-                                setEditAccountName(person.name);
-                                setEditAccountRole(currentRole);
-                                setResettingAccount(null);
-                              }}
-                            >
-                              {t("organisation.manage.edit")}
-                            </TextButton>
-                            {isSelf ? null : person.active === false ? (
-                              <TextButton
-                                label={t("organisation.accounts.reactivateAccount", { name: person.name })}
-                                onClick={() => {
-                                  void saveAccount(() => reactivateDirectoryUser(token, person.id));
-                                }}
-                              >
-                                {t("organisation.accounts.reactivate")}
-                              </TextButton>
-                            ) : (
-                              <TextButton
-                                label={t("organisation.accounts.deactivateAccount", { name: person.name })}
-                                onClick={() => {
-                                  void saveAccount(() => deactivateDirectoryUser(token, person.id));
-                                }}
-                              >
-                                {t("organisation.accounts.deactivate")}
-                              </TextButton>
-                            )}
-                            <TextButton
-                              label={t("organisation.accounts.resetPasswordAccount", { name: person.name })}
-                              onClick={() => {
-                                setResettingAccount(person.id);
-                                setResetPassword("");
-                                setEditingAccount(null);
-                              }}
-                            >
-                              {t("organisation.accounts.resetPassword")}
-                            </TextButton>
-                          </span>
-                        </div>
-                        {resettingAccount === person.id ? (
+
+        {tab === "accounts" ? (
+          <>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.accounts.title")}</h2>
+              <label className="block space-y-1 text-sm">
+                <span>{t("organisation.accounts.filter")}</span>
+                <input
+                  type="search"
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                  value={accountQuery}
+                  onChange={(event) => setAccountQuery(event.target.value)}
+                />
+              </label>
+              {directory.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.accounts.empty")}</p>
+              ) : visibleAccounts.length === 0 ? (
+                <p className="text-sm text-black/60">{t("organisation.accounts.noMatch")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {visibleAccounts.map((person) => {
+                    const isSelf = person.id === profile.id;
+                    const currentRole =
+                      accountRoles.find((role) => person.roles.includes(role)) ?? "Student";
+                    const roleChoices =
+                      isSelf && person.roles.includes("SystemAdministrator")
+                        ? (["SystemAdministrator"] as const)
+                        : accountRoles;
+                    return (
+                      <li key={person.id} className="space-y-2">
+                        {editingAccount === person.id ? (
                           <form
                             className="space-y-3"
-                            aria-label={t("organisation.accounts.resetPasswordAccount", { name: person.name })}
+                            aria-label={t("organisation.accounts.editAccount", { name: person.name })}
                             onSubmit={(event) => {
                               event.preventDefault();
                               void saveAccount(async () => {
-                                await resetDirectoryUserPassword(token, person.id, resetPassword);
-                                setResettingAccount(null);
-                                setResetPassword("");
+                                await updateDirectoryUser(token, person.id, {
+                                  name: editAccountName,
+                                  role: editAccountRole,
+                                });
+                                setEditingAccount(null);
                               });
                             }}
                           >
                             <Field
-                              label={t("organisation.accounts.newPassword")}
-                              value={resetPassword}
-                              onChange={setResetPassword}
-                              type="password"
+                              label={t("organisation.accounts.name")}
+                              value={editAccountName}
+                              onChange={setEditAccountName}
                             />
+                            <label className="block space-y-1 text-sm">
+                              <span>{t("organisation.accounts.role")}</span>
+                              <select
+                                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                                value={editAccountRole}
+                                onChange={(event) =>
+                                  setEditAccountRole(event.target.value as (typeof accountRoles)[number])
+                                }
+                              >
+                                {roleChoices.map((role) => (
+                                  <option key={role} value={role}>
+                                    {t(`organisation.role.${role}`)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
                             <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
                           </form>
-                        ) : null}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </FocusCard>
-        <FocusCard>
-          <h2 className="font-medium">{t("organisation.accounts.addTitle")}</h2>
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!token) {
-                return;
-              }
-              setBusy(true);
-              setStatus(null);
-              setStatusError(false);
-              void createDirectoryUser(token, {
-                name: accountName,
-                email: accountEmail,
-                password: accountPassword,
-                role: accountRole,
-              })
-                .then(() => listDirectoryUsers(token))
-                .then((people) => {
-                  setDirectory(people);
-                  setAccountName("");
-                  setAccountEmail("");
-                  setAccountPassword("");
-                  setStatus(t("organisation.manage.saved"));
-                })
-                .catch((err: unknown) => {
-                  setStatusError(true);
-                  setStatus(
-                    err instanceof ApiError ? translateError(err.code) : t("organisation.manage.failed")
-                  );
-                })
-                .finally(() => setBusy(false));
-            }}
-          >
-            <Field label={t("organisation.accounts.name")} value={accountName} onChange={setAccountName} />
-            <Field
-              label={t("organisation.accounts.email")}
-              value={accountEmail}
-              onChange={setAccountEmail}
-              type="email"
-            />
-            <Field
-              label={t("organisation.accounts.password")}
-              value={accountPassword}
-              onChange={setAccountPassword}
-              type="password"
-            />
-            <p className="text-sm text-black/60">{t("organisation.accounts.passwordHint")}</p>
-            <label className="block space-y-1 text-sm">
-              <span>{t("organisation.accounts.role")}</span>
-              <select
-                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
-                value={accountRole}
-                onChange={(event) => setAccountRole(event.target.value as (typeof accountRoles)[number])}
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span>
+                                <DataText>{`${person.name} (${person.email})`}</DataText>
+                                {" · "}
+                                {person.roles.map((role) => t(`organisation.role.${role}`)).join(", ")}
+                                {person.active === false ? (
+                                  <>
+                                    {" · "}
+                                    <span>{t("organisation.accounts.inactive")}</span>
+                                  </>
+                                ) : null}
+                              </span>
+                              <span className="flex flex-wrap gap-3">
+                                <TextButton
+                                  label={t("organisation.accounts.editAccount", { name: person.name })}
+                                  onClick={() => {
+                                    setEditingAccount(person.id);
+                                    setEditAccountName(person.name);
+                                    setEditAccountRole(currentRole);
+                                    setResettingAccount(null);
+                                  }}
+                                >
+                                  {t("organisation.manage.edit")}
+                                </TextButton>
+                                {isSelf ? null : person.active === false ? (
+                                  <TextButton
+                                    label={t("organisation.accounts.reactivateAccount", { name: person.name })}
+                                    onClick={() => {
+                                      void saveAccount(() => reactivateDirectoryUser(token, person.id));
+                                    }}
+                                  >
+                                    {t("organisation.accounts.reactivate")}
+                                  </TextButton>
+                                ) : (
+                                  <TextButton
+                                    label={t("organisation.accounts.deactivateAccount", { name: person.name })}
+                                    onClick={() => {
+                                      void saveAccount(() => deactivateDirectoryUser(token, person.id));
+                                    }}
+                                  >
+                                    {t("organisation.accounts.deactivate")}
+                                  </TextButton>
+                                )}
+                                <TextButton
+                                  label={t("organisation.accounts.resetPasswordAccount", { name: person.name })}
+                                  onClick={() => {
+                                    setResettingAccount(person.id);
+                                    setResetPassword("");
+                                    setEditingAccount(null);
+                                  }}
+                                >
+                                  {t("organisation.accounts.resetPassword")}
+                                </TextButton>
+                              </span>
+                            </div>
+                            {resettingAccount === person.id ? (
+                              <form
+                                className="space-y-3"
+                                aria-label={t("organisation.accounts.resetPasswordAccount", { name: person.name })}
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  void saveAccount(async () => {
+                                    await resetDirectoryUserPassword(token, person.id, resetPassword);
+                                    setResettingAccount(null);
+                                    setResetPassword("");
+                                  });
+                                }}
+                              >
+                                <Field
+                                  label={t("organisation.accounts.newPassword")}
+                                  value={resetPassword}
+                                  onChange={setResetPassword}
+                                  type="password"
+                                />
+                                <TextButton type="submit">{t("organisation.manage.save")}</TextButton>
+                              </form>
+                            ) : null}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </FocusCard>
+            <FocusCard>
+              <h2 className="font-medium">{t("organisation.accounts.addTitle")}</h2>
+              <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!token) {
+                    return;
+                  }
+                  setBusy(true);
+                  setStatus(null);
+                  setStatusError(false);
+                  void createDirectoryUser(token, {
+                    name: accountName,
+                    email: accountEmail,
+                    password: accountPassword,
+                    role: accountRole,
+                  })
+                    .then(() => listDirectoryUsers(token))
+                    .then((people) => {
+                      setDirectory(people);
+                      setAccountName("");
+                      setAccountEmail("");
+                      setAccountPassword("");
+                      setStatus(t("organisation.manage.saved"));
+                    })
+                    .catch((err: unknown) => {
+                      setStatusError(true);
+                      setStatus(
+                        err instanceof ApiError ? translateError(err.code) : t("organisation.manage.failed")
+                      );
+                    })
+                    .finally(() => setBusy(false));
+                }}
               >
-                {accountRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {t(`organisation.role.${role}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <PrimaryButton type="submit" disabled={busy}>
-              {t("organisation.accounts.add")}
-            </PrimaryButton>
-          </form>
-        </FocusCard>
+                <Field label={t("organisation.accounts.name")} value={accountName} onChange={setAccountName} />
+                <Field
+                  label={t("organisation.accounts.email")}
+                  value={accountEmail}
+                  onChange={setAccountEmail}
+                  type="email"
+                />
+                <Field
+                  label={t("organisation.accounts.password")}
+                  value={accountPassword}
+                  onChange={setAccountPassword}
+                  type="password"
+                />
+                <p className="text-sm text-black/60">{t("organisation.accounts.passwordHint")}</p>
+                <label className="block space-y-1 text-sm">
+                  <span>{t("organisation.accounts.role")}</span>
+                  <select
+                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                    value={accountRole}
+                    onChange={(event) => setAccountRole(event.target.value as (typeof accountRoles)[number])}
+                  >
+                    {accountRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {t(`organisation.role.${role}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <PrimaryButton type="submit" disabled={busy}>
+                  {t("organisation.accounts.add")}
+                </PrimaryButton>
+              </form>
+            </FocusCard>
+          </>
+        ) : null}
       </div>
     </LearningFrame>
   );

@@ -122,8 +122,8 @@ describe("organisation manage view", () => {
     expect(screen.getByRole("button", { name: /^Edit$/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create the first class" })).not.toBeInTheDocument();
     expect(screen.queryByText(/22222222-2222-2222-2222-222222222222/)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Add an account" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "System administrator" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Accounts" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Add an account" })).not.toBeInTheDocument();
   });
 
   it("creates an account with a password for the chosen role", async () => {
@@ -149,7 +149,10 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
+    const [accountsTab] = await screen.findAllByRole("button", { name: "Accounts" });
+    await user.click(accountsTab);
     await screen.findByRole("heading", { name: "Add an account" });
+    expect(screen.getByRole("option", { name: "System administrator" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("Name"), "New Teacher");
     await user.type(screen.getByLabelText("Email"), "new.teacher@school.local");
     await user.type(screen.getByLabelText("Password"), "Password123!");
@@ -196,6 +199,8 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
+    const [accountsTab] = await screen.findAllByRole("button", { name: "Accounts" });
+    await user.click(accountsTab);
     await user.click(await screen.findByRole("button", { name: "Edit Demo Student" }));
     const editForm = screen.getByRole("form", { name: "Edit Demo Student" });
     await user.clear(within(editForm).getByLabelText("Name"));
@@ -242,6 +247,8 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
+    const [accountsTab] = await screen.findAllByRole("button", { name: "Accounts" });
+    await user.click(accountsTab);
     expect(await screen.findByRole("button", { name: "Edit Demo Admin" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reset password for Demo Admin" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Deactivate Demo Admin/ })).not.toBeInTheDocument();
@@ -294,7 +301,7 @@ describe("organisation manage view", () => {
     expect(screen.queryByText("Could not save that change.")).not.toBeInTheDocument();
   });
 
-  it("shows each tab's own section above the accounts list", async () => {
+  it("shows only the selected tab's heading", async () => {
     const user = userEvent.setup();
     vi.mocked(listTeachers).mockResolvedValue([]);
     vi.mocked(listEnrollments).mockResolvedValue([]);
@@ -306,21 +313,79 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
-    const accounts = await screen.findByRole("heading", { name: "Accounts" });
-    const sections = [
-      ["Year levels", "Add a year level"],
-      ["Classes", "Add a class"],
-      ["Staff", "No one is listed yet."],
-      ["Students", "No one is listed yet."],
-      ["Parent links", "Add a parent link"],
+    const tabs = [
+      "Year levels",
+      "Classes",
+      "Staff",
+      "Students",
+      "Parent links",
+      "Accounts",
     ] as const;
+    await screen.findByRole("option", { name: "Demo school" });
 
-    for (const [tab, content] of sections) {
+    const seen: string[] = [];
+    for (const button of screen.getAllByRole("button")) {
+      const name = button.textContent ?? "";
+      if ((tabs as readonly string[]).includes(name) && !seen.includes(name)) {
+        seen.push(name);
+      }
+    }
+    expect(seen).toEqual([...tabs]);
+
+    for (const tab of tabs) {
       const [tabButton] = screen.getAllByRole("button", { name: tab });
       await user.click(tabButton);
-      const panel = screen.getByRole("heading", { name: tab });
-      expect(screen.getByText(content)).toBeInTheDocument();
-      expect(panel.compareDocumentPosition(accounts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByRole("heading", { name: tab })).toBeInTheDocument();
+      for (const other of tabs) {
+        if (other === tab) {
+          continue;
+        }
+        expect(screen.queryByRole("heading", { name: other })).not.toBeInTheDocument();
+      }
     }
+  });
+
+  it("filters the accounts list by name or email", async () => {
+    const user = userEvent.setup();
+    listDirectoryUsers.mockResolvedValue([
+      {
+        id: "22222222-2222-2222-2222-222222222222",
+        name: "Demo Student",
+        email: "student@school.local",
+        roles: ["Student"],
+      },
+      {
+        id: "11111111-1111-1111-1111-111111111111",
+        name: "Demo Teacher",
+        email: "teacher@school.local",
+        roles: ["Teacher"],
+      },
+    ]);
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    const [accountsTab] = await screen.findAllByRole("button", { name: "Accounts" });
+    await user.click(accountsTab);
+    expect(screen.getByText("Demo Student (student@school.local)")).toBeInTheDocument();
+    expect(screen.getByText("Demo Teacher (teacher@school.local)")).toBeInTheDocument();
+
+    const filter = screen.getByLabelText("Filter by name or email");
+    await user.type(filter, "teacher@");
+    expect(screen.queryByText("Demo Student (student@school.local)")).not.toBeInTheDocument();
+    expect(screen.getByText("Demo Teacher (teacher@school.local)")).toBeInTheDocument();
+
+    await user.clear(filter);
+    await user.type(filter, "Demo S");
+    expect(screen.getByText("Demo Student (student@school.local)")).toBeInTheDocument();
+    expect(screen.queryByText("Demo Teacher (teacher@school.local)")).not.toBeInTheDocument();
+
+    await user.clear(filter);
+    await user.type(filter, "nobody");
+    expect(screen.getByText("No accounts match.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add an account" })).toBeInTheDocument();
   });
 });

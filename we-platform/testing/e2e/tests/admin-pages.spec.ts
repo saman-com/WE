@@ -34,7 +34,7 @@ test("regional configuration shows the saved calendar and one save action", asyn
 
 test("organisation tabs show each section on desktop and phone", async ({ browser }) => {
   await withRole(browser, "admin", async (page) => {
-    const tabs = ["Year levels", "Classes", "Staff", "Students", "Parent links"] as const;
+    const tabs = ["Year levels", "Classes", "Staff", "Students", "Parent links", "Accounts"] as const;
     for (const viewport of [
       { width: 1280, height: 800 },
       { width: 390, height: 844 },
@@ -42,9 +42,12 @@ test("organisation tabs show each section on desktop and phone", async ({ browse
       await page.setViewportSize(viewport);
       await page.goto("/organisation");
       await expect(page.getByRole("heading", { name: "Organisation setup", exact: true })).toBeVisible();
+      const tabBar = viewport.width < 768 ? page.getByRole("navigation") : page.locator(".we-learning");
       for (const tab of tabs) {
-        await page.getByRole("button", { name: tab, exact: true }).click();
-        await expect(page.getByRole("heading", { name: tab, exact: true })).toBeInViewport();
+        await tabBar.getByRole("button", { name: tab, exact: true }).click();
+        const heading = page.getByRole("heading", { name: tab, exact: true });
+        await expect(heading).toBeVisible();
+        await expect(heading).toBeInViewport();
       }
     }
   });

@@ -364,6 +364,8 @@
   "organisation.manage.lookup": "Look up links",
   "organisation.manage.classLabel": "Class",
   "organisation.accounts.title": "Accounts",
+  "organisation.accounts.filter": "Filter by name or email",
+  "organisation.accounts.noMatch": "No accounts match.",
   "organisation.accounts.addTitle": "Add an account",
   "organisation.accounts.name": "Name",
   "organisation.accounts.email": "Email",

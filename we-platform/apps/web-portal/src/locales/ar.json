@@ -364,6 +364,8 @@
   "organisation.manage.lookup": "عرض الروابط",
   "organisation.manage.classLabel": "الصف",
   "organisation.accounts.title": "الحسابات",
+  "organisation.accounts.filter": "تصفية بالاسم أو البريد",
+  "organisation.accounts.noMatch": "لا توجد حسابات مطابقة.",
   "organisation.accounts.addTitle": "إضافة حساب",
   "organisation.accounts.name": "الاسم",
   "organisation.accounts.email": "البريد",
