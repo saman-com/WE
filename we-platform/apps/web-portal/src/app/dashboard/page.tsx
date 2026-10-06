@@ -27,7 +27,16 @@ export default function DashboardPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         setProfile(loaded);
-        listDirectoryUsers(token).then(setPeople).catch(() => setPeople([]));
+        const canListDirectory = loaded.roles.some((role) =>
+          role === "SystemAdministrator" ||
+          role === "FederationAdmin" ||
+          role === "Teacher" ||
+          role === "Student" ||
+          role === "SchoolLeader"
+        );
+        if (canListDirectory) {
+          listDirectoryUsers(token).then(setPeople).catch(() => setPeople([]));
+        }
         const canListOrganisations = loaded.roles.some((role) =>
           role === "Teacher" ||
           role === "Student" ||

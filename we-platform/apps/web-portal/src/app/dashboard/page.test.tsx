@@ -5,8 +5,9 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { listOrganisations } from "@/lib/organisation";
 import type { UserProfile } from "@/lib/auth";
 
-const { studentUserId } = vi.hoisted(() => ({
+const { studentUserId, listDirectoryUsers } = vi.hoisted(() => ({
   studentUserId: "22222222-2222-2222-2222-222222222222",
+  listDirectoryUsers: vi.fn(),
 }));
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
 
@@ -19,14 +20,7 @@ vi.mock("@/lib/auth", async () => {
   return {
     ...actual,
     fetchProfile: (token: string) => fetchProfile(token),
-    listDirectoryUsers: vi.fn().mockResolvedValue([
-      {
-        id: studentUserId,
-        name: "Demo Student",
-        email: "student@school.local",
-        roles: ["Student"],
-      },
-    ]),
+    listDirectoryUsers: (token: string) => listDirectoryUsers(token),
   };
 });
 
@@ -50,6 +44,14 @@ describe("dashboard profile", () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem("we_access_token", "token");
+    listDirectoryUsers.mockReset().mockResolvedValue([
+      {
+        id: studentUserId,
+        name: "Demo Student",
+        email: "student@school.local",
+        roles: ["Student"],
+      },
+    ]);
     fetchProfile.mockReset().mockResolvedValue({
       id: "55555555-5555-5555-5555-555555555555",
       email: "leader@school.local",
@@ -97,5 +99,24 @@ describe("dashboard profile", () => {
 
     expect(await screen.findByText("Demo Parent")).toBeInTheDocument();
     expect(listOrganisations).not.toHaveBeenCalled();
+    expect(listDirectoryUsers).not.toHaveBeenCalled();
+  });
+
+  it("does not load the user directory for an authority officer", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "66666666-6666-6666-6666-666666666666",
+      email: "authority@school.local",
+      name: "Demo Authority",
+      roles: ["EducationAuthorityOfficer"],
+    });
+
+    render(
+      <I18nProvider>
+        <DashboardPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("Demo Authority")).toBeInTheDocument();
+    expect(listDirectoryUsers).not.toHaveBeenCalled();
   });
 });
