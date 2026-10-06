@@ -208,6 +208,9 @@ describe("API error code translation", () => {
       "errors.auth.invalid_credentials",
       "errors.auth.unauthorized",
       "errors.unknown",
+      "errors.users.email_taken",
+      "errors.users.invalid",
+      "errors.users.password_invalid",
       "errors.validation.invalid_request",
     ]);
 

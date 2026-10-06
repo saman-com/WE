@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrganisationSetupPage from "@/app/organisation/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -15,6 +16,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const listDirectoryUsers = vi.fn();
+const createDirectoryUser = vi.fn();
 
 vi.mock("@/lib/auth", async () => {
   const actual = await vi.importActual<typeof import("@/lib/auth")>("@/lib/auth");
@@ -22,6 +24,10 @@ vi.mock("@/lib/auth", async () => {
     ...actual,
     fetchProfile: (token: string) => fetchProfile(token),
     listDirectoryUsers: (token: string) => listDirectoryUsers(token),
+    createDirectoryUser: (
+      token: string,
+      account: { name: string; email: string; password: string; role: string }
+    ) => createDirectoryUser(token, account),
   };
 });
 
@@ -67,6 +73,7 @@ describe("organisation manage view", () => {
     listDirectoryUsers.mockReset().mockResolvedValue([
       { id: "22222222-2222-2222-2222-222222222222", name: "Demo Student", email: "student@school.local", roles: ["Student"] },
     ]);
+    createDirectoryUser.mockReset();
     listClasses.mockReset().mockResolvedValue([
       {
         id: "class-1",
@@ -96,5 +103,46 @@ describe("organisation manage view", () => {
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create the first class" })).not.toBeInTheDocument();
     expect(screen.queryByText(/22222222-2222-2222-2222-222222222222/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add an account" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "System administrator" })).toBeInTheDocument();
+  });
+
+  it("creates an account with a password for the chosen role", async () => {
+    const user = userEvent.setup();
+    const created = {
+      id: "new-1",
+      name: "New Teacher",
+      email: "new.teacher@school.local",
+      roles: ["Teacher"],
+    };
+    let people = [
+      { id: "22222222-2222-2222-2222-222222222222", name: "Demo Student", email: "student@school.local", roles: ["Student"] },
+    ];
+    listDirectoryUsers.mockImplementation(async () => people);
+    createDirectoryUser.mockImplementation(async () => {
+      people = [...people, created];
+      return created;
+    });
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    await screen.findByRole("heading", { name: "Add an account" });
+    await user.type(screen.getByLabelText("Name"), "New Teacher");
+    await user.type(screen.getByLabelText("Email"), "new.teacher@school.local");
+    await user.type(screen.getByLabelText("Password"), "Password123!");
+    await user.selectOptions(screen.getByLabelText("Role"), "Teacher");
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+
+    expect(createDirectoryUser).toHaveBeenCalledWith("token", {
+      name: "New Teacher",
+      email: "new.teacher@school.local",
+      password: "Password123!",
+      role: "Teacher",
+    });
+    expect(await screen.findByText("New Teacher (new.teacher@school.local)")).toBeInTheDocument();
   });
 });

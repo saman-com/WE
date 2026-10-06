@@ -127,6 +127,103 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
     }
 
     [Fact]
+    public async Task CreateUser_ForEveryRole_SetsPasswordAndSignsIn()
+    {
+        var adminId = await ResolveAdminUserIdAsync();
+        foreach (var role in PlatformRoles.All)
+        {
+            var email = $"{role.ToLowerInvariant()}.{Guid.NewGuid():N}@school.local";
+            using var request = TestJwt.Authorized(
+                HttpMethod.Post,
+                "/api/v1/users",
+                adminId,
+                DefaultTenant.Id,
+                PlatformRoles.SystemAdministrator);
+            request.Content = JsonContent.Create(new CreateUserRequest(email, "Password123!", $"New {role}", role));
+
+            var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var created = await response.Content.ReadFromJsonAsync<DirectoryUserResponse>();
+            Assert.NotNull(created);
+            Assert.Equal($"New {role}", created.Name);
+            Assert.Equal(email, created.Email);
+            Assert.Contains(role, created.Roles);
+
+            var login = await _client.PostAsJsonAsync(
+                "/api/v1/auth/login",
+                new LoginRequest(email, "Password123!"));
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task CreateUser_WeakPassword_RejectsWithoutCreatingTheAccount()
+    {
+        var adminId = await ResolveAdminUserIdAsync();
+        var email = $"weak.{Guid.NewGuid():N}@school.local";
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/users",
+            adminId,
+            DefaultTenant.Id,
+            PlatformRoles.SystemAdministrator);
+        request.Content = JsonContent.Create(new CreateUserRequest(email, "short", "Weak Password", PlatformRoles.Teacher));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("users.password_invalid", error?.Code);
+
+        var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, "short"));
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateUser_DuplicateEmail_ReturnsEmailTaken()
+    {
+        var adminId = await ResolveAdminUserIdAsync();
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/users",
+            adminId,
+            DefaultTenant.Id,
+            PlatformRoles.SystemAdministrator);
+        request.Content = JsonContent.Create(new CreateUserRequest(
+            IdentityDataSeeder.TeacherEmail,
+            "Password123!",
+            "Another Teacher",
+            PlatformRoles.Teacher));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("users.email_taken", error?.Code);
+    }
+
+    [Fact]
+    public async Task CreateUser_ForTeacher_IsForbidden()
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/users",
+            IdentityDataSeeder.TeacherUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Teacher);
+        request.Content = JsonContent.Create(new CreateUserRequest(
+            $"teacher-made.{Guid.NewGuid():N}@school.local",
+            "Password123!",
+            "Not Allowed",
+            PlatformRoles.Student));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Users_ForTeacher_IsForbidden()
     {
         using var request = TestJwt.Authorized(

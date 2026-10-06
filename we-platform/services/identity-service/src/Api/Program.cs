@@ -152,6 +152,71 @@ app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministra
     return Results.Ok(directory);
 });
 
+app.MapPost("/api/v1/users", [Authorize(Roles = PlatformRoles.SystemAdministrator)] async (
+    CreateUserRequest request,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    if (tenantContext.TenantId is null)
+    {
+        return Results.Forbid();
+    }
+
+    var email = request.Email?.Trim() ?? string.Empty;
+    var name = request.Name?.Trim() ?? string.Empty;
+    var role = request.Role?.Trim() ?? string.Empty;
+    if (email.Length == 0
+        || name.Length == 0
+        || string.IsNullOrEmpty(request.Password)
+        || !PlatformRoles.All.Contains(role))
+    {
+        return Results.Json(new ApiErrorResponse("users.invalid"), statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    if (await userManager.FindByEmailAsync(email) is not null)
+    {
+        return Results.Json(new ApiErrorResponse("users.email_taken"), statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var user = new ApplicationUser
+    {
+        Id = Guid.NewGuid().ToString(),
+        UserName = email,
+        Email = email,
+        DisplayName = name,
+        EmailConfirmed = true,
+        TenantId = tenantContext.TenantId.Value
+    };
+
+    var created = await userManager.CreateAsync(user, request.Password);
+    if (!created.Succeeded)
+    {
+        return IdentityUserError(created);
+    }
+
+    var roleResult = await userManager.AddToRoleAsync(user, role);
+    if (!roleResult.Succeeded)
+    {
+        await userManager.DeleteAsync(user);
+        return IdentityUserError(roleResult);
+    }
+
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? email, [role]));
+});
+
 app.Run();
+
+static IResult IdentityUserError(IdentityResult result)
+{
+    var duplicate = result.Errors.Any(error => error.Code is "DuplicateUserName" or "DuplicateEmail");
+    if (duplicate)
+    {
+        return Results.Json(new ApiErrorResponse("users.email_taken"), statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var passwordFailed = result.Errors.Any(error => error.Code.StartsWith("Password", StringComparison.Ordinal));
+    var code = passwordFailed ? "users.password_invalid" : "users.invalid";
+    return Results.Json(new ApiErrorResponse(code), statusCode: StatusCodes.Status400BadRequest);
+}
 
 public partial class Program;

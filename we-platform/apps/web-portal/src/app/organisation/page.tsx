@@ -5,7 +5,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
-import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { ApiError } from "@/lib/api-error";
+import {
+  createDirectoryUser,
+  fetchProfile,
+  listDirectoryUsers,
+  personName,
+  type DirectoryUser,
+  type UserProfile,
+} from "@/lib/auth";
 import {
   assignTeacher,
   createClass,
@@ -35,9 +43,19 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 type Tab = "years" | "classes" | "staff" | "students" | "families";
 
+const accountRoles = [
+  "Student",
+  "Parent",
+  "Teacher",
+  "SchoolLeader",
+  "EducationAuthorityOfficer",
+  "FederationAdmin",
+  "SystemAdministrator",
+] as const;
+
 export default function OrganisationSetupPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +93,10 @@ export default function OrganisationSetupPage() {
   const [editPersonId, setEditPersonId] = useState("");
   const [editingLink, setEditingLink] = useState<string | null>(null);
   const [editLinkStudentId, setEditLinkStudentId] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountRole, setAccountRole] = useState<(typeof accountRoles)[number]>("Student");
 
   useEffect(() => {
     const stored = localStorage.getItem("we_access_token");
@@ -220,6 +242,90 @@ export default function OrganisationSetupPage() {
             {status}
           </p>
         ) : null}
+        <FocusCard>
+          <h2 className="font-medium">{t("organisation.accounts.title")}</h2>
+          {directory.length === 0 ? (
+            <p className="text-sm text-black/60">{t("organisation.accounts.empty")}</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {directory.map((person) => (
+                <li key={person.id}>
+                  <DataText>{`${person.name} (${person.email})`}</DataText>
+                  {" · "}
+                  {person.roles.map((role) => t(`organisation.role.${role}`)).join(", ")}
+                </li>
+              ))}
+            </ul>
+          )}
+        </FocusCard>
+        <FocusCard>
+          <h2 className="font-medium">{t("organisation.accounts.addTitle")}</h2>
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!token) {
+                return;
+              }
+              setBusy(true);
+              setStatus(null);
+              setStatusError(false);
+              void createDirectoryUser(token, {
+                name: accountName,
+                email: accountEmail,
+                password: accountPassword,
+                role: accountRole,
+              })
+                .then(() => listDirectoryUsers(token))
+                .then((people) => {
+                  setDirectory(people);
+                  setAccountName("");
+                  setAccountEmail("");
+                  setAccountPassword("");
+                  setStatus(t("organisation.manage.saved"));
+                })
+                .catch((err: unknown) => {
+                  setStatusError(true);
+                  setStatus(
+                    err instanceof ApiError ? translateError(err.code) : t("organisation.manage.failed")
+                  );
+                })
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Field label={t("organisation.accounts.name")} value={accountName} onChange={setAccountName} />
+            <Field
+              label={t("organisation.accounts.email")}
+              value={accountEmail}
+              onChange={setAccountEmail}
+              type="email"
+            />
+            <Field
+              label={t("organisation.accounts.password")}
+              value={accountPassword}
+              onChange={setAccountPassword}
+              type="password"
+            />
+            <p className="text-sm text-black/60">{t("organisation.accounts.passwordHint")}</p>
+            <label className="block space-y-1 text-sm">
+              <span>{t("organisation.accounts.role")}</span>
+              <select
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2"
+                value={accountRole}
+                onChange={(event) => setAccountRole(event.target.value as (typeof accountRoles)[number])}
+              >
+                {accountRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {t(`organisation.role.${role}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <PrimaryButton type="submit" disabled={busy}>
+              {t("organisation.accounts.add")}
+            </PrimaryButton>
+          </form>
+        </FocusCard>
         <label className="block space-y-1 text-sm">
           <span>{t("organisation.manage.school")}</span>
           <select

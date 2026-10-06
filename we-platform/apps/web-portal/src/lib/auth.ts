@@ -50,6 +50,26 @@ export async function login(
   return response.json();
 }
 
+export async function createDirectoryUser(
+  token: string,
+  account: { name: string; email: string; password: string; role: string }
+): Promise<DirectoryUser> {
+  const response = await fetch(`${identityApiUrl}/api/v1/users`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(account),
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "users.invalid");
+  }
+
+  return response.json();
+}
+
 export async function listDirectoryUsers(token: string): Promise<DirectoryUser[]> {
   const response = await fetch(`${identityApiUrl}/api/v1/users`, {
     headers: { Authorization: `Bearer ${token}` },
