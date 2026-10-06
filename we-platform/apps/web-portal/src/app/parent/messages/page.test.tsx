@@ -18,6 +18,20 @@ vi.mock("@/lib/auth", async () => {
   return {
     ...actual,
     fetchProfile: (token: string) => fetchProfile(token),
+    listDirectoryUsers: vi.fn().mockResolvedValue([
+      {
+        id: "22222222-2222-2222-2222-222222222222",
+        name: "Demo Student",
+        email: "student@school.local",
+        roles: ["Student"],
+      },
+      {
+        id: "11111111-1111-1111-1111-111111111111",
+        name: "Demo Teacher",
+        email: "teacher@school.local",
+        roles: ["Teacher"],
+      },
+    ]),
   };
 });
 
@@ -57,7 +71,7 @@ describe("parent message send errors", () => {
     );
 
     await screen.findByRole("button", { name: "Send message" });
-    await user.type(screen.getByLabelText("Teacher user ID"), "not-a-teacher");
+    await user.selectOptions(screen.getByLabelText("Teacher"), "11111111-1111-1111-1111-111111111111");
     await user.type(screen.getByLabelText("Message"), "Please look at this.");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
@@ -65,5 +79,42 @@ describe("parent message send errors", () => {
     expect(screen.getByRole("button", { name: "Send message" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Back to login" })).not.toBeInTheDocument();
     expect(localStorage.getItem("we_access_token")).toBe("token");
+  });
+
+  it("picks a teacher by name and labels the thread with names", async () => {
+    const { fetchMessageInbox } = await import("@/lib/messaging");
+    vi.mocked(fetchMessageInbox).mockResolvedValue({
+      threads: [
+        {
+          studentUserId: "22222222-2222-2222-2222-222222222222",
+          parentUserId: "parent-1",
+          teacherUserId: "11111111-1111-1111-1111-111111111111",
+          messageCount: 1,
+          latestMessage: {
+            id: "message-1",
+            studentUserId: "22222222-2222-2222-2222-222222222222",
+            parentUserId: "parent-1",
+            teacherUserId: "11111111-1111-1111-1111-111111111111",
+            senderUserId: "parent-1",
+            senderRole: "Parent",
+            body: "Please look at this.",
+            createdAt: "2026-10-06T09:00:00.000Z",
+          },
+        },
+      ],
+    });
+
+    render(
+      <I18nProvider>
+        <ParentMessagesPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByRole("option", { name: "Demo Teacher" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Demo Student" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Demo Student/ })).toHaveTextContent("Demo Teacher");
+    expect(screen.queryByText(/22222222/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/11111111/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Teacher user ID")).not.toBeInTheDocument();
   });
 });

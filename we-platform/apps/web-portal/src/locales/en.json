@@ -211,7 +211,7 @@
   "parent.messages.reply": "Reply",
   "parent.messages.newMessage": "New message to teacher",
   "parent.messages.childLabel": "Child",
-  "parent.messages.teacherIdLabel": "Teacher user ID",
+  "parent.messages.teacherIdLabel": "Teacher",
   "parent.messages.teacherIdPlaceholder": "Teacher user ID from your school",
   "parent.messages.messageLabel": "Message",
   "parent.messages.send": "Send message",

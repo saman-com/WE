@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import {
   fetchConversation,
   fetchMessageInbox,
@@ -22,6 +22,7 @@ export default function TeacherMessagesPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageInboxThread | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -42,7 +43,11 @@ export default function TeacherMessagesPage() {
           return;
         }
         setProfile(loaded);
-        const inbox = await fetchMessageInbox(token);
+        const [inbox, directory] = await Promise.all([
+          fetchMessageInbox(token),
+          listDirectoryUsers(token).catch(() => [] as DirectoryUser[]),
+        ]);
+        setPeople(directory);
         setThreads(inbox.threads);
       })
       .catch(() => {
@@ -163,8 +168,8 @@ export default function TeacherMessagesPage() {
                           ? "teacher.messages.threadMetaOne"
                           : "teacher.messages.threadMetaOther",
                         {
-                          student: thread.studentUserId.slice(0, 8),
-                          parent: thread.parentUserId.slice(0, 8),
+                          student: personName(people, thread.studentUserId, t("organisation.manage.unknownPerson")),
+                          parent: personName(people, thread.parentUserId, t("organisation.manage.unknownPerson")),
                           count: thread.messageCount,
                         }
                       )}

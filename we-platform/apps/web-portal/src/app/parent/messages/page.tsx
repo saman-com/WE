@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
 import {
   fetchConversation,
@@ -25,6 +25,7 @@ export default function ParentMessagesPage() {
   const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageInboxThread | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -48,7 +49,11 @@ export default function ParentMessagesPage() {
           return;
         }
         setProfile(loaded);
-        const linked = await fetchLinkedChildren(token);
+        const [linked, directory] = await Promise.all([
+          fetchLinkedChildren(token),
+          listDirectoryUsers(token).catch(() => [] as DirectoryUser[]),
+        ]);
+        setPeople(directory);
         setChildren(linked);
         if (linked.length > 0) {
           setNewStudentId(linked[0].studentUserId);
@@ -61,6 +66,10 @@ export default function ParentMessagesPage() {
         setError(t("common.sessionExpired"));
       });
   }, [router, t]);
+
+  function displayName(userId: string): string {
+    return personName(people, userId, t("organisation.manage.unknownPerson"));
+  }
 
   async function openThread(thread: MessageInboxThread) {
     const token = localStorage.getItem("we_access_token");
@@ -174,8 +183,8 @@ export default function ParentMessagesPage() {
                     }`}
                   >
                     {t("parent.messages.threadLabel", {
-                      child: thread.studentUserId.slice(0, 8),
-                      teacher: thread.teacherUserId.slice(0, 8),
+                      child: displayName(thread.studentUserId),
+                      teacher: displayName(thread.teacherUserId),
                     })}
                   </button>
                 </li>
@@ -220,19 +229,28 @@ export default function ParentMessagesPage() {
                 >
                   {children.map((child) => (
                     <option key={child.studentUserId} value={child.studentUserId}>
-                      {t("parent.home.childLabel", { id: child.studentUserId.slice(0, 8) })}
+                      {displayName(child.studentUserId)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="block text-sm">
                 {t("parent.messages.teacherIdLabel")}
-                <input
+                <select
                   value={newTeacherId}
                   onChange={(event) => setNewTeacherId(event.target.value)}
                   className="mt-1 block w-full rounded border border-black/20 px-3 py-2"
-                  placeholder={t("parent.messages.teacherIdPlaceholder")}
-                />
+                  required
+                >
+                  <option value="">{t("parent.messages.teacherIdLabel")}</option>
+                  {people
+                    .filter((person) => person.roles.includes("Teacher"))
+                    .map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
+                      </option>
+                    ))}
+                </select>
               </label>
             </>
           ) : null}

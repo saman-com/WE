@@ -211,7 +211,7 @@
   "parent.messages.reply": "رد",
   "parent.messages.newMessage": "رسالة جديدة إلى المعلم",
   "parent.messages.childLabel": "الطفل",
-  "parent.messages.teacherIdLabel": "معرّف المعلم",
+  "parent.messages.teacherIdLabel": "المعلم",
   "parent.messages.teacherIdPlaceholder": "معرّف المعلم من مدرستك",
   "parent.messages.messageLabel": "الرسالة",
   "parent.messages.send": "إرسال الرسالة",

@@ -263,6 +263,25 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
         Assert.DoesNotContain(users, user => user.Email == IdentityDataSeeder.StudentBEmail);
     }
 
+    [Fact]
+    public async Task Users_ForParent_ReturnsNamesInTheCallerTenant()
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/users",
+            IdentityDataSeeder.ParentUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Parent);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var users = await response.Content.ReadFromJsonAsync<List<DirectoryUserResponse>>();
+        Assert.NotNull(users);
+        Assert.Contains(users, user => user.Id == IdentityDataSeeder.TeacherUserId && user.Name == "Demo Teacher");
+        Assert.Contains(users, user => user.Id == IdentityDataSeeder.StudentUserId && user.Name == "Demo Student");
+    }
+
     private async Task<string> ResolveAdminUserIdAsync()
     {
         await using var scope = _factory.Services.CreateAsyncScope();
