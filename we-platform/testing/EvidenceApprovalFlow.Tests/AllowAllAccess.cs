@@ -35,12 +35,26 @@ internal sealed class AllowAllDiagnosticOrgAccess : diagnostic::DiagnosticServic
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(true);
+
+    public Task<bool> SchoolLeaderCanViewStudentAsync(
+        string schoolLeaderUserId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(true);
 }
 
 internal sealed class AllowAllGapOrgAccess : gaps::LearningGapService.Application.IOrganisationAccessChecker
 {
     public Task<bool> TeacherCanViewStudentAsync(
         string teacherUserId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(true);
+
+    public Task<bool> SchoolLeaderCanViewStudentAsync(
+        string schoolLeaderUserId,
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
@@ -58,6 +72,13 @@ internal sealed class AllowAllMasteryOrgAccess : mastery::MasteryService.Applica
 
     public Task<bool> ParentCanViewStudentAsync(
         string parentUserId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(true);
+
+    public Task<bool> SchoolLeaderCanViewStudentAsync(
+        string schoolLeaderUserId,
         string studentUserId,
         string bearerToken,
         CancellationToken cancellationToken = default) =>
