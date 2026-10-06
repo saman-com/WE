@@ -151,4 +151,20 @@ describe("Teacher home (UX-001 §12)", () => {
     expect(screen.getByRole("link", { name: "التدخلات" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "رسائل أولياء الأمور" })).toBeInTheDocument();
   });
+
+  it("sends a student to the student home instead of the dashboard", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "student-1",
+      email: "student@school.local",
+      name: "Demo Student",
+      roles: ["Student"],
+    });
+
+    renderHome();
+
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/student");
+    });
+    expect(listOrganisations).not.toHaveBeenCalled();
+  });
 });

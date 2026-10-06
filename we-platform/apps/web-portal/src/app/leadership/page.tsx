@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchClassLeadershipSummary,
   fetchLeadershipDashboard,
@@ -114,7 +115,7 @@ export default function LeadershipDashboardPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isSchoolLeader(loaded) && !loaded.roles.includes("SystemAdministrator")) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

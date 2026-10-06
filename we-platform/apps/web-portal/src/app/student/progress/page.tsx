@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchStudentWorkspace,
   type StudentWorkspaceTimelineEntry,
@@ -33,7 +34,7 @@ export default function StudentProgressPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

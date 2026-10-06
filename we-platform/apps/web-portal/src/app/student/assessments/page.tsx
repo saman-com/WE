@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   listClasses,
   listOrganisations,
@@ -42,6 +43,7 @@ export default function StudentAssessmentsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [homeHref, setHomeHref] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -73,6 +75,7 @@ export default function StudentAssessmentsPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
+          setHomeHref(roleHome(loaded.roles));
           setError(t("student.assessments.studentsOnly"));
           return;
         }
@@ -201,8 +204,8 @@ export default function StudentAssessmentsPage() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
           <p className="text-red-600">{error}</p>
-          <Link href="/dashboard" className="underline">
-            {t("common.backToDashboard")}
+          <Link href={homeHref ?? roleHome([])} className="underline">
+            {t("common.backToHome")}
           </Link>
         </div>
       </div>

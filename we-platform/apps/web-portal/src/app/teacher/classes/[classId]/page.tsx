@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchClassEiInsights,
   type ClassActiveLearningGap,
@@ -94,7 +95,7 @@ export default function TeacherClassDetailPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!isTeacher(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchConversation,
   fetchMessageInbox,
@@ -39,7 +40,7 @@ export default function TeacherMessagesPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isTeacher(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

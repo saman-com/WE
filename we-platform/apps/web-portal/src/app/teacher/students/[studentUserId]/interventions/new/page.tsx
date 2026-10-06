@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { fetchStudentGaps, type LearningGap } from "@/lib/gaps";
 import {
   buildSuggestedInterventionActions,
@@ -78,10 +79,8 @@ export default function CreateInterventionPage() {
 
     fetchProfile(token)
       .then(async (loaded) => {
-        const isTeacherOrAdmin =
-          loaded.roles.includes("Teacher") || loaded.roles.includes("SystemAdministrator");
-        if (!isTeacherOrAdmin) {
-          setError(t("teacher.interventions.new.teachersOnly"));
+        if (!loaded.roles.includes("Teacher")) {
+          router.replace(roleHome(loaded.roles));
           return;
         }
 

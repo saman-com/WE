@@ -145,4 +145,26 @@ describe("organisation manage view", () => {
     });
     expect(await screen.findByText("New Teacher (new.teacher@school.local)")).toBeInTheDocument();
   });
+
+  it("sends a signed-in teacher back to the teacher home", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "teacher-1",
+      email: "teacher@school.local",
+      name: "Demo Teacher",
+      roles: ["Teacher"],
+    });
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    expect(
+      await screen.findByText("Only system administrators can set up organisations.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/teacher");
+    expect(screen.queryByRole("link", { name: "Back to login" })).not.toBeInTheDocument();
+    expect(listOrganisations).not.toHaveBeenCalled();
+  });
 });

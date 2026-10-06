@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchStudentInterventions,
   type Intervention,
@@ -44,10 +45,8 @@ export default function TeacherInterventionsPage() {
 
     fetchProfile(token)
       .then(async (loaded) => {
-        const isTeacherOrAdmin =
-          loaded.roles.includes("Teacher") || loaded.roles.includes("SystemAdministrator");
-        if (!isTeacherOrAdmin) {
-          router.replace("/dashboard");
+        if (!loaded.roles.includes("Teacher")) {
+          router.replace(roleHome(loaded.roles));
           return;
         }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
 import {
   fetchChildProgress,
@@ -41,7 +42,7 @@ export default function ParentWorkspacePage() {
           return;
         }
         if (!isParent(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

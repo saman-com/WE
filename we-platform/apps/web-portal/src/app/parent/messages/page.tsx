@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
 import {
   fetchConversation,
@@ -45,7 +46,7 @@ export default function ParentMessagesPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isParent(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

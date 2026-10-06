@@ -148,4 +148,21 @@ describe("Teacher interventions list (UX-001 §10)", () => {
     expect(screen.getByText("Guided algebra practice")).toBeInTheDocument();
     expect(screen.getByText("Scaffolded substitution drills")).toBeInTheDocument();
   });
+
+  it("sends a system administrator to the organisation home", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "admin-1",
+      email: "admin@school.local",
+      name: "Demo Admin",
+      roles: ["SystemAdministrator"],
+    });
+
+    renderPage();
+
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/organisation");
+    });
+    expect(listOrganisations).not.toHaveBeenCalled();
+    expect(screen.queryByText("Guided algebra practice")).not.toBeInTheDocument();
+  });
 });

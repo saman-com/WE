@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
 import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryLink } from "@/components/learning-frame";
@@ -64,7 +65,7 @@ export default function TeacherWorkspacePage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isTeacher(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);

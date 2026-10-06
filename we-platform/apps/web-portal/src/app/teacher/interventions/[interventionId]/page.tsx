@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   fetchIntervention,
   patchIntervention,
@@ -43,12 +44,11 @@ export default function InterventionDetailPage() {
     Promise.all([fetchProfile(token), fetchIntervention(token, interventionId)])
       .then(([profile, loaded]) => {
         const canManage =
-          profile.roles.includes("SystemAdministrator") ||
           profile.roles.includes("SchoolLeader") ||
           (profile.roles.includes("Teacher") && profile.id === loaded.assignedTeacherUserId);
 
         if (!canManage && !profile.roles.includes("Teacher")) {
-          setError(t("teacher.interventions.detail.noAccess"));
+          router.replace(roleHome(profile.roles));
           return;
         }
 
@@ -137,8 +137,7 @@ export default function InterventionDetailPage() {
   }
 
   const canModify =
-    viewer.roles.includes("SystemAdministrator") ||
-    (viewer.roles.includes("Teacher") && viewer.id === intervention.assignedTeacherUserId);
+    viewer.roles.includes("Teacher") && viewer.id === intervention.assignedTeacherUserId;
 
   return (
     <div className="min-h-screen p-8">

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { moveGradingLevel, validateGradingLevels } from "@/lib/grading-levels";
 import {
   fetchRegionalConfiguration,
@@ -90,7 +91,7 @@ export default function RegionalConfigurationAdminPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         if (!isTenantAdmin(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
 

@@ -14,6 +14,7 @@ import {
   type DirectoryUser,
   type UserProfile,
 } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import {
   assignTeacher,
   createClass,
@@ -59,6 +60,7 @@ export default function OrganisationSetupPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [homeHref, setHomeHref] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [schools, setSchools] = useState<Organisation[]>([]);
@@ -108,6 +110,7 @@ export default function OrganisationSetupPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!loaded.roles.includes("SystemAdministrator")) {
+          setHomeHref(roleHome(loaded.roles));
           setError(t("organisation.adminOnly"));
           return;
         }
@@ -206,8 +209,8 @@ export default function OrganisationSetupPage() {
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="space-y-4 text-center">
           <p className="text-red-700">{error}</p>
-          <Link href="/login" className="underline">
-            {t("common.backToLogin")}
+          <Link href={homeHref ?? "/login"} className="underline">
+            {homeHref ? t("common.backToHome") : t("common.backToLogin")}
           </Link>
         </div>
       </div>

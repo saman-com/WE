@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { roleHome } from "@/lib/role-home";
 import { listStudentFeedback, type StudentFeedback } from "@/lib/evidence";
 import { DataText } from "@/components/data-text";
 import { LearningFrame } from "@/components/learning-frame";
@@ -36,7 +37,7 @@ export default function StudentFeedbackPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
-          router.replace("/dashboard");
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);
