@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import {
   listClasses,
   listOrganisations,
@@ -56,6 +56,7 @@ export default function AssessmentsPage() {
   const [assessmentsHasMore, setAssessmentsHasMore] = useState(false);
   const [assessmentsCursor, setAssessmentsCursor] = useState<string | null>(null);
   const [loadingMoreAssessments, setLoadingMoreAssessments] = useState(false);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
 
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -90,6 +91,7 @@ export default function AssessmentsPage() {
           return;
         }
         setProfile(loaded);
+        listDirectoryUsers(stored).then(setPeople).catch(() => setPeople([]));
         try {
           const loadedOrgs = await listOrganisations(stored);
           setOrganisations(loadedOrgs);
@@ -320,7 +322,11 @@ export default function AssessmentsPage() {
               {selectedClass.studentUserIds && selectedClass.studentUserIds.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {selectedClass.studentUserIds.map((studentUserId) => (
-                    <li key={studentUserId}>{studentUserId}</li>
+                    <li key={studentUserId}>
+                      <DataText>
+                        {personName(people, studentUserId, t("organisation.manage.unknownPerson"))}
+                      </DataText>
+                    </li>
                   ))}
                 </ul>
               ) : (
