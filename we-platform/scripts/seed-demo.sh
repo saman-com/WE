@@ -233,7 +233,9 @@ fi
 
 echo "Algebra check (due soon)"
 published_assessment "Algebra check" "$(utc_days +4)" >/dev/null
+drop_duplicate_assessments "Algebra sheet"
 drop_duplicate_assessments "Algebra check"
+bash scripts/cleanup-duplicate-algebra.sh
 
 echo "Federation school and policy for federation@ministry.local"
 # Identity puts this id on the FederationAdmin token. Upsert directly: the

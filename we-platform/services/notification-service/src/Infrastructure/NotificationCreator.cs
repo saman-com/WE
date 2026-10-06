@@ -37,6 +37,19 @@ public sealed class NotificationCreator(
             return;
         }
 
+        if (relatedEntityId is Guid relatedId)
+        {
+            var alreadyForEntity = await db.Notifications.AnyAsync(
+                n => n.RecipientUserId == recipientUserId
+                    && n.Type == type
+                    && n.RelatedEntityId == relatedId,
+                cancellationToken);
+            if (alreadyForEntity)
+            {
+                return;
+            }
+        }
+
         var notification = new Notification
         {
             Id = Guid.CreateVersion7(),

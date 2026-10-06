@@ -84,6 +84,40 @@ public class NotificationConsumerTests
     }
 
     [Fact]
+    public async Task AssessmentApprovedConsumer_DoesNotRepeatFeedbackForTheSameAssessment()
+    {
+        var studentId = Guid.NewGuid().ToString();
+        var emailNotifier = new FakeEmailNotifier();
+        await using var provider = BuildProvider(emailNotifier);
+        var harness = new InMemoryTestHarness();
+        var consumerHarness = harness.Consumer(() =>
+            new AssessmentApprovedConsumer(provider.GetRequiredService<INotificationCreator>()));
+
+        await harness.Start();
+        try
+        {
+            var first = CreateAssessmentApproved(studentId);
+            var secondEventId = Guid.CreateVersion7();
+            var second = first with { EventId = secondEventId, CorrelationId = secondEventId };
+            await harness.Bus.Publish(first);
+            await harness.Bus.Publish(second);
+
+            Assert.True(await consumerHarness.Consumed.Any<AssessmentApproved>(
+                message => message.Context.Message.EventId == secondEventId));
+
+            await using var scope = provider.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
+            var notifications = await db.Notifications.IgnoreQueryFilters().ToListAsync();
+            Assert.Single(notifications);
+            Assert.Equal(first.AssessmentId, notifications[0].RelatedEntityId);
+        }
+        finally
+        {
+            await harness.Stop();
+        }
+    }
+
+    [Fact]
     public async Task MessageSentConsumer_CreatesNewMessageNotification()
     {
         var recipientId = Guid.NewGuid().ToString();
