@@ -210,6 +210,7 @@ public static class LeadershipDashboardEndpoints
             bearerToken);
         var eiInsights = await eiClient.GetClassInsightsAsync(organisationId, classId, bearerToken);
         var activeInterventions = await CountActiveInterventionsAsync(
+            organisationId,
             schoolClass.Enrollments.Select(e => e.StudentUserId).ToList(),
             interventionClient,
             bearerToken);
@@ -407,6 +408,14 @@ public static class LeadershipDashboardEndpoints
         IEiInsightsClient eiClient,
         string bearerToken)
     {
+        var organisationId = classes.FirstOrDefault()?.OrganisationId;
+        var plannedOrActive = organisationId is null
+            ? []
+            : await ListPlannedOrActiveInterventionsAsync(
+                organisationId.Value,
+                interventionClient,
+                bearerToken);
+
         var tasks = classes.Select(async schoolClass =>
         {
             var studentIds = schoolClass.Enrollments.Select(e => e.StudentUserId).ToList();
@@ -418,10 +427,7 @@ public static class LeadershipDashboardEndpoints
                 schoolClass.OrganisationId,
                 schoolClass.Id,
                 bearerToken);
-            var activeInterventions = await CountActiveInterventionsAsync(
-                studentIds,
-                interventionClient,
-                bearerToken);
+            var activeInterventions = CountForStudents(plannedOrActive, studentIds);
 
             return LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
                 schoolClass.Id,
@@ -438,17 +444,40 @@ public static class LeadershipDashboardEndpoints
     }
 
     private static async Task<int> CountActiveInterventionsAsync(
+        Guid organisationId,
         IReadOnlyList<string> studentUserIds,
         IInterventionDashboardClient interventionClient,
         string bearerToken)
     {
-        var counts = await Task.WhenAll(studentUserIds.Select(async studentUserId =>
-        {
-            var interventions = await interventionClient.ListActiveInterventionsAsync(studentUserId, bearerToken);
-            return interventions.Count;
-        }));
+        var interventions = await ListPlannedOrActiveInterventionsAsync(
+            organisationId,
+            interventionClient,
+            bearerToken);
+        return CountForStudents(interventions, studentUserIds);
+    }
 
-        return counts.Sum();
+    private static async Task<IReadOnlyList<InterventionDetailData>> ListPlannedOrActiveInterventionsAsync(
+        Guid organisationId,
+        IInterventionDashboardClient interventionClient,
+        string bearerToken)
+    {
+        var interventions = await interventionClient.ListOrganisationInterventionsAsync(
+            organisationId,
+            status: null,
+            bearerToken);
+        return interventions
+            .Where(item =>
+                string.Equals(item.Status, "Planned", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private static int CountForStudents(
+        IReadOnlyList<InterventionDetailData> interventions,
+        IReadOnlyList<string> studentUserIds)
+    {
+        var students = studentUserIds.ToHashSet(StringComparer.Ordinal);
+        return interventions.Count(item => students.Contains(item.StudentUserId));
     }
 
     private static ClassResponse ToClass(SchoolClass schoolClass, ClaimsPrincipal principal) =>

@@ -88,10 +88,14 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         [
             new ParentInterventionSummaryData(
                 Guid.CreateVersion7(),
-                "Guided reading support",
+                "Parent summary must not be counted",
                 "Active",
-                DateTimeOffset.UtcNow.AddDays(-2),
-                DateTimeOffset.UtcNow.AddDays(14))
+                null,
+                null)
+        ];
+        _interventionClient.OrganisationInterventions[(org.Id, null)] =
+        [
+            OrganisationIntervention(org.Id, studentId, "Active")
         ];
         _eiClient.InsightsByClass[(org.Id, schoolClass.Id)] = new ClassEiInsightsData(
             org.Id,
@@ -143,6 +147,41 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
     }
 
     [Fact]
+    public async Task SchoolLeader_CountsPlannedAndActiveOrganisationInterventions_NotParentSummary()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Intervention Count School", UniqueCode("ICS"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 4", 4);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "4A", UniqueCode("4A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await AssignSchoolLeaderAsync(adminId, org.Id, leaderId);
+
+        _interventionClient.InterventionsByStudent[studentId] =
+        [
+            new ParentInterventionSummaryData(Guid.CreateVersion7(), "Ignored parent summary", "Active", null, null),
+            new ParentInterventionSummaryData(Guid.CreateVersion7(), "Also ignored", "Planned", null, null)
+        ];
+        _interventionClient.OrganisationInterventions[(org.Id, null)] =
+        [
+            OrganisationIntervention(org.Id, studentId, "Planned"),
+            OrganisationIntervention(org.Id, studentId, "Active"),
+            OrganisationIntervention(org.Id, studentId, "Completed")
+        ];
+
+        var dashboard = await SendAsAsync<LeadershipDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/dashboard",
+            leaderId,
+            org.Id,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Equal(2, dashboard.Kpis.ActiveInterventions);
+    }
+
+    [Fact]
     public async Task SchoolLeader_DashboardNumbers_MatchComputedExpectationsFromSeededOrgClassData()
     {
         var adminId = Guid.NewGuid().ToString();
@@ -185,17 +224,11 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         };
         _assessmentClient.SummariesByClass = assessmentsByClass;
 
-        _interventionClient.InterventionsByStudent[student7A1] =
+        _interventionClient.OrganisationInterventions[(org.Id, null)] =
         [
-            new ParentInterventionSummaryData(
-                Guid.CreateVersion7(), "Support A1", "Active", null, null)
-        ];
-        _interventionClient.InterventionsByStudent[student7A2] =
-        [
-            new ParentInterventionSummaryData(
-                Guid.CreateVersion7(), "Support A2", "Active", null, null),
-            new ParentInterventionSummaryData(
-                Guid.CreateVersion7(), "Support A2b", "Active", null, null)
+            OrganisationIntervention(org.Id, student7A1, "Active"),
+            OrganisationIntervention(org.Id, student7A2, "Active"),
+            OrganisationIntervention(org.Id, student7A2, "Planned")
         ];
 
         var insights7A = new ClassEiInsightsData(
@@ -656,6 +689,25 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
+
+    private static InterventionDetailData OrganisationIntervention(
+        Guid organisationId,
+        string studentUserId,
+        string status) =>
+        new(
+            Guid.CreateVersion7(),
+            organisationId,
+            studentUserId,
+            Guid.CreateVersion7(),
+            Guid.NewGuid().ToString(),
+            "Practice",
+            null,
+            status,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow);
 
     private async Task AssignSchoolLeaderAsync(string adminId, Guid organisationId, string leaderId)
     {
