@@ -1,4 +1,6 @@
 import { readApiError } from "@/lib/api-error";
+
+const organisationApiUrl =
   process.env.NEXT_PUBLIC_ORGANISATION_API_URL ?? "http://localhost:8082";
 
 export type Organisation = {
