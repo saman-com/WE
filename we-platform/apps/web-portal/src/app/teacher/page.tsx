@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
+import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryLink } from "@/components/learning-frame";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -152,9 +153,11 @@ export default function TeacherWorkspacePage() {
           <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <FocusCard>
               <div className="space-y-2">
-                <p className="text-sm text-black/60">{firstClass.organisationName}</p>
+                <p className="text-sm text-black/60">
+                  <DataText>{firstClass.organisationName}</DataText>
+                </p>
                 <p className="text-lg font-semibold">
-                  {firstClass.name} ({firstClass.code})
+                  <DataText>{`${firstClass.name} (${firstClass.code})`}</DataText>
                 </p>
                 <p className="text-sm">
                   {t("teacher.workspace.studentsEnrolled", {
@@ -189,9 +192,11 @@ export default function TeacherWorkspacePage() {
                 >
                   <div>
                     <p className="text-sm font-semibold underline-offset-2 group-hover:underline">
-                      {schoolClass.name} ({schoolClass.code})
+                      <DataText>{`${schoolClass.name} (${schoolClass.code})`}</DataText>
                     </p>
-                    <p className="text-sm text-black/60">{schoolClass.organisationName}</p>
+                    <p className="text-sm text-black/60">
+                      <DataText>{schoolClass.organisationName}</DataText>
+                    </p>
                   </div>
                   <p className="text-sm text-black/60">
                     {t("teacher.workspace.studentsEnrolled", {

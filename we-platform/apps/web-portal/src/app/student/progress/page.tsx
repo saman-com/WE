@@ -8,6 +8,7 @@ import {
   fetchStudentWorkspace,
   type StudentWorkspaceTimelineEntry,
 } from "@/lib/student-workspace";
+import { DataText } from "@/components/data-text";
 import { LearningFrame } from "@/components/learning-frame";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -78,7 +79,9 @@ export default function StudentProgressPage() {
           <ol className="space-y-4 border-s border-black/15 ps-4">
             {timeline.map((entry) => (
               <li key={entry.id}>
-                <p className="font-semibold">{entry.title}</p>
+                <p className="font-semibold">
+                  <DataText>{entry.title}</DataText>
+                </p>
                 <p className="text-sm text-black/60">
                   {new Date(entry.recordedAt).toLocaleString()}
                 </p>

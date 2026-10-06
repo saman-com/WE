@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listOrganisations, type Organisation } from "@/lib/organisation";
@@ -288,7 +289,7 @@ export default function CurriculumPage() {
                 >
                   {organisations.map((organisation) => (
                     <option key={organisation.id} value={organisation.id}>
-                      {organisation.name}
+                      <DataText>{organisation.name}</DataText>
                     </option>
                   ))}
                 </select>
@@ -319,7 +320,7 @@ export default function CurriculumPage() {
                 >
                   {curricula.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name}
+                      <DataText>{item.name}</DataText>
                     </option>
                   ))}
                 </select>
@@ -341,7 +342,8 @@ export default function CurriculumPage() {
                         className="text-start font-medium underline"
                         onClick={() => toggleSubject(subject.id)}
                       >
-                        {expanded ? "▾" : "▸"} {subject.name} ({subject.code})
+                        {expanded ? "▾" : "▸"}{" "}
+                        <DataText>{`${subject.name} (${subject.code})`}</DataText>
                       </button>
                       {expanded ? (
                         <ul className="ms-6 mt-1 list-disc space-y-1">
@@ -350,7 +352,7 @@ export default function CurriculumPage() {
                           ) : (
                             subject.units.map((unit) => (
                               <li key={unit.id}>
-                                {unit.name}
+                                <DataText>{unit.name}</DataText>
                                 {unit.isOverridden ? (
                                   <span className="ms-2 text-xs text-amber-700">
                                     {t("curriculum.overridden")}
@@ -359,7 +361,9 @@ export default function CurriculumPage() {
                                 {unit.topics.length > 0 ? (
                                   <ul className="ms-5 list-[circle]">
                                     {unit.topics.map((topic) => (
-                                      <li key={topic.id}>{topic.name}</li>
+                                      <li key={topic.id}>
+                                        <DataText>{topic.name}</DataText>
+                                      </li>
                                     ))}
                                   </ul>
                                 ) : null}
@@ -368,11 +372,13 @@ export default function CurriculumPage() {
                                     {unit.learningObjectives.map((objective) => (
                                       <li key={objective.id}>
                                         <span className="font-medium">{t("curriculum.loLabel")}</span>{" "}
-                                        {objective.title}
+                                        <DataText>{objective.title}</DataText>
                                         {objective.microSkills.length > 0 ? (
                                           <ul className="ms-5 list-[square]">
                                             {objective.microSkills.map((skill) => (
-                                              <li key={skill.id}>{skill.name}</li>
+                                              <li key={skill.id}>
+                                                <DataText>{skill.name}</DataText>
+                                              </li>
                                             ))}
                                           </ul>
                                         ) : null}
@@ -683,7 +689,7 @@ export default function CurriculumPage() {
                   <option value="">{t("curriculum.label.parent")}</option>
                   {curricula.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name}
+                      <DataText>{item.name}</DataText>
                     </option>
                   ))}
                 </select>

@@ -13,6 +13,7 @@ import {
   type AssessmentSubmission,
 } from "@/lib/assessment";
 import { AiMockPreviewLabel } from "@/components/ai-mock-preview-label";
+import { DataText } from "@/components/data-text";
 import {
   approveEvidence,
   listEvidenceForAssessment,
@@ -252,9 +253,13 @@ export default function AssessmentReviewPage() {
         {message ? <p className="text-green-700">{message}</p> : null}
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
-          <h2 className="font-medium">{assessment.title}</h2>
+          <h2 className="font-medium">
+            <DataText>{assessment.title}</DataText>
+          </h2>
           {assessment.instructions ? (
-            <p className="text-sm text-black/70">{assessment.instructions}</p>
+            <p className="text-sm text-black/70">
+              <DataText>{assessment.instructions}</DataText>
+            </p>
           ) : null}
           <p className="text-sm">
             {t("assessments.review.microSkillsCount", {
@@ -303,7 +308,7 @@ export default function AssessmentReviewPage() {
                     <ul className="text-sm space-y-2">
                       {approved.microSkillMarks.map((mark) => (
                         <li key={mark.microSkillId}>
-                          {mark.microSkillId}: {mark.mark} — {mark.feedback}
+                          {mark.microSkillId}: {mark.mark} — <DataText>{mark.feedback}</DataText>
                         </li>
                       ))}
                     </ul>

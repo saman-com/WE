@@ -11,6 +11,7 @@ import {
   type ParentChildLink,
   type ParentChildProgress,
 } from "@/lib/parent-workspace";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function isParent(profile: UserProfile): boolean {
@@ -188,8 +189,12 @@ export default function ParentWorkspacePage() {
                     <ul className="space-y-3">
                       {progress.assessments.map((assessment) => (
                         <li key={assessment.id} className="border border-black/10 rounded p-3">
-                          <p className="font-medium">{assessment.title}</p>
-                          <p className="text-sm text-black/60">{assessment.className}</p>
+                          <p className="font-medium">
+                            <DataText>{assessment.title}</DataText>
+                          </p>
+                          <p className="text-sm text-black/60">
+                            <DataText>{assessment.className}</DataText>
+                          </p>
                           <p className="text-sm">
                             {assessment.hasSubmitted
                               ? t("parent.home.submitted")
@@ -209,12 +214,16 @@ export default function ParentWorkspacePage() {
                     <ul className="space-y-3">
                       {progress.feedback.slice(0, 3).map((item) => (
                         <li key={item.evidenceId} className="border border-black/10 rounded p-3">
-                          <p className="font-medium">{item.title}</p>
+                          <p className="font-medium">
+                            <DataText>{item.title}</DataText>
+                          </p>
                           <p className="text-sm text-black/60">
                             {new Date(item.approvedAt).toLocaleDateString()}
                           </p>
                           {item.microSkillMarks[0]?.feedback ? (
-                            <p className="text-sm mt-1">{item.microSkillMarks[0].feedback}</p>
+                            <p className="text-sm mt-1">
+                              <DataText>{item.microSkillMarks[0].feedback}</DataText>
+                            </p>
                           ) : null}
                         </li>
                       ))}
@@ -230,7 +239,9 @@ export default function ParentWorkspacePage() {
                     <ul className="space-y-3">
                       {progress.activeInterventions.map((item) => (
                         <li key={item.id} className="border border-black/10 rounded p-3">
-                          <p className="font-medium">{item.summary}</p>
+                          <p className="font-medium">
+                            <DataText>{item.summary}</DataText>
+                          </p>
                           <p className="text-sm text-black/60">{t("parent.home.statusLine", { status: item.status })}</p>
                         </li>
                       ))}

@@ -17,6 +17,7 @@ import {
   type Assessment,
   type AssessmentSubmission,
 } from "@/lib/assessment";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 type ClassScope = {
@@ -241,7 +242,7 @@ export default function StudentAssessmentsPage() {
             >
               {classScopes.map((scope) => (
                 <option key={scope.schoolClass.id} value={scope.schoolClass.id}>
-                  {scope.schoolClass.name} ({scope.schoolClass.code})
+                  <DataText>{`${scope.schoolClass.name} (${scope.schoolClass.code})`}</DataText>
                 </option>
               ))}
             </select>
@@ -263,7 +264,9 @@ export default function StudentAssessmentsPage() {
                     }`}
                     onClick={() => setSelectedAssessmentId(assessment.id)}
                   >
-                    <p className="font-medium">{assessment.title}</p>
+                    <p className="font-medium">
+                      <DataText>{assessment.title}</DataText>
+                    </p>
                     {assessment.dueAt ? (
                       <p className="text-sm text-black/70">
                         {t("assessments.list.duePrefix")} {new Date(assessment.dueAt).toLocaleString()}
@@ -288,7 +291,9 @@ export default function StudentAssessmentsPage() {
 
         {selectedAssessment ? (
           <div className="rounded-lg border border-black/10 p-6 space-y-4">
-            <h2 className="font-medium">{selectedAssessment.title}</h2>
+            <h2 className="font-medium">
+              <DataText>{selectedAssessment.title}</DataText>
+            </h2>
             {selectedAssessment.instructions ? (
               <p className="text-sm text-black/70">{selectedAssessment.instructions}</p>
             ) : null}

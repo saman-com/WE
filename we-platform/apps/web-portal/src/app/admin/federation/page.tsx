@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, listDirectoryUsers, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
@@ -249,10 +250,7 @@ export default function FederationAdminPage() {
                 <ul className="mt-3 space-y-2 text-sm">
                   {schools.map((school) => (
                     <li key={school.tenantId}>
-                      {t("admin.federation.schoolLine", {
-                        name: school.name,
-                        code: school.code,
-                      })}
+                      <DataText>{`${school.name} (${school.code})`}</DataText>
                     </li>
                   ))}
                 </ul>
@@ -316,7 +314,7 @@ export default function FederationAdminPage() {
                 >
                   <option value="">{t("admin.federation.selectSchool")}</option>
                   {schools.map((school) => (
-                    <option key={school.tenantId} value={school.tenantId}>
+                    <option key={school.tenantId} value={school.tenantId} dir="auto">
                       {school.name}
                     </option>
                   ))}
@@ -332,7 +330,7 @@ export default function FederationAdminPage() {
                 >
                   <option value="">{t("admin.federation.adminUserId")}</option>
                   {people.map((person) => (
-                    <option key={person.id} value={person.id}>
+                    <option key={person.id} value={person.id} dir="auto">
                       {person.name}
                     </option>
                   ))}

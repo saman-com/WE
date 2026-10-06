@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
@@ -239,10 +240,12 @@ export default function StudentProfilePage() {
           {viewer.id === profile.studentUserId ? (
             <>
               <p>
-                <span className="font-medium">{t("dashboard.profile.nameLabel")}</span> {viewer.name}
+                <span className="font-medium">{t("dashboard.profile.nameLabel")}</span>{" "}
+                <DataText>{viewer.name}</DataText>
               </p>
               <p>
-                <span className="font-medium">{t("dashboard.profile.emailLabel")}</span> {viewer.email}
+                <span className="font-medium">{t("dashboard.profile.emailLabel")}</span>{" "}
+                <DataText>{viewer.email}</DataText>
               </p>
             </>
           ) : null}
@@ -256,7 +259,7 @@ export default function StudentProfilePage() {
             <ul className="list-disc pl-5 space-y-1">
               {profile.enrollments.map((enrollment) => (
                 <li key={enrollment.classId}>
-                  {enrollment.className} ({enrollment.classCode})
+                  <DataText>{`${enrollment.className} (${enrollment.classCode})`}</DataText>
                 </li>
               ))}
             </ul>
@@ -273,7 +276,7 @@ export default function StudentProfilePage() {
             <ul className="list-disc pl-5 space-y-1">
               {profile.evidenceTimeline.map((entry) => (
                 <li key={entry.id}>
-                  {entry.title} — {new Date(entry.recordedAt).toLocaleDateString()}
+                  <DataText>{entry.title}</DataText> — {new Date(entry.recordedAt).toLocaleDateString()}
                 </li>
               ))}
             </ul>

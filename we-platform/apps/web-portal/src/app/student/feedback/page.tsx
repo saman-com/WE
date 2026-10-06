@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { listStudentFeedback, type StudentFeedback } from "@/lib/evidence";
+import { DataText } from "@/components/data-text";
 import { LearningFrame } from "@/components/learning-frame";
 import { levelFromMark } from "@/lib/student-focus";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -100,7 +101,9 @@ export default function StudentFeedbackPage() {
             {feedback.map((item) => (
               <li key={item.id} className="space-y-3">
                 <div>
-                  <p className="font-semibold">{item.title}</p>
+                  <p className="font-semibold">
+                    <DataText>{item.title}</DataText>
+                  </p>
                   <p className="text-sm text-black/60">
                     {t("student.feedback.reviewed", {
                       date: new Date(item.approvedAt).toLocaleString(),
@@ -110,7 +113,9 @@ export default function StudentFeedbackPage() {
                 <ul className="divide-y divide-black/10 border-y border-black/10">
                   {item.microSkillMarks.map((mark) => (
                     <li key={mark.microSkillId} className="flex items-baseline justify-between gap-3 py-3">
-                      <span className="text-sm">{mark.feedback || t("student.feedback.markLabel")}</span>
+                      <span className="text-sm">
+                        <DataText>{mark.feedback || t("student.feedback.markLabel")}</DataText>
+                      </span>
                       <span className="shrink-0 text-sm text-black/60">
                         {t(`student.focus.level.${levelFromMark(mark.mark)}`)}
                       </span>

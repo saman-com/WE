@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { roleHome } from "@/lib/role-home";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export default function DashboardPage() {
@@ -84,11 +85,11 @@ export default function DashboardPage() {
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <p>
             <span className="font-medium">{t("dashboard.profile.nameLabel")}</span>{" "}
-            {profile.name}
+            <DataText>{profile.name}</DataText>
           </p>
           <p>
             <span className="font-medium">{t("dashboard.profile.emailLabel")}</span>{" "}
-            {profile.email}
+            <DataText>{profile.email}</DataText>
           </p>
           <p>
             <span className="font-medium">{t("dashboard.profile.userIdLabel")}</span>{" "}
@@ -187,7 +188,7 @@ export default function DashboardPage() {
               {classes.map((schoolClass) => (
                 <li key={schoolClass.id}>
                   <p className="font-medium">
-                    {schoolClass.name} ({schoolClass.code})
+                    <DataText>{`${schoolClass.name} (${schoolClass.code})`}</DataText>
                   </p>
                   {schoolClass.studentUserIds && schoolClass.studentUserIds.length > 0 ? (
                     <ul className="list-disc pl-5 mt-1 space-y-1">

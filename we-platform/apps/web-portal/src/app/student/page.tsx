@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
+import { DataText } from "@/components/data-text";
 import {
   FocusCard,
   LearningFrame,
@@ -240,32 +241,38 @@ function Today({
   const due = upcomingDue(workspace.assessments);
   const lead = todayHeadline(task, focus, note?.sentence ?? null);
   const headline =
-    lead.kind === "twoThings"
-      ? t("student.focus.twoThings", {
-          day: new Date(lead.dueAt).toLocaleDateString(locale, { weekday: "long" }),
-        })
-      : lead.kind === "oneDue"
-        ? t("student.focus.oneDue", { title: lead.title })
-        : lead.kind === "note"
-          ? lead.sentence
-          : t("student.focus.quietDay");
+    lead.kind === "twoThings" ? (
+      t("student.focus.twoThings", {
+        day: new Date(lead.dueAt).toLocaleDateString(locale, { weekday: "long" }),
+      })
+    ) : lead.kind === "oneDue" ? (
+      <>
+        <DataText>{lead.title}</DataText> {t("student.focus.oneDue")}
+      </>
+    ) : lead.kind === "note" ? (
+      <DataText>{lead.sentence}</DataText>
+    ) : (
+      t("student.focus.quietDay")
+    );
 
   const taskCard = task ? (
     <FocusCard>
       <div className="space-y-2">
         <p className="text-sm text-black/60">
+          <DataText>{task.className}</DataText>
           {task.dueAt
-            ? t("student.focus.dueLine", {
-                className: task.className,
+            ? ` · ${t("student.focus.dueLine", {
                 date: new Date(task.dueAt).toLocaleDateString(locale, {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
                 }),
-              })
-            : t("student.focus.classOnly", { className: task.className })}
+              })}`
+            : null}
         </p>
-        <p className="text-lg font-semibold">{task.title}</p>
+        <p className="text-lg font-semibold">
+          <DataText>{task.title}</DataText>
+        </p>
       </div>
     </FocusCard>
   ) : null;
@@ -277,13 +284,17 @@ function Today({
           <div className="space-y-1">
             <p className="text-sm font-semibold">{t("student.focus.stillShaky")}</p>
             <p className="text-sm">
-              {focus.label} · {levelLabel(focus.level)}
+              <DataText>{focus.label}</DataText>
+              {" · "}
+              {levelLabel(focus.level)}
             </p>
           </div>
         ) : null}
         <PrimaryLink href={taskHref(task)}>{t("student.focus.openTask")}</PrimaryLink>
         {note && note.sentence !== focus?.label ? (
-          <p className="text-sm text-black/60">{note.sentence}</p>
+          <p className="text-sm text-black/60">
+            <DataText>{note.sentence}</DataText>
+          </p>
         ) : null}
       </div>
     ) : null;
@@ -306,7 +317,9 @@ function Today({
                   ? new Date(item.dueAt).toLocaleDateString(locale, { weekday: "short" })
                   : ""}
               </p>
-              <p className="text-sm text-black/60">{item.title}</p>
+              <p className="text-sm text-black/60">
+                <DataText>{item.title}</DataText>
+              </p>
             </div>
           ))}
         </div>
@@ -348,7 +361,9 @@ function Skills({
               }
             >
               <span className="flex items-baseline justify-between gap-3">
-                <span className="text-sm">{read.label}</span>
+                <span className="text-sm">
+                  <DataText>{read.label}</DataText>
+                </span>
                 <span className="shrink-0 text-sm text-black/60">{levelLabel(read.level)}</span>
               </span>
               <span className="mt-2 block h-1 rounded-full bg-black/10">
@@ -366,8 +381,12 @@ function Skills({
 
   const detail = selected ? (
     <div className="space-y-3">
-      <p className="text-sm font-semibold">{selected.sourceTitle}</p>
-      <p className="text-sm">{selected.feedback || selected.label}</p>
+      <p className="text-sm font-semibold">
+        <DataText>{selected.sourceTitle}</DataText>
+      </p>
+      <p className="text-sm">
+        <DataText>{selected.feedback || selected.label}</DataText>
+      </p>
       <p className="text-sm text-black/60">{levelLabel(selected.level)}</p>
       {selected.level === "gettingThere" || selected.level === "notYet" ? (
         <button
@@ -407,7 +426,9 @@ function Next({
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
       <div className="space-y-4">
-        <h1 className="text-2xl font-semibold leading-snug">{focus.label}</h1>
+        <h1 className="text-2xl font-semibold leading-snug">
+          <DataText>{focus.label}</DataText>
+        </h1>
         {task ? (
           <PrimaryLink href={taskHref(task)}>{t("student.focus.openTask")}</PrimaryLink>
         ) : null}
@@ -432,7 +453,9 @@ function Notes({
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
       <div className="space-y-4">
-        <h1 className="text-2xl font-semibold leading-snug">{note.sentence}</h1>
+        <h1 className="text-2xl font-semibold leading-snug">
+          <DataText>{note.sentence}</DataText>
+        </h1>
         <p className="text-sm text-black/60">{t("student.focus.reflectionPrompt")}</p>
         <Link href="/student/feedback" className="text-sm text-black/60 underline-offset-2 hover:underline">
           {t("student.focus.allNotes")}
@@ -441,7 +464,9 @@ function Notes({
       <ul className="divide-y divide-black/10 border-y border-black/10">
         {latest.microSkillMarks.map((mark) => (
           <li key={mark.microSkillId} className="flex items-baseline justify-between gap-3 py-3">
-            <span className="text-sm">{mark.feedback.trim() || latest.title}</span>
+            <span className="text-sm">
+              <DataText>{mark.feedback.trim() || latest.title}</DataText>
+            </span>
             <span className="shrink-0 text-sm text-black/60">
               {levelLabel(levelFromMark(mark.mark))}
             </span>
@@ -473,7 +498,9 @@ function Growth({
             {points.map((point) => (
               <li key={point.id} className="space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-semibold">{point.title}</p>
+                  <p className="text-sm font-semibold">
+                    <DataText>{point.title}</DataText>
+                  </p>
                   <p className="text-sm text-black/60">
                     {new Date(point.approvedAt).toLocaleDateString()} · {levelLabel(point.level)}
                   </p>

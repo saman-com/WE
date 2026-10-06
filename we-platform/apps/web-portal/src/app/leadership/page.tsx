@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchClassLeadershipSummary,
@@ -335,7 +336,7 @@ export default function LeadershipDashboardPage() {
             >
               {organisations.map((org) => (
                 <option key={org.id} value={org.id}>
-                  {org.name}
+                  <DataText>{org.name}</DataText>
                 </option>
               ))}
             </select>
@@ -537,7 +538,7 @@ export default function LeadershipDashboardPage() {
                     className={`underline ${selectedClassId === schoolClass.classId ? "font-semibold" : ""}`}
                     onClick={() => handleSelectClass(schoolClass)}
                   >
-                    {schoolClass.className} ({schoolClass.yearLevelName})
+                    <DataText>{`${schoolClass.className} (${schoolClass.yearLevelName})`}</DataText>
                   </button>
                   <p className="text-black/60 mt-1">
                     {t("leadership.classes.line", {
@@ -605,7 +606,7 @@ export default function LeadershipDashboardPage() {
                   )
                   .map((schoolClass) => (
                     <option key={schoolClass.classId} value={schoolClass.classId}>
-                      {schoolClass.className} ({schoolClass.yearLevelName})
+                      <DataText>{`${schoolClass.className} (${schoolClass.yearLevelName})`}</DataText>
                     </option>
                   ))}
               </select>
@@ -684,7 +685,7 @@ export default function LeadershipDashboardPage() {
                       <td className="py-3 pr-4 font-mono text-xs">{item.learningGapId}</td>
                       <td className="py-3 pr-4">{item.assignedTeacherUserId}</td>
                       <td className="py-3 pr-4">
-                        {item.className}
+                        <DataText>{item.className}</DataText>
                         <span className="text-black/50"> ({item.yearLevelName})</span>
                       </td>
                       <td className="py-3 pr-4">{item.gapSeverity ?? "—"}</td>

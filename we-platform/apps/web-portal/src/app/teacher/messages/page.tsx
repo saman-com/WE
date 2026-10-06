@@ -11,6 +11,7 @@ import {
   type Conversation,
   type MessageInboxThread,
 } from "@/lib/messaging";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function isTeacher(profile: UserProfile): boolean {
@@ -153,7 +154,9 @@ export default function TeacherMessagesPage() {
                         : "border-black/20"
                     }`}
                   >
-                    <span className="font-medium">{thread.latestMessage.body}</span>
+                    <span className="font-medium">
+                      <DataText>{thread.latestMessage.body}</DataText>
+                    </span>
                     <span className="block text-xs opacity-70 mt-1">
                       {t(
                         thread.messageCount === 1
@@ -183,7 +186,9 @@ export default function TeacherMessagesPage() {
                     <p className="text-xs text-black/60">
                       {message.senderRole} — {new Date(message.createdAt).toLocaleString()}
                     </p>
-                    <p className="text-sm mt-1">{message.body}</p>
+                    <p className="text-sm mt-1">
+                      <DataText>{message.body}</DataText>
+                    </p>
                   </li>
                 ))}
               </ul>

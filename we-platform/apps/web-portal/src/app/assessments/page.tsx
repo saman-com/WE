@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   listClasses,
@@ -443,11 +444,15 @@ export default function AssessmentsPage() {
               {assessments.map((assessment) => (
                 <li key={assessment.id} className="border rounded p-4 space-y-2">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="font-medium">{assessment.title}</p>
+                    <p className="font-medium">
+                      <DataText>{assessment.title}</DataText>
+                    </p>
                     <span className="text-xs uppercase tracking-wide">{assessment.status}</span>
                   </div>
                   {assessment.instructions ? (
-                    <p className="text-sm text-black/70">{assessment.instructions}</p>
+                    <p className="text-sm text-black/70">
+                      <DataText>{assessment.instructions}</DataText>
+                    </p>
                   ) : null}
                   <p className="text-sm">
                     {t("assessments.list.loMicroSkillsSummary", {

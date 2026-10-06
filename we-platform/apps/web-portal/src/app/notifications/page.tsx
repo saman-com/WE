@@ -9,6 +9,7 @@ import {
   markNotificationRead,
   type Notification,
 } from "@/lib/notifications";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export default function NotificationsPage() {
@@ -97,8 +98,12 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-medium">{notification.title}</p>
-                    <p className="text-sm text-gray-600">{notification.body}</p>
+                    <p className="font-medium">
+                      <DataText>{notification.title}</DataText>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <DataText>{notification.body}</DataText>
+                    </p>
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>

@@ -12,6 +12,7 @@ import {
   type MessageInboxThread,
 } from "@/lib/messaging";
 import { fetchLinkedChildren, type ParentChildLink } from "@/lib/parent-workspace";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 
 function isParent(profile: UserProfile): boolean {
@@ -185,7 +186,9 @@ export default function ParentMessagesPage() {
                   <p className="text-xs text-black/60">
                     {message.senderRole} — {new Date(message.createdAt).toLocaleString()}
                   </p>
-                  <p className="text-sm mt-1">{message.body}</p>
+                  <p className="text-sm mt-1">
+                    <DataText>{message.body}</DataText>
+                  </p>
                 </li>
               ))}
             </ul>

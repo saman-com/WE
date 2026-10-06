@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRegisterFrame } from "@/components/app-shell";
+import { DataText } from "@/components/data-text";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 export type LearningTab = {
@@ -37,7 +38,9 @@ export function LearningFrame({
         <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <p className="text-sm font-semibold tracking-wide">{eyebrow}</p>
           <div className="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2">
-            <p className="text-sm text-black/60">{title}</p>
+            <p className="text-sm text-black/60">
+              <DataText>{title}</DataText>
+            </p>
             <LanguageSwitcher />
             {onSignOut && signOutLabel ? (
               <button

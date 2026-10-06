@@ -42,6 +42,25 @@ test.describe("i. Arabic locale", () => {
     }
   });
 
+  test("Arabic student home isolates English feedback from the Arabic status", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ storageState: storagePath("student") });
+    const page = await context.newPage();
+    await page.goto("/student");
+    await page.getByRole("combobox", { name: /Language|اللغة/i }).selectOption("ar");
+
+    const feedback = page.locator("bdi[dir='auto']", { hasText: "the letter alone on one side" });
+    await expect(feedback).toBeVisible();
+    await expect
+      .poll(async () => feedback.evaluate((element) => getComputedStyle(element).unicodeBidi))
+      .toBe("isolate");
+    await expect(feedback).not.toContainText("في الطريق");
+    await expect(page.getByText("في الطريق").first()).toBeVisible();
+
+    await context.close();
+  });
+
   test("admin and privileged pages use RTL", async ({ browser }) => {
     const routes: { role: UserKey; path: string }[] = [
       { role: "federation", path: "/admin/federation" },

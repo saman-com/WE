@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { fetchProfile, type UserProfile } from "@/lib/auth";
 import {
   fetchClassEiInsights,
@@ -238,7 +239,7 @@ export default function TeacherClassDetailPage() {
             {t("teacher.class.backToMyClasses")}
           </Link>
           <h1 className="text-2xl font-semibold">
-            {dashboard.class.name} ({dashboard.class.code})
+            <DataText>{`${dashboard.class.name} (${dashboard.class.code})`}</DataText>
           </h1>
         </div>
 
@@ -542,7 +543,9 @@ export default function TeacherClassDetailPage() {
                 <li key={assessment.id} className="border border-black/10 rounded p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium">{assessment.title}</p>
+                      <p className="font-medium">
+                        <DataText>{assessment.title}</DataText>
+                      </p>
                       <p className="text-sm text-black/60">
                         {t("teacher.class.assessments.statusDue", {
                           status: assessment.status,

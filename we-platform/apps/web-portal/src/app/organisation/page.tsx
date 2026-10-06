@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataText } from "@/components/data-text";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
 import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import {
@@ -225,7 +226,7 @@ export default function OrganisationSetupPage() {
           >
             {schools.map((school) => (
               <option key={school.id} value={school.id}>
-                {school.name}
+                <DataText>{school.name}</DataText>
               </option>
             ))}
           </select>
@@ -305,7 +306,9 @@ export default function OrganisationSetupPage() {
                         </form>
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span>{year.name}</span>
+                          <span>
+                            <DataText>{year.name}</DataText>
+                          </span>
                           <span className="flex gap-3">
                             <TextButton
                               onClick={() => {
@@ -403,7 +406,7 @@ export default function OrganisationSetupPage() {
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span>
-                            {schoolClass.name} ({schoolClass.code})
+                            <DataText>{`${schoolClass.name} (${schoolClass.code})`}</DataText>
                           </span>
                           <span className="flex gap-3">
                             <TextButton
@@ -454,7 +457,7 @@ export default function OrganisationSetupPage() {
                     >
                       {years.map((year) => (
                         <option key={year.id} value={year.id}>
-                          {year.name}
+                          <DataText>{year.name}</DataText>
                         </option>
                       ))}
                     </select>
@@ -520,7 +523,9 @@ export default function OrganisationSetupPage() {
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span>
-                            {personName(directory, person.userId, t("organisation.manage.unknownPerson"))}
+                            <DataText>
+                              {personName(directory, person.userId, t("organisation.manage.unknownPerson"))}
+                            </DataText>
                           </span>
                           <span className="flex gap-3">
                             <TextButton
@@ -644,7 +649,9 @@ export default function OrganisationSetupPage() {
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span>
-                            {personName(directory, link.studentUserId, t("organisation.manage.unknownPerson"))}
+                            <DataText>
+                              {personName(directory, link.studentUserId, t("organisation.manage.unknownPerson"))}
+                            </DataText>
                           </span>
                           <span className="flex gap-3">
                             <TextButton
@@ -767,7 +774,7 @@ function PersonSelect({
       >
         <option value="">{label}</option>
         {people.map((person) => (
-          <option key={person.id} value={person.id}>
+          <option key={person.id} value={person.id} dir="auto">
             {person.name}
           </option>
         ))}
@@ -796,7 +803,7 @@ function ClassPicker({
         onChange={(event) => onChange(event.target.value)}
       >
         {classes.map((schoolClass) => (
-          <option key={schoolClass.id} value={schoolClass.id}>
+          <option key={schoolClass.id} value={schoolClass.id} dir="auto">
             {schoolClass.name}
           </option>
         ))}
