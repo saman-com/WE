@@ -18,6 +18,7 @@ public static class ParentWorkspaceEndpoints
         api.MapGet("/{parentUserId}/children", ListParentChildren);
         api.MapDelete("/{parentUserId}/children/{studentUserId}", UnlinkParentFromStudent);
         api.MapGet("/me/children", ListMyChildren);
+        api.MapGet("/me/class-teachers", ListMyClassTeachers);
         api.MapGet("/me/children/{studentUserId}/progress", GetChildProgress);
 
         app.MapGet("/api/v1/access/parent/{parentUserId}/student/{studentUserId}", CheckParentAccess)
@@ -142,6 +143,45 @@ public static class ParentWorkspaceEndpoints
             .ToListAsync();
 
         return Results.Ok(children);
+    }
+
+    private static async Task<IResult> ListMyClassTeachers(
+        ClaimsPrincipal principal,
+        OrganisationDbContext db,
+        ITenantContext tenantContext)
+    {
+        if (!principal.IsParent())
+        {
+            return Results.Forbid();
+        }
+
+        if (!tenantContext.HasTenant)
+        {
+            return Results.Forbid();
+        }
+
+        var parentUserId = principal.UserId();
+        var studentIds = await db.ParentStudentLinks
+            .Where(link => link.ParentUserId == parentUserId)
+            .Select(link => link.StudentUserId)
+            .ToListAsync();
+        if (studentIds.Count == 0)
+        {
+            return Results.Ok(Array.Empty<string>());
+        }
+
+        var classIds = await db.ClassEnrollments
+            .Where(enrollment => studentIds.Contains(enrollment.StudentUserId))
+            .Select(enrollment => enrollment.ClassId)
+            .Distinct()
+            .ToListAsync();
+        var teacherIds = await db.ClassTeachers
+            .Where(teacher => classIds.Contains(teacher.ClassId))
+            .Select(teacher => teacher.TeacherUserId)
+            .Distinct()
+            .ToListAsync();
+
+        return Results.Ok(teacherIds);
     }
 
     private static async Task<IResult> GetChildProgress(

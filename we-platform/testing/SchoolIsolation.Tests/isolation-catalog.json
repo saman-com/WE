@@ -1023,6 +1023,16 @@
     {
       "service": "identity-service",
       "method": "GET",
+      "route": "/api/v1/parents/me/teachers",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:parent-teachers"
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
       "route": "/api/v1/users",
       "ids": [],
       "kind": "exempt",
@@ -1669,6 +1679,16 @@
       "reason": "path-resource-id",
       "file": "services/organisation-service/src/Api/LeadershipDashboardEndpoints.cs",
       "probe": "organisation-service:organisation-path"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
+      "route": "/api/v1/parents/me/class-teachers",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:parent-teachers"
     },
     {
       "service": "organisation-service",

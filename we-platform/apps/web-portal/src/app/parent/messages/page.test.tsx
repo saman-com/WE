@@ -18,18 +18,10 @@ vi.mock("@/lib/auth", async () => {
   return {
     ...actual,
     fetchProfile: (token: string) => fetchProfile(token),
-    listDirectoryUsers: vi.fn().mockResolvedValue([
-      {
-        id: "22222222-2222-2222-2222-222222222222",
-        name: "Demo Student",
-        email: "student@school.local",
-        roles: ["Student"],
-      },
+    listParentTeachers: vi.fn().mockResolvedValue([
       {
         id: "11111111-1111-1111-1111-111111111111",
         name: "Demo Teacher",
-        email: "teacher@school.local",
-        roles: ["Teacher"],
       },
     ]),
   };
@@ -111,10 +103,12 @@ describe("parent message send errors", () => {
     );
 
     expect(await screen.findByRole("option", { name: "Demo Teacher" })).toBeInTheDocument();
-    expect(await screen.findByRole("option", { name: "Demo Student" })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /Demo Student/ })).toHaveTextContent("Demo Teacher");
+    expect(await screen.findByRole("option", { name: "Unknown person" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Demo Teacher/ })).toHaveTextContent("Unknown person");
     expect(screen.queryByText(/22222222/)).not.toBeInTheDocument();
     expect(screen.queryByText(/11111111/)).not.toBeInTheDocument();
+    expect(screen.queryByText("student@school.local")).not.toBeInTheDocument();
+    expect(screen.queryByText("teacher@school.local")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Teacher user ID")).not.toBeInTheDocument();
   });
 });

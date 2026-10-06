@@ -22,7 +22,16 @@ export type DirectoryUser = {
   roles: string[];
 };
 
-export function personName(people: DirectoryUser[], userId: string, unknownLabel: string): string {
+export type ParentTeacher = {
+  id: string;
+  name: string;
+};
+
+export function personName(
+  people: ReadonlyArray<{ id: string; name?: string; email?: string }>,
+  userId: string,
+  unknownLabel: string
+): string {
   const match = people.find((person) => person.id === userId);
   if (match?.name) {
     return match.name;
@@ -72,6 +81,18 @@ export async function createDirectoryUser(
 
 export async function listDirectoryUsers(token: string): Promise<DirectoryUser[]> {
   const response = await fetch(`${identityApiUrl}/api/v1/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "errors.unknown");
+  }
+
+  return response.json();
+}
+
+export async function listParentTeachers(token: string): Promise<ParentTeacher[]> {
+  const response = await fetch(`${identityApiUrl}/api/v1/parents/me/teachers`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 

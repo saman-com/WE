@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using IdentityService.Application.Auth;
+using IdentityService.Domain;
 using IdentityService.Infrastructure.Data;
 using WePlatform.Tenancy;
 
@@ -11,9 +12,11 @@ namespace IdentityService.Tests;
 public class TenantIsolationEndpointTests : IClassFixture<IdentityWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly IdentityWebApplicationFactory _factory;
 
     public TenantIsolationEndpointTests(IdentityWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -78,6 +81,43 @@ public class TenantIsolationEndpointTests : IClassFixture<IdentityWebApplication
         var jwt = handler.ReadJwtToken(token);
 
         Assert.DoesNotContain(jwt.Claims, claim => claim.Type == FederationClaimTypes.FederationId);
+    }
+
+    [Fact]
+    public async Task ParentTeachers_AreLimitedToTheCallerTenant()
+    {
+        // Probe: identity-service:parent-teachers
+        _factory.ParentTeachers.TeacherUserIds =
+        [
+            IdentityDataSeeder.TeacherUserId,
+            IdentityDataSeeder.TeacherBUserId
+        ];
+
+        using var schoolA = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/teachers",
+            IdentityDataSeeder.ParentUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Parent);
+        var responseA = await _client.SendAsync(schoolA);
+        Assert.Equal(HttpStatusCode.OK, responseA.StatusCode);
+        var teachersA = await responseA.Content.ReadFromJsonAsync<List<ParentTeacherResponse>>();
+        Assert.NotNull(teachersA);
+        Assert.Contains(teachersA, teacher => teacher.Id == IdentityDataSeeder.TeacherUserId);
+        Assert.DoesNotContain(teachersA, teacher => teacher.Id == IdentityDataSeeder.TeacherBUserId);
+
+        using var schoolB = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/teachers",
+            IdentityDataSeeder.ParentUserId,
+            Guid.Parse(IdentityDataSeeder.SchoolBTenantId),
+            PlatformRoles.Parent);
+        var responseB = await _client.SendAsync(schoolB);
+        Assert.Equal(HttpStatusCode.OK, responseB.StatusCode);
+        var teachersB = await responseB.Content.ReadFromJsonAsync<List<ParentTeacherResponse>>();
+        Assert.NotNull(teachersB);
+        Assert.Contains(teachersB, teacher => teacher.Id == IdentityDataSeeder.TeacherBUserId);
+        Assert.DoesNotContain(teachersB, teacher => teacher.Id == IdentityDataSeeder.TeacherUserId);
     }
 
     private async Task<string> LoginAndGetTokenAsync(string email, string password)

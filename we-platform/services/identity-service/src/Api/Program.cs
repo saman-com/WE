@@ -124,7 +124,53 @@ app.MapGet("/api/v1/auth/me", [Authorize] async (
 app.MapGet("/api/v1/auth/admin", [Authorize(Roles = PlatformRoles.SystemAdministrator)]
     () => Results.Ok(new { message = "admin access granted" }));
 
-app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin},{PlatformRoles.Teacher},{PlatformRoles.Student},{PlatformRoles.SchoolLeader},{PlatformRoles.Parent}")] async (
+app.MapGet("/api/v1/parents/me/teachers", [Authorize(Roles = PlatformRoles.Parent)] async (
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager,
+    IParentClassTeacherSource teacherSource,
+    HttpContext httpContext) =>
+{
+    if (tenantContext.TenantId is null)
+    {
+        return Results.Forbid();
+    }
+
+    var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+    if (bearerToken is null)
+    {
+        return Results.Forbid();
+    }
+
+    var teacherIds = await teacherSource.ListTeacherUserIdsAsync(bearerToken, httpContext.RequestAborted);
+    var allowedIds = teacherIds
+        .Where(id => !string.IsNullOrWhiteSpace(id))
+        .Distinct(StringComparer.Ordinal)
+        .ToList();
+    if (allowedIds.Count == 0)
+    {
+        return Results.Ok(Array.Empty<ParentTeacherResponse>());
+    }
+
+    var users = await userManager.Users
+        .Where(user => user.TenantId == tenantContext.TenantId && allowedIds.Contains(user.Id))
+        .ToListAsync();
+
+    var teachers = new List<ParentTeacherResponse>();
+    foreach (var user in users.OrderBy(user => user.DisplayName, StringComparer.Ordinal))
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        if (!roles.Contains(PlatformRoles.Teacher))
+        {
+            continue;
+        }
+
+        teachers.Add(new ParentTeacherResponse(user.Id, user.DisplayName));
+    }
+
+    return Results.Ok(teachers);
+});
+
+app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin},{PlatformRoles.Teacher},{PlatformRoles.Student},{PlatformRoles.SchoolLeader}")] async (
     ITenantContext tenantContext,
     UserManager<ApplicationUser> userManager) =>
 {
@@ -216,6 +262,18 @@ app.MapPost("/api/v1/users", [Authorize(Roles = PlatformRoles.SystemAdministrato
 });
 
 app.Run();
+
+static string? ExtractBearerToken(string authorizationHeader)
+{
+    const string prefix = "Bearer ";
+    if (!authorizationHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+    {
+        return null;
+    }
+
+    var token = authorizationHeader[prefix.Length..].Trim();
+    return string.IsNullOrWhiteSpace(token) ? null : token;
+}
 
 static IResult IdentityUserError(IdentityResult result)
 {

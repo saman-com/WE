@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listParentTeachers, personName, type ParentTeacher, type UserProfile } from "@/lib/auth";
 import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -26,7 +26,7 @@ export default function ParentMessagesPage() {
   const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
-  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [teachers, setTeachers] = useState<ParentTeacher[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageInboxThread | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -50,11 +50,11 @@ export default function ParentMessagesPage() {
           return;
         }
         setProfile(loaded);
-        const [linked, directory] = await Promise.all([
+        const [linked, classTeachers] = await Promise.all([
           fetchLinkedChildren(token),
-          listDirectoryUsers(token).catch(() => [] as DirectoryUser[]),
+          listParentTeachers(token).catch(() => [] as ParentTeacher[]),
         ]);
-        setPeople(directory);
+        setTeachers(classTeachers);
         setChildren(linked);
         if (linked.length > 0) {
           setNewStudentId(linked[0].studentUserId);
@@ -69,7 +69,7 @@ export default function ParentMessagesPage() {
   }, [router, t]);
 
   function displayName(userId: string): string {
-    return personName(people, userId, t("organisation.manage.unknownPerson"));
+    return personName(teachers, userId, t("organisation.manage.unknownPerson"));
   }
 
   async function openThread(thread: MessageInboxThread) {
@@ -244,9 +244,7 @@ export default function ParentMessagesPage() {
                   required
                 >
                   <option value="">{t("parent.messages.teacherIdLabel")}</option>
-                  {people
-                    .filter((person) => person.roles.includes("Teacher"))
-                    .map((person) => (
+                  {teachers.map((person) => (
                       <option key={person.id} value={person.id}>
                         {person.name}
                       </option>

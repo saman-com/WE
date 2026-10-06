@@ -293,7 +293,7 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
     }
 
     [Fact]
-    public async Task Users_ForParent_ReturnsNamesInTheCallerTenant()
+    public async Task Users_ForParent_IsForbidden()
     {
         using var request = TestJwt.Authorized(
             HttpMethod.Get,
@@ -304,11 +304,7 @@ public class RoleAccessEndpointTests : IClassFixture<IdentityWebApplicationFacto
 
         var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var users = await response.Content.ReadFromJsonAsync<List<DirectoryUserResponse>>();
-        Assert.NotNull(users);
-        Assert.Contains(users, user => user.Id == IdentityDataSeeder.TeacherUserId && user.Name == "Demo Teacher");
-        Assert.Contains(users, user => user.Id == IdentityDataSeeder.StudentUserId && user.Name == "Demo Student");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     private async Task<string> ResolveAdminUserIdAsync()

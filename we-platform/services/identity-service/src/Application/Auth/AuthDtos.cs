@@ -16,6 +16,15 @@ public sealed record DirectoryUserResponse(
     string Email,
     IReadOnlyList<string> Roles);
 
+public sealed record ParentTeacherResponse(string Id, string Name);
+
+public interface IParentClassTeacherSource
+{
+    Task<IReadOnlyList<string>> ListTeacherUserIdsAsync(
+        string bearerToken,
+        CancellationToken cancellationToken = default);
+}
+
 public sealed record CreateUserRequest(string Email, string Password, string Name, string Role);
 
 public sealed record ApiErrorResponse(string Code);

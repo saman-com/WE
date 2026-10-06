@@ -1,5 +1,7 @@
+using IdentityService.Application.Auth;
 using IdentityService.Infrastructure.Auth;
 using IdentityService.Infrastructure.Data;
+using IdentityService.Infrastructure.Organisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +59,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<JwtTokenService>();
+        services.AddHttpClient<IParentClassTeacherSource, HttpParentClassTeacherSource>();
 
         return services;
     }

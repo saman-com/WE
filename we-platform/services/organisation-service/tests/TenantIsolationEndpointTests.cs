@@ -176,6 +176,57 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
             $"POST parent link returned {response.StatusCode}");
     }
 
+    [Fact]
+    public async Task CrossSchool_ParentClassTeachers_BothDirections_NeverReturnsTheOtherSchool()
+    {
+        // Probe: organisation-service:parent-teachers
+        var adminA = Guid.NewGuid().ToString();
+        var adminB = Guid.NewGuid().ToString();
+        var parentA = Guid.NewGuid().ToString();
+        var parentB = Guid.NewGuid().ToString();
+        var studentA = Guid.NewGuid().ToString();
+        var studentB = Guid.NewGuid().ToString();
+        var teacherA = Guid.NewGuid().ToString();
+        var teacherB = Guid.NewGuid().ToString();
+
+        var orgA = await CreateOrganisationAsAdminAsync(adminA, "Teacher Scope A", UniqueCode("TSA"));
+        var orgB = await CreateOrganisationAsAdminAsync(adminB, "Teacher Scope B", UniqueCode("TSB"));
+        var yearA = await CreateYearLevelAsAdminAsync(adminA, orgA.Id, "Year 9", 9);
+        var yearB = await CreateYearLevelAsAdminAsync(adminB, orgB.Id, "Year 9", 9);
+        var classA = await CreateClassAsAdminAsync(adminA, orgA.Id, yearA.Id, "9A", UniqueCode("9A"));
+        var classB = await CreateClassAsAdminAsync(adminB, orgB.Id, yearB.Id, "9B", UniqueCode("9B"));
+        await EnrollStudentAsync(adminA, orgA.Id, classA.Id, studentA);
+        await EnrollStudentAsync(adminB, orgB.Id, classB.Id, studentB);
+        await AssignTeacherAsync(adminA, orgA.Id, classA.Id, teacherA);
+        await AssignTeacherAsync(adminB, orgB.Id, classB.Id, teacherB);
+        await LinkParentToStudentAsync(adminA, orgA.Id, parentA, studentA);
+        await LinkParentToStudentAsync(adminB, orgB.Id, parentB, studentB);
+
+        using var listA = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/class-teachers",
+            parentA,
+            orgA.Id,
+            TestJwt.ParentRole);
+        var okA = await _client.SendAsync(listA);
+        okA.EnsureSuccessStatusCode();
+        var scopedA = await okA.Content.ReadFromJsonAsync<List<string>>();
+        Assert.Contains(teacherA, scopedA!);
+        Assert.DoesNotContain(teacherB, scopedA!);
+
+        using var listB = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/class-teachers",
+            parentB,
+            orgB.Id,
+            TestJwt.ParentRole);
+        var okB = await _client.SendAsync(listB);
+        okB.EnsureSuccessStatusCode();
+        var scopedB = await okB.Content.ReadFromJsonAsync<List<string>>();
+        Assert.Contains(teacherB, scopedB!);
+        Assert.DoesNotContain(teacherA, scopedB!);
+    }
+
     private static (string UserId, Guid TenantId) RoleContext(
         string role,
         string studentId,
