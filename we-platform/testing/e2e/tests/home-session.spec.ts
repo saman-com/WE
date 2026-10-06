@@ -78,6 +78,9 @@ for (const role of roles) {
       await page.goto("/");
       await expect(page).toHaveURL(roleHomes[role]);
       await expect(page.getByText(roleData[role]).first()).toBeVisible({ timeout: 30_000 });
+      if (role === "student") {
+        await expect(page.getByText("Algebra check")).toHaveCount(2);
+      }
       if (role === "federation") {
         await expect(page.getByText("shared-curriculum").first()).toBeVisible();
         await expect(page.getByText("No metrics available.")).toHaveCount(0);

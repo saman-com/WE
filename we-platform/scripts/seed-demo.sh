@@ -142,8 +142,26 @@ api POST "$LEARNING/api/v1/students/$STUDENT/profile/enrollments" "$ADMIN_TOKEN"
   "{\"organisationId\":\"$ORG\",\"classId\":\"$CLASS\",\"className\":\"Year 11 Mathematics\",\"classCode\":\"11MAT\"}" >/dev/null || true
 
 existing_assessment() {
-  api GET "$ASSESSMENT/api/v1/assessments?organisationId=$ORG&classId=$CLASS" "$TEACHER_TOKEN" \
-    | jq -r --arg title "$1" '[.items[] | select(.title == $title)][0].id // empty'
+  # The list API returns one page. This class can hold thousands of rows, so a
+  # title that is not on the first page was inserted again on every seed run.
+  local title=${1//\'/\'\'}
+  psql -d we_assessment -c \
+    "select id from assessments where class_id = '$CLASS' and title = '$title' order by created_at limit 1"
+}
+
+drop_duplicate_assessments() {
+  local title=${1//\'/\'\'}
+  psql -d we_assessment <<SQL
+delete from assessments
+where class_id = '$CLASS'
+  and title = '$title'
+  and id <> (
+    select id from assessments
+    where class_id = '$CLASS' and title = '$title'
+    order by created_at
+    limit 1
+  );
+SQL
 }
 
 published_assessment() {
@@ -186,6 +204,7 @@ fi
 
 echo "Algebra check (due soon)"
 published_assessment "Algebra check" "$(utc_days +4)" >/dev/null
+drop_duplicate_assessments "Algebra check"
 
 echo "Federation school and policy for federation@ministry.local"
 # Identity puts this id on the FederationAdmin token. Upsert directly: the
