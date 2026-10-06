@@ -10,8 +10,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 export default function LoginPage() {
   const router = useRouter();
   const { t, translateError } = useI18n();
-  const [email, setEmail] = useState("teacher@school.local");
-  const [password, setPassword] = useState("Password123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

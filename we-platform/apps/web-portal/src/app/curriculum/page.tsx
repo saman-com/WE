@@ -54,8 +54,8 @@ export default function CurriculumPage() {
   const [parentCurriculumId, setParentCurriculumId] = useState("");
   const [overrideUnitName, setOverrideUnitName] = useState("");
   const [overrideObjectiveTitle, setOverrideObjectiveTitle] = useState("");
-  const [subjectName, setSubjectName] = useState("Chemistry");
-  const [subjectCode, setSubjectCode] = useState("CHEM");
+  const [subjectName, setSubjectName] = useState("");
+  const [subjectCode, setSubjectCode] = useState("");
   const [unitName, setUnitName] = useState("Chemical Reactions");
   const [unitSubjectId, setUnitSubjectId] = useState("");
   const [topicName, setTopicName] = useState("Physical Changes");

@@ -105,7 +105,7 @@
   "teacher.workspace.nav.interventions": "التدخلات",
   "teacher.workspace.nav.parentMessages": "رسائل أولياء الأمور",
   "teacher.workspace.noClasses": "لا توجد صفوف مسندة إليك.",
-  "teacher.workspace.studentsEnrolled": "{count} طالب مسجل",
+  "teacher.workspace.studentsEnrolled": "{count, plural, zero {لا يوجد طلاب مسجلون} one {طالب واحد مسجل} two {طالبان مسجلان} few {# طلاب مسجلون} many {# طالباً مسجلاً} other {# طالب مسجل}}",
   "teacher.home.headline": "الصفوف التي تدرّسها.",
   "teacher.home.openClass": "فتح {name}",
 

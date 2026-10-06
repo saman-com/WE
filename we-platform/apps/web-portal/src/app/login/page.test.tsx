@@ -39,8 +39,21 @@ describe("login landing", () => {
       </I18nProvider>
     );
 
+    await user.type(screen.getByLabelText("Email"), "parent@school.local");
+    await user.type(screen.getByLabelText("Password"), "Password123!");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(push).toHaveBeenCalledWith("/parent");
+  });
+
+  it("starts with empty email and password", () => {
+    render(
+      <I18nProvider>
+        <LoginPage />
+      </I18nProvider>
+    );
+
+    expect(screen.getByLabelText("Email")).toHaveValue("");
+    expect(screen.getByLabelText("Password")).toHaveValue("");
   });
 });

@@ -105,7 +105,7 @@
   "teacher.workspace.nav.interventions": "Interventions",
   "teacher.workspace.nav.parentMessages": "Parent messages",
   "teacher.workspace.noClasses": "No classes assigned to you.",
-  "teacher.workspace.studentsEnrolled": "{count} students enrolled",
+  "teacher.workspace.studentsEnrolled": "{count, plural, one {# student enrolled} other {# students enrolled}}",
   "teacher.home.headline": "The classes you teach.",
   "teacher.home.openClass": "Open {name}",
 

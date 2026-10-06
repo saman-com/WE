@@ -91,6 +91,7 @@ describe("Teacher home (UX-001 §12)", () => {
     expect(screen.getAllByText("Harbour High")[0]).toBeInTheDocument();
     expect(screen.getByText("Year 11 Mathematics (11MAT)")).toBeInTheDocument();
     expect(screen.getByText("3 students enrolled")).toBeInTheDocument();
+    expect(screen.getByText("1 student enrolled")).toBeInTheDocument();
 
     const primary = screen.getByRole("link", { name: "Open Year 11 Mathematics" });
     expect(primary).toHaveAttribute("href", "/teacher/classes/c-maths?organisationId=org-1");
