@@ -279,7 +279,7 @@ public class SubmissionEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             dueAt,
             [],
-            []));
+            [Guid.NewGuid()]));
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);

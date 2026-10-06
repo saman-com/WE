@@ -453,7 +453,9 @@ export default function AssessmentsPage() {
                     <p className="font-medium">
                       <DataText>{assessment.title}</DataText>
                     </p>
-                    <span className="text-xs uppercase tracking-wide">{assessment.status}</span>
+                    <span className="text-xs tracking-wide">
+                      {t(`assessments.status.${assessment.status}`)}
+                    </span>
                   </div>
                   {assessment.instructions ? (
                     <p className="text-sm text-black/70">

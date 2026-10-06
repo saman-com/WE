@@ -51,9 +51,9 @@ public static class AssessmentEndpoints
             return Results.Forbid();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Title))
+        if (TitleIsTooShort(request.Title))
         {
-            return Results.BadRequest(new ApiErrorResponse("validation.invalid_request"));
+            return Results.BadRequest(new ApiErrorResponse("assessments.title_too_short"));
         }
 
         var access = await EvaluateTeacherClassAccessAsync(
@@ -435,9 +435,9 @@ public static class AssessmentEndpoints
             return access;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Title))
+        if (TitleIsTooShort(request.Title))
         {
-            return Results.BadRequest(new ApiErrorResponse("validation.invalid_request"));
+            return Results.BadRequest(new ApiErrorResponse("assessments.title_too_short"));
         }
 
         assessment.Title = request.Title.Trim();
@@ -503,6 +503,11 @@ public static class AssessmentEndpoints
         if (access is not null)
         {
             return access;
+        }
+
+        if (assessment.MicroSkills.Count == 0)
+        {
+            return Results.BadRequest(new ApiErrorResponse("assessments.micro_skills_required"));
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -924,6 +929,9 @@ public static class AssessmentEndpoints
             });
         }
     }
+
+    private static bool TitleIsTooShort(string? title) =>
+        string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3;
 
     private static async Task<Assessment?> LoadAssessmentAsync(AssessmentDbContext db, Guid assessmentId) =>
         await db.Assessments

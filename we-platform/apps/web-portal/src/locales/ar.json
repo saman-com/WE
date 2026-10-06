@@ -82,7 +82,11 @@
   "assessments.list.duePrefix": "الاستحقاق:",
   "assessments.list.publish": "نشر",
   "assessments.list.reviewSubmissions": "مراجعة التسليمات",
+  "assessments.status.Draft": "مسودة",
+  "assessments.status.Published": "منشور",
 
+  "errors.assessments.micro_skills_required": "اربط مهارة دقيقة واحدة على الأقل قبل النشر.",
+  "errors.assessments.title_too_short": "يحتاج العنوان إلى 3 أحرف على الأقل.",
   "errors.auth.invalid_credentials": "فشل تسجيل الدخول. تحقق من بريدك وكلمة المرور.",
   "errors.auth.unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
   "errors.federation.duplicate_school_code": "رمز المدرسة هذا مستخدم بالفعل.",

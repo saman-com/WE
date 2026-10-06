@@ -2,7 +2,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AssessmentsPage from "@/app/assessments/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { LOCALE_STORAGE_KEY } from "@/i18n";
 import type { UserProfile } from "@/lib/auth";
+import { listAssessments, type Assessment } from "@/lib/assessment";
 
 const { studentUserId } = vi.hoisted(() => ({
   studentUserId: "22222222-2222-2222-2222-222222222222",
@@ -79,5 +81,40 @@ describe("assessment class roster", () => {
 
     expect(await screen.findByText("Demo Student")).toBeInTheDocument();
     expect(screen.queryByText(studentUserId)).not.toBeInTheDocument();
+  });
+
+  it("shows draft and published in the active language", async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
+    const assessment = (status: string, title: string): Assessment => ({
+      id: title,
+      organisationId: "org-1",
+      classId: "class-1",
+      title,
+      instructions: null,
+      dueAt: null,
+      status,
+      publishedAt: null,
+      learningObjectiveIds: [],
+      microSkillIds: status === "Published" ? ["skill-1"] : [],
+      createdByTeacherUserId: "teacher-1",
+      createdAt: "2026-10-06T00:00:00Z",
+      updatedAt: "2026-10-06T00:00:00Z",
+    });
+    vi.mocked(listAssessments).mockResolvedValue({
+      items: [assessment("Draft", "Quiz"), assessment("Published", "Exam")],
+      hasMore: false,
+      nextCursor: null,
+    });
+
+    render(
+      <I18nProvider>
+        <AssessmentsPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("مسودة")).toBeInTheDocument();
+    expect(screen.getByText("منشور")).toBeInTheDocument();
+    expect(screen.queryByText("DRAFT")).not.toBeInTheDocument();
+    expect(screen.queryByText("PUBLISHED")).not.toBeInTheDocument();
   });
 });

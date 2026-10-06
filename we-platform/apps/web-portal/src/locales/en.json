@@ -82,7 +82,11 @@
   "assessments.list.duePrefix": "Due:",
   "assessments.list.publish": "Publish",
   "assessments.list.reviewSubmissions": "Review submissions",
+  "assessments.status.Draft": "Draft",
+  "assessments.status.Published": "Published",
 
+  "errors.assessments.micro_skills_required": "Link at least one micro-skill before publishing.",
+  "errors.assessments.title_too_short": "A title needs at least 3 characters.",
   "errors.auth.invalid_credentials": "Login failed. Check your email and password.",
   "errors.auth.unauthorized": "You are not authorized to perform this action.",
   "errors.federation.duplicate_school_code": "That school code is already in use.",

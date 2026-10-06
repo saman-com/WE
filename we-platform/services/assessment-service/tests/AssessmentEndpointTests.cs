@@ -74,7 +74,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             null,
             [],
-            []);
+            [Guid.NewGuid()]);
 
         var published = await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,
@@ -105,7 +105,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             null,
             [],
-            []);
+            [Guid.NewGuid()]);
 
         await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,
@@ -175,7 +175,70 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
         Assert.NotNull(error);
-        Assert.Equal("validation.invalid_request", error.Code);
+        Assert.Equal("assessments.title_too_short", error.Code);
+    }
+
+    [Fact]
+    public async Task Teacher_CreateAssessment_WithShortTitle_ReturnsTitleTooShort()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            "/api/v1/assessments",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        request.Content = JsonContent.Create(new CreateAssessmentRequest(
+            organisationId,
+            classId,
+            "QA",
+            null,
+            null,
+            [],
+            []));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("assessments.title_too_short", error.Code);
+    }
+
+    [Fact]
+    public async Task Teacher_PublishAssessment_WithoutMicroSkills_ReturnsMicroSkillsRequired()
+    {
+        var teacherId = Guid.NewGuid().ToString();
+        var organisationId = Guid.NewGuid();
+        var classId = Guid.NewGuid();
+        _accessChecker.AllowTeacher(teacherId, organisationId, classId);
+        var draft = await CreateAssessmentAsync(
+            teacherId,
+            organisationId,
+            classId,
+            "QA check 1006",
+            null,
+            null,
+            [Guid.NewGuid()],
+            []);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/assessments/{draft.Id}/publish",
+            teacherId,
+            organisationId,
+            TestJwt.TeacherRole);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("assessments.micro_skills_required", error.Code);
+        Assert.Equal(AssessmentStatuses.Draft, draft.Status);
     }
 
     [Fact]
@@ -198,7 +261,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             null,
             [],
-            []);
+            [Guid.NewGuid()]);
         var published = await SendAsAsync<AssessmentResponse>(
             HttpMethod.Post,
             $"/api/v1/assessments/{draft.Id}/publish",
@@ -310,7 +373,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             DateTimeOffset.UtcNow.AddDays(2),
             [],
-            []);
+            [Guid.NewGuid()]);
         var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
 
         var summaries = await SendAsAsync<List<ClassAssessmentSummaryResponse>>(
@@ -340,7 +403,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             DateTimeOffset.UtcNow.AddDays(2),
             [],
-            []);
+            [Guid.NewGuid()]);
         var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
 
         var summaries = await SendAsAsync<List<ClassAssessmentSummaryResponse>>(
@@ -401,7 +464,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
                 null,
                 DateTimeOffset.UtcNow.AddDays(3),
                 [learningObjectiveId],
-                [])).Id,
+                [Guid.NewGuid()])).Id,
             organisationId);
         var completed = await PublishAssessmentAsync(
             teacherId,
@@ -413,7 +476,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
                 null,
                 DateTimeOffset.UtcNow.AddDays(1),
                 [],
-                [])).Id,
+                [Guid.NewGuid()])).Id,
             organisationId);
 
         using var submitRequest = TestJwt.Authorized(
@@ -496,7 +559,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             DateTimeOffset.UtcNow.AddDays(3),
             [],
-            []);
+            [Guid.NewGuid()]);
         var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
 
         using var request = TestJwt.Authorized(
@@ -542,7 +605,7 @@ public class AssessmentEndpointTests : IClassFixture<AssessmentWebApplicationFac
             null,
             null,
             [],
-            []);
+            [Guid.NewGuid()]);
         var published = await PublishAssessmentAsync(teacherId, draft.Id, organisationId);
 
         using var request = TestJwt.Authorized(

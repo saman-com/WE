@@ -205,6 +205,8 @@ describe("API error code translation", () => {
 
     expect(errorKeys.length).toBeGreaterThanOrEqual(4);
     expect(errorKeys).toEqual([
+      "errors.assessments.micro_skills_required",
+      "errors.assessments.title_too_short",
       "errors.auth.invalid_credentials",
       "errors.auth.unauthorized",
       "errors.federation.duplicate_school_code",
