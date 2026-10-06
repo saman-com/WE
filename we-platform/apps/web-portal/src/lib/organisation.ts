@@ -1,4 +1,4 @@
-const organisationApiUrl =
+import { readApiError } from "@/lib/api-error";
   process.env.NEXT_PUBLIC_ORGANISATION_API_URL ?? "http://localhost:8082";
 
 export type Organisation = {
@@ -47,7 +47,7 @@ async function organisationRequest<T>(
   }
 
   if (!response.ok) {
-    throw new Error(`Organisation request failed (${response.status}).`);
+    throw await readApiError(response);
   }
 
   return response.json() as Promise<T>;

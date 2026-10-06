@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrganisationSetupPage from "@/app/organisation/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { ApiError } from "@/lib/api-error";
 import type { UserProfile } from "@/lib/auth";
+import { createYearLevel } from "@/lib/organisation";
 
 const replace = vi.fn();
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
@@ -166,5 +168,24 @@ describe("organisation manage view", () => {
     expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/teacher");
     expect(screen.queryByRole("link", { name: "Back to login" })).not.toBeInTheDocument();
     expect(listOrganisations).not.toHaveBeenCalled();
+  });
+
+  it("names a duplicate year level instead of a generic save failure", async () => {
+    vi.mocked(createYearLevel).mockRejectedValue(
+      new ApiError("organisation.duplicate_year_name", 409)
+    );
+    const user = userEvent.setup();
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    await screen.findByText("Year 11");
+    await user.type(screen.getByLabelText("Year level name"), "Year 11");
+    await user.click(screen.getByRole("button", { name: "Add year level" }));
+
+    expect(await screen.findByText("That year level already exists.")).toBeInTheDocument();
+    expect(screen.queryByText("Could not save that change.")).not.toBeInTheDocument();
   });
 });

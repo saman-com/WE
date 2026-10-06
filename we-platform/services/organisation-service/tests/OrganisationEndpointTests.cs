@@ -695,6 +695,72 @@ public class OrganisationEndpointTests : IClassFixture<OrganisationWebApplicatio
     }
 
     [Fact]
+    public async Task ShortYearLevelName_ReturnsYearNameTooShort()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Short Year School", UniqueCode("SYN"));
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/year-levels",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateYearLevelRequest("Y", 1));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("organisation.year_name_too_short", error.Code);
+    }
+
+    [Fact]
+    public async Task DuplicateYearLevelName_NamesTheClash()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Year Clash School", UniqueCode("YCL"));
+        await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 11", 11);
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/year-levels",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateYearLevelRequest("Year 11", 12));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("organisation.duplicate_year_name", error.Code);
+    }
+
+    [Fact]
+    public async Task DuplicateClassCode_NamesTheClash()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Class Clash School", UniqueCode("CCL"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 11", 11);
+        await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "Year 11 Mathematics", "11MAT");
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{org.Id}/classes",
+            adminId,
+            org.Id,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new CreateClassRequest("Another class", "11MAT", year.Id));
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("organisation.duplicate_class_code", error.Code);
+    }
+
+    [Fact]
     public async Task DuplicateClassCode_IsRejected()
     {
         var adminId = Guid.NewGuid().ToString();

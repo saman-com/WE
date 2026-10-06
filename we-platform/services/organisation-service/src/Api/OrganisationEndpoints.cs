@@ -267,16 +267,16 @@ public static class OrganisationEndpoints
             return Results.NotFound();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new ApiErrorResponse("organisation.year_name_too_short"));
         }
 
         var name = request.Name.Trim();
         if (await db.YearLevels.AnyAsync(level =>
                 level.OrganisationId == organisationId && level.Name == name))
         {
-            return Results.Conflict();
+            return Results.Conflict(new ApiErrorResponse("organisation.duplicate_year_name"));
         }
 
         var yearLevel = new YearLevel
@@ -335,9 +335,9 @@ public static class OrganisationEndpoints
             return Results.NotFound();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new ApiErrorResponse("organisation.year_name_too_short"));
         }
 
         yearLevel.Name = request.Name.Trim();
@@ -444,7 +444,7 @@ public static class OrganisationEndpoints
         var code = request.Code.Trim();
         if (await db.Classes.AnyAsync(c => c.OrganisationId == organisationId && c.Code == code))
         {
-            return Results.Conflict();
+            return Results.Conflict(new ApiErrorResponse("organisation.duplicate_class_code"));
         }
 
         var schoolClass = new SchoolClass

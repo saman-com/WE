@@ -187,9 +187,11 @@ export default function OrganisationSetupPage() {
       ]);
       setYears(loadedYears);
       setClasses(loadedClasses);
-    } catch {
+    } catch (err) {
       setStatusError(true);
-      setStatus(t("organisation.manage.failed"));
+      setStatus(
+        err instanceof ApiError ? translateError(err.code, "organisation.manage.failed") : t("organisation.manage.failed")
+      );
     } finally {
       setBusy(false);
     }

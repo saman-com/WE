@@ -1,5 +1,7 @@
 namespace OrganisationService.Application;
 
+public sealed record ApiErrorResponse(string Code);
+
 public sealed record CreateOrganisationRequest(string Name, string Code);
 
 public sealed record UpdateOrganisationRequest(string Name, string Code);
