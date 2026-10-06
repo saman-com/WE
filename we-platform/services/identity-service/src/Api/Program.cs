@@ -57,6 +57,8 @@ using (var scope = app.Services.CreateScope())
     {
         await db.Database.ExecuteSqlRawAsync(
             """ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS federation_id uuid NULL""");
+        await db.Database.ExecuteSqlRawAsync(
+            """ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true""");
     }
 
     await db.BackfillTenantIdsAsync<ApplicationUser>(_ => DefaultTenant.Id);
@@ -85,6 +87,13 @@ app.MapPost("/api/v1/auth/login", async (
     {
         return Results.Json(
             new ApiErrorResponse("auth.invalid_credentials"),
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    if (!user.IsActive)
+    {
+        return Results.Json(
+            new ApiErrorResponse("auth.account_inactive"),
             statusCode: StatusCodes.Status401Unauthorized);
     }
 
@@ -238,7 +247,8 @@ app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministra
             user.Id,
             user.DisplayName,
             user.Email ?? string.Empty,
-            roles.ToList()));
+            roles.ToList(),
+            user.IsActive));
     }
 
     return Results.Ok(directory);
@@ -304,10 +314,207 @@ app.MapPost("/api/v1/users", [Authorize(Roles = PlatformRoles.SystemAdministrato
         return IdentityUserError(roleResult);
     }
 
-    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? email, [role]));
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? email, [role], user.IsActive));
+});
+
+app.MapPut("/api/v1/users/{userId}", [Authorize(Roles = PlatformRoles.SystemAdministrator)] async (
+    string userId,
+    UpdateUserRequest request,
+    ClaimsPrincipal principal,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var (user, error) = await FindManagedUserAsync(userId, tenantContext, userManager);
+    if (error is not null || user is null)
+    {
+        return error ?? Results.NotFound();
+    }
+
+    var name = request.Name?.Trim() ?? string.Empty;
+    var role = request.Role?.Trim() ?? string.Empty;
+    if (name.Length == 0 || !PlatformRoles.All.Contains(role))
+    {
+        return Results.Json(new ApiErrorResponse("users.invalid"), statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    var currentRoles = await userManager.GetRolesAsync(user);
+    var callerId = CallerUserId(principal);
+    if (callerId == user.Id
+        && currentRoles.Contains(PlatformRoles.SystemAdministrator)
+        && role != PlatformRoles.SystemAdministrator)
+    {
+        return Results.Json(
+            new ApiErrorResponse("users.cannot_remove_own_admin"),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    if (role == PlatformRoles.FederationAdmin)
+    {
+        user.FederationId ??= await userManager.Users
+            .Where(existing => existing.TenantId == user.TenantId && existing.FederationId != null)
+            .Select(existing => existing.FederationId)
+            .FirstOrDefaultAsync();
+        if (user.FederationId is null)
+        {
+            return Results.Json(new ApiErrorResponse("users.invalid"), statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+    else
+    {
+        user.FederationId = null;
+    }
+
+    user.DisplayName = name;
+    var updated = await userManager.UpdateAsync(user);
+    if (!updated.Succeeded)
+    {
+        return IdentityUserError(updated);
+    }
+
+    foreach (var existing in currentRoles)
+    {
+        if (existing == role)
+        {
+            continue;
+        }
+
+        var removed = await userManager.RemoveFromRoleAsync(user, existing);
+        if (!removed.Succeeded)
+        {
+            return IdentityUserError(removed);
+        }
+    }
+
+    if (!currentRoles.Contains(role))
+    {
+        var added = await userManager.AddToRoleAsync(user, role);
+        if (!added.Succeeded)
+        {
+            return IdentityUserError(added);
+        }
+    }
+
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? string.Empty, [role], user.IsActive));
+});
+
+app.MapPost("/api/v1/users/{userId}/deactivate", [Authorize(Roles = PlatformRoles.SystemAdministrator)] async (
+    string userId,
+    ClaimsPrincipal principal,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var (user, error) = await FindManagedUserAsync(userId, tenantContext, userManager);
+    if (error is not null || user is null)
+    {
+        return error ?? Results.NotFound();
+    }
+
+    if (CallerUserId(principal) == user.Id)
+    {
+        return Results.Json(
+            new ApiErrorResponse("users.cannot_deactivate_self"),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    user.IsActive = false;
+    var updated = await userManager.UpdateAsync(user);
+    if (!updated.Succeeded)
+    {
+        return IdentityUserError(updated);
+    }
+
+    var roles = await userManager.GetRolesAsync(user);
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? string.Empty, roles.ToList(), user.IsActive));
+});
+
+app.MapPost("/api/v1/users/{userId}/reactivate", [Authorize(Roles = PlatformRoles.SystemAdministrator)] async (
+    string userId,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var (user, error) = await FindManagedUserAsync(userId, tenantContext, userManager);
+    if (error is not null || user is null)
+    {
+        return error ?? Results.NotFound();
+    }
+
+    user.IsActive = true;
+    var updated = await userManager.UpdateAsync(user);
+    if (!updated.Succeeded)
+    {
+        return IdentityUserError(updated);
+    }
+
+    var roles = await userManager.GetRolesAsync(user);
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? string.Empty, roles.ToList(), user.IsActive));
+});
+
+app.MapPost("/api/v1/users/{userId}/password", [Authorize(Roles = PlatformRoles.SystemAdministrator)] async (
+    string userId,
+    ResetPasswordRequest request,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var (user, error) = await FindManagedUserAsync(userId, tenantContext, userManager);
+    if (error is not null || user is null)
+    {
+        return error ?? Results.NotFound();
+    }
+
+    if (string.IsNullOrEmpty(request.Password))
+    {
+        return Results.Json(new ApiErrorResponse("users.password_invalid"), statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    if (await userManager.HasPasswordAsync(user))
+    {
+        var removed = await userManager.RemovePasswordAsync(user);
+        if (!removed.Succeeded)
+        {
+            return IdentityUserError(removed);
+        }
+    }
+
+    var reset = await userManager.AddPasswordAsync(user, request.Password);
+    if (!reset.Succeeded)
+    {
+        return IdentityUserError(reset);
+    }
+
+    var roles = await userManager.GetRolesAsync(user);
+    return Results.Ok(new DirectoryUserResponse(user.Id, user.DisplayName, user.Email ?? string.Empty, roles.ToList(), user.IsActive));
 });
 
 app.Run();
+
+static async Task<(ApplicationUser? User, IResult? Error)> FindManagedUserAsync(
+    string userId,
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager)
+{
+    if (tenantContext.TenantId is null)
+    {
+        return (null, Results.Forbid());
+    }
+
+    var user = await userManager.FindByIdAsync(userId);
+    if (user is null)
+    {
+        return (null, Results.NotFound());
+    }
+
+    var tenantAccess = TenantAccess.ValidateEntityAccess(tenantContext, user);
+    if (tenantAccess is not null)
+    {
+        return (null, tenantAccess);
+    }
+
+    return (user, null);
+}
+
+static string? CallerUserId(ClaimsPrincipal principal) =>
+    principal.FindFirstValue(ClaimTypes.NameIdentifier)
+    ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
 static string? ExtractBearerToken(string authorizationHeader)
 {

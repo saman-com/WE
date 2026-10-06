@@ -20,6 +20,7 @@ export type DirectoryUser = {
   name: string;
   email: string;
   roles: string[];
+  active?: boolean;
 };
 
 export type ParentTeacher = {
@@ -70,6 +71,79 @@ export async function createDirectoryUser(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(account),
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "users.invalid");
+  }
+
+  return response.json();
+}
+
+export async function updateDirectoryUser(
+  token: string,
+  userId: string,
+  account: { name: string; role: string }
+): Promise<DirectoryUser> {
+  const response = await fetch(`${identityApiUrl}/api/v1/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(account),
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "users.invalid");
+  }
+
+  return response.json();
+}
+
+export async function deactivateDirectoryUser(
+  token: string,
+  userId: string
+): Promise<DirectoryUser> {
+  return postAccountAction(token, userId, "deactivate");
+}
+
+export async function reactivateDirectoryUser(
+  token: string,
+  userId: string
+): Promise<DirectoryUser> {
+  return postAccountAction(token, userId, "reactivate");
+}
+
+export async function resetDirectoryUserPassword(
+  token: string,
+  userId: string,
+  password: string
+): Promise<DirectoryUser> {
+  const response = await fetch(`${identityApiUrl}/api/v1/users/${userId}/password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "users.password_invalid");
+  }
+
+  return response.json();
+}
+
+async function postAccountAction(
+  token: string,
+  userId: string,
+  action: "deactivate" | "reactivate"
+): Promise<DirectoryUser> {
+  const response = await fetch(`${identityApiUrl}/api/v1/users/${userId}/${action}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) {

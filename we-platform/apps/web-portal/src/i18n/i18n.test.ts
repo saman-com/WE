@@ -207,6 +207,7 @@ describe("API error code translation", () => {
     expect(errorKeys).toEqual([
       "errors.assessments.micro_skills_required",
       "errors.assessments.title_too_short",
+      "errors.auth.account_inactive",
       "errors.auth.invalid_credentials",
       "errors.auth.unauthorized",
       "errors.federation.duplicate_school_code",
@@ -215,6 +216,8 @@ describe("API error code translation", () => {
       "errors.organisation.duplicate_year_name",
       "errors.organisation.year_name_too_short",
       "errors.unknown",
+      "errors.users.cannot_deactivate_self",
+      "errors.users.cannot_remove_own_admin",
       "errors.users.email_taken",
       "errors.users.invalid",
       "errors.users.password_invalid",

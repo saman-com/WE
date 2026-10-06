@@ -14,7 +14,8 @@ public sealed record DirectoryUserResponse(
     string Id,
     string Name,
     string Email,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    bool Active = true);
 
 public sealed record ParentTeacherResponse(string Id, string Name);
 
@@ -32,5 +33,9 @@ public interface IParentClassTeacherSource
 }
 
 public sealed record CreateUserRequest(string Email, string Password, string Name, string Role);
+
+public sealed record UpdateUserRequest(string Name, string Role);
+
+public sealed record ResetPasswordRequest(string Password);
 
 public sealed record ApiErrorResponse(string Code);

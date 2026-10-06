@@ -27,6 +27,7 @@ internal static class ProbeRegistry
         "federation-service:federation-school",
         "identity-service:parent-children",
         "identity-service:parent-teachers",
+        "identity-service:user-account",
         "intervention-service:intervention-list",
         "intervention-service:intervention-resource",
         "intervention-service:organisation-path",

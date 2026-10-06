@@ -1062,6 +1062,46 @@
     },
     {
       "service": "identity-service",
+      "method": "PUT",
+      "route": "/api/v1/users/{userId}",
+      "ids": ["userId"],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:user-account"
+    },
+    {
+      "service": "identity-service",
+      "method": "POST",
+      "route": "/api/v1/users/{userId}/deactivate",
+      "ids": ["userId"],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:user-account"
+    },
+    {
+      "service": "identity-service",
+      "method": "POST",
+      "route": "/api/v1/users/{userId}/password",
+      "ids": ["userId"],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:user-account"
+    },
+    {
+      "service": "identity-service",
+      "method": "POST",
+      "route": "/api/v1/users/{userId}/reactivate",
+      "ids": ["userId"],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:user-account"
+    },
+    {
+      "service": "identity-service",
       "method": "GET",
       "route": "/health",
       "ids": [],

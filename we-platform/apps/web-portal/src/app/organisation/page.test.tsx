@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrganisationSetupPage from "@/app/organisation/page";
@@ -19,6 +19,10 @@ vi.mock("next/navigation", () => ({
 
 const listDirectoryUsers = vi.fn();
 const createDirectoryUser = vi.fn();
+const updateDirectoryUser = vi.fn();
+const deactivateDirectoryUser = vi.fn();
+const reactivateDirectoryUser = vi.fn();
+const resetDirectoryUserPassword = vi.fn();
 
 vi.mock("@/lib/auth", async () => {
   const actual = await vi.importActual<typeof import("@/lib/auth")>("@/lib/auth");
@@ -30,6 +34,15 @@ vi.mock("@/lib/auth", async () => {
       token: string,
       account: { name: string; email: string; password: string; role: string }
     ) => createDirectoryUser(token, account),
+    updateDirectoryUser: (
+      token: string,
+      userId: string,
+      account: { name: string; role: string }
+    ) => updateDirectoryUser(token, userId, account),
+    deactivateDirectoryUser: (token: string, userId: string) => deactivateDirectoryUser(token, userId),
+    reactivateDirectoryUser: (token: string, userId: string) => reactivateDirectoryUser(token, userId),
+    resetDirectoryUserPassword: (token: string, userId: string, password: string) =>
+      resetDirectoryUserPassword(token, userId, password),
   };
 });
 
@@ -76,6 +89,10 @@ describe("organisation manage view", () => {
       { id: "22222222-2222-2222-2222-222222222222", name: "Demo Student", email: "student@school.local", roles: ["Student"] },
     ]);
     createDirectoryUser.mockReset();
+    updateDirectoryUser.mockReset();
+    deactivateDirectoryUser.mockReset();
+    reactivateDirectoryUser.mockReset();
+    resetDirectoryUserPassword.mockReset();
     listClasses.mockReset().mockResolvedValue([
       {
         id: "class-1",
@@ -102,7 +119,7 @@ describe("organisation manage view", () => {
     expect(await screen.findByText("Year 11")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Add a year level" })).toBeInTheDocument();
     expect(screen.getByLabelText("Sort order")).toHaveValue(12);
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Edit$/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create the first class" })).not.toBeInTheDocument();
     expect(screen.queryByText(/22222222-2222-2222-2222-222222222222/)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Add an account" })).toBeInTheDocument();
@@ -146,6 +163,94 @@ describe("organisation manage view", () => {
       role: "Teacher",
     });
     expect(await screen.findByText("New Teacher (new.teacher@school.local)")).toBeInTheDocument();
+  });
+
+  it("edits, deactivates, reactivates, and resets an account", async () => {
+    const user = userEvent.setup();
+    const student = {
+      id: "22222222-2222-2222-2222-222222222222",
+      name: "Demo Student",
+      email: "student@school.local",
+      roles: ["Student"],
+      active: true,
+    };
+    let people = [student];
+    listDirectoryUsers.mockImplementation(async () => people);
+    updateDirectoryUser.mockImplementation(async (_token, _userId, account) => {
+      people = [{ ...student, name: account.name, roles: [account.role] }];
+      return people[0];
+    });
+    deactivateDirectoryUser.mockImplementation(async () => {
+      people = [{ ...people[0], active: false }];
+      return people[0];
+    });
+    reactivateDirectoryUser.mockImplementation(async () => {
+      people = [{ ...people[0], active: true }];
+      return people[0];
+    });
+    resetDirectoryUserPassword.mockResolvedValue(people[0]);
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Edit Demo Student" }));
+    const editForm = screen.getByRole("form", { name: "Edit Demo Student" });
+    await user.clear(within(editForm).getByLabelText("Name"));
+    await user.type(within(editForm).getByLabelText("Name"), "Renamed Student");
+    await user.selectOptions(within(editForm).getByLabelText("Role"), "Teacher");
+    await user.click(within(editForm).getByRole("button", { name: "Save" }));
+
+    expect(updateDirectoryUser).toHaveBeenCalledWith("token", student.id, {
+      name: "Renamed Student",
+      role: "Teacher",
+    });
+    expect(await screen.findByText("Renamed Student (student@school.local)")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Deactivate Renamed Student" }));
+    expect(deactivateDirectoryUser).toHaveBeenCalledWith("token", student.id);
+    expect(await screen.findByText("Inactive")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reactivate Renamed Student" }));
+    expect(reactivateDirectoryUser).toHaveBeenCalledWith("token", student.id);
+    expect(screen.queryByText("Inactive")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reset password for Renamed Student" }));
+    const resetForm = screen.getByRole("form", { name: "Reset password for Renamed Student" });
+    await user.type(within(resetForm).getByLabelText("New password"), "NewPassword1");
+    await user.click(within(resetForm).getByRole("button", { name: "Save" }));
+    expect(resetDirectoryUserPassword).toHaveBeenCalledWith("token", student.id, "NewPassword1");
+  });
+
+  it("does not offer deactivation or another role on the signed-in administrator", async () => {
+    const user = userEvent.setup();
+    listDirectoryUsers.mockResolvedValue([
+      {
+        id: "admin-1",
+        name: "Demo Admin",
+        email: "admin@school.local",
+        roles: ["SystemAdministrator"],
+        active: true,
+      },
+    ]);
+
+    render(
+      <I18nProvider>
+        <OrganisationSetupPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByRole("button", { name: "Edit Demo Admin" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset password for Demo Admin" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Deactivate Demo Admin/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Edit Demo Admin" }));
+    const form = screen.getByRole("form", { name: "Edit Demo Admin" });
+    expect(within(form).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "System administrator",
+    ]);
   });
 
   it("sends a signed-in teacher back to the teacher home", async () => {
