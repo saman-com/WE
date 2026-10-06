@@ -55,7 +55,10 @@ export type CreateInterventionFromGapParams = {
   returnTo?: string;
 };
 
-export function buildSuggestedInterventionActions(context: GapInterventionContext): string {
+export function buildSuggestedInterventionActions(
+  context: GapInterventionContext,
+  skillName?: string
+): string {
   const severity = context.severity.toLowerCase();
   const urgency = context.urgency.toLowerCase();
   const actions =
@@ -64,7 +67,7 @@ export function buildSuggestedInterventionActions(context: GapInterventionContex
       : "Provide scaffolded practice and monitor progress through the next assessment cycle.";
 
   return [
-    `Address ${severity} severity / ${urgency} urgency gap in micro-skill ${context.microSkillId}.`,
+    `Address ${severity} severity / ${urgency} urgency gap in ${skillName?.trim() || "this skill"}.`,
     context.explanation,
     `Suggested actions: ${actions}`,
   ].join("\n\n");

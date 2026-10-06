@@ -93,6 +93,37 @@ public class ParentTeacherEndpointTests : IClassFixture<IdentityWebApplicationFa
         Assert.DoesNotContain(teachers, teacher => teacher.Name == "Other Teacher");
     }
 
+    [Fact]
+    public async Task Parent_GetsTheirChild_WithIdAndNameOnly()
+    {
+        _factory.ParentTeachers.ChildUserIds =
+        [
+            IdentityDataSeeder.StudentUserId,
+            IdentityDataSeeder.TeacherUserId,
+            IdentityDataSeeder.StudentBUserId
+        ];
+
+        using var request = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/children-names",
+            IdentityDataSeeder.ParentUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Parent);
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(body);
+        var children = document.RootElement.EnumerateArray().ToList();
+        Assert.Contains(children, child =>
+            child.GetProperty("id").GetString() == IdentityDataSeeder.StudentUserId
+            && child.GetProperty("name").GetString() == "Demo Student");
+        Assert.DoesNotContain(children, child => child.GetProperty("id").GetString() == IdentityDataSeeder.TeacherUserId);
+        Assert.DoesNotContain(children, child => child.GetProperty("id").GetString() == IdentityDataSeeder.StudentBUserId);
+        Assert.DoesNotContain(IdentityDataSeeder.StudentEmail, body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("roles", body, StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task<string> ResolveAdminUserIdAsync()
     {
         await using var scope = _factory.Services.CreateAsyncScope();

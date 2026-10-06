@@ -149,6 +149,7 @@ public class ParentWorkspaceEndpointTests : IClassFixture<OrganisationWebApplica
         Assert.Equal("Developing", progress.Mastery[0].MasteryLevel);
         Assert.Single(progress.ActiveInterventions);
         Assert.Equal("Guided practice sessions.", progress.ActiveInterventions[0].Summary);
+        Assert.Equal(org.Id, progress.OrganisationId);
         Assert.DoesNotContain(
             progress.ActiveInterventions,
             item => item.Summary.Contains("confidential", StringComparison.OrdinalIgnoreCase));

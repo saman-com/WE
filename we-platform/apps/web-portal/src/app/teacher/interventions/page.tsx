@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadGapLabels, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchStudentInterventions,
@@ -32,6 +33,8 @@ export default function TeacherInterventionsPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InterventionStatus | "All">("All");
@@ -52,6 +55,11 @@ export default function TeacherInterventionsPage() {
 
         setProfile(loaded);
         const organisations = await listOrganisations(token);
+        const names: Record<string, string> = {};
+        for (const organisation of organisations) {
+          Object.assign(names, await loadLearningNames(token, organisation.id));
+        }
+        setPeople(await loadPeople(token));
         const classesByOrg = await Promise.all(
           organisations.map(async (organisation) => {
             const classes = await listClasses(token, organisation.id);
@@ -79,6 +87,7 @@ export default function TeacherInterventionsPage() {
         setInterventions(allInterventions.flat().sort(
           (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         ));
+        setLabels(await loadGapLabels(token, studentIds, names));
       })
       .catch(() => {
         setError(t("teacher.interventions.loadError"));
@@ -167,10 +176,12 @@ export default function TeacherInterventionsPage() {
                 <p className="text-xs text-black/60">
                   {t("teacher.interventions.studentLabel")}{" "}
                   <Link href={`/students/${item.studentUserId}/profile`} className="underline">
-                    {item.studentUserId}
+                    {personName(people, item.studentUserId, t("organisation.manage.unknownPerson"))}
                   </Link>
                   {" · "}
-                  {t("teacher.interventions.gapLabel", { id: item.learningGapId })}
+                  {t("teacher.interventions.gapLabel", {
+                    id: learningLabel(labels, item.learningGapId, t("assessments.review.unknownSkill")),
+                  })}
                 </p>
                 <p className="text-sm text-black/70 line-clamp-2">{item.notes || t("teacher.interventions.noNotesYet")}</p>
                 <p className="text-xs text-black/50">

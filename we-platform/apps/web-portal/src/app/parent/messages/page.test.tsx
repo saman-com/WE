@@ -24,6 +24,12 @@ vi.mock("@/lib/auth", async () => {
         name: "Demo Teacher",
       },
     ]),
+    listParentChildren: vi.fn().mockResolvedValue([
+      {
+        id: "22222222-2222-2222-2222-222222222222",
+        name: "Demo Student",
+      },
+    ]),
   };
 });
 
@@ -103,8 +109,8 @@ describe("parent message send errors", () => {
     );
 
     expect(await screen.findByRole("option", { name: "Demo Teacher" })).toBeInTheDocument();
-    expect(await screen.findByRole("option", { name: "Unknown person" })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /Demo Teacher/ })).toHaveTextContent("Unknown person");
+    expect(await screen.findByRole("option", { name: "Demo Student" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Demo Student/ })).toHaveTextContent("Demo Teacher");
     expect(screen.queryByText(/22222222/)).not.toBeInTheDocument();
     expect(screen.queryByText(/11111111/)).not.toBeInTheDocument();
     expect(screen.queryByText("student@school.local")).not.toBeInTheDocument();

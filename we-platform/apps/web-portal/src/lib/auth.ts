@@ -103,6 +103,18 @@ export async function listParentTeachers(token: string): Promise<ParentTeacher[]
   return response.json();
 }
 
+export async function listParentChildren(token: string): Promise<ParentTeacher[]> {
+  const response = await fetch(`${identityApiUrl}/api/v1/parents/me/children-names`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "errors.unknown");
+  }
+
+  return response.json();
+}
+
 export async function fetchProfile(token: string): Promise<UserProfile> {
   const response = await fetch(`${identityApiUrl}/api/v1/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import { fetchStudentGaps, type LearningGap } from "@/lib/gaps";
 import {
@@ -63,6 +64,8 @@ export default function CreateInterventionPage() {
   const returnTo = searchParams.get("returnTo");
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [learningNames, setLearningNames] = useState<Record<string, string>>({});
   const [gapContext, setGapContext] = useState<GapInterventionContext | null>(null);
   const [learningGapId, setLearningGapId] = useState(preselectedGapId ?? "");
   const [plannedActions, setPlannedActions] = useState("");
@@ -85,6 +88,9 @@ export default function CreateInterventionPage() {
         }
 
         setViewer(loaded);
+        const names = organisationId ? await loadLearningNames(token, organisationId) : {};
+        setPeople(await loadPeople(token));
+        setLearningNames(names);
         const studentGaps = await fetchStudentGaps(token, studentUserId);
         const resolvedContext = resolveGapContext(
           studentGaps.gaps,
@@ -95,7 +101,12 @@ export default function CreateInterventionPage() {
         setGapContext(resolvedContext);
         if (resolvedContext) {
           setLearningGapId(resolvedContext.learningGapId);
-          setPlannedActions(buildSuggestedInterventionActions(resolvedContext));
+          const skillName = learningLabel(
+            names,
+            resolvedContext.microSkillId,
+            t("assessments.review.unknownSkill")
+          );
+          setPlannedActions(buildSuggestedInterventionActions(resolvedContext, skillName));
         }
       })
       .catch(() => {
@@ -167,12 +178,16 @@ export default function CreateInterventionPage() {
             <p className="text-sm">
               {t("teacher.interventions.studentLabel")}{" "}
               <Link href={`/students/${studentUserId}/profile`} className="underline">
-                {studentUserId}
+                {personName(people, studentUserId, t("organisation.manage.unknownPerson"))}
               </Link>
             </p>
             <p className="text-xs text-black/60">
               {t("teacher.interventions.new.gapMeta", {
-                microSkill: gapContext.microSkillId,
+                microSkill: learningLabel(
+                  learningNames,
+                  gapContext.microSkillId,
+                  t("assessments.review.unknownSkill")
+                ),
                 severity: gapContext.severity,
                 urgency: gapContext.urgency,
               })}

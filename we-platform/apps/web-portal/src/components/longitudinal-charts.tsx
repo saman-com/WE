@@ -62,9 +62,10 @@ type GapHistoryTimelineProps = {
     eventType: string;
     occurredAt: string;
   }>;
+  gapNames?: Record<string, string>;
 };
 
-export function GapHistoryTimeline({ events }: GapHistoryTimelineProps) {
+export function GapHistoryTimeline({ events, gapNames = {} }: GapHistoryTimelineProps) {
   const { t } = useI18n();
   if (events.length === 0) {
     return (
@@ -90,7 +91,8 @@ export function GapHistoryTimeline({ events }: GapHistoryTimelineProps) {
               {t("charts.gapHistory.event", { event: event.eventType.toLowerCase() })}
             </p>
             <p className="text-xs text-black/60">
-              {event.learningGapId.slice(0, 8)}… ·{" "}
+              {gapNames[event.learningGapId] || t("assessments.review.unknownSkill")}
+              {" · "}
               {new Date(event.occurredAt).toLocaleDateString()}
             </p>
           </li>
@@ -107,9 +109,10 @@ type InterventionOutcomesTimelineProps = {
     status: string;
     createdAt: string;
   }>;
+  gapNames?: Record<string, string>;
 };
 
-export function InterventionOutcomesTimeline({ outcomes }: InterventionOutcomesTimelineProps) {
+export function InterventionOutcomesTimeline({ outcomes, gapNames = {} }: InterventionOutcomesTimelineProps) {
   const { t } = useI18n();
   if (outcomes.length === 0) {
     return (
@@ -130,7 +133,7 @@ export function InterventionOutcomesTimeline({ outcomes }: InterventionOutcomesT
             className="flex items-center justify-between rounded border border-black/5 px-3 py-2 text-sm"
           >
             <span>
-              {t("charts.outcomes.gapLabel", { id: outcome.learningGapId.slice(0, 8) })}
+              {gapNames[outcome.learningGapId] || t("assessments.review.unknownSkill")}
             </span>
             <span className="text-xs rounded px-2 py-0.5 bg-black/5">
               {outcome.status}

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataText } from "@/components/data-text";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchClassEiInsights,
@@ -64,6 +65,8 @@ export default function TeacherClassDetailPage() {
   const classId = params.classId;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [learningNames, setLearningNames] = useState<Record<string, string>>({});
   const [dashboard, setDashboard] = useState<ClassDashboard | null>(null);
   const [insights, setInsights] = useState<ClassEiInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +102,12 @@ export default function TeacherClassDetailPage() {
           return;
         }
         setProfile(loaded);
+        const [directory, names] = await Promise.all([
+          loadPeople(stored),
+          loadLearningNames(stored, organisationId),
+        ]);
+        setPeople(directory);
+        setLearningNames(names);
         const loadedDashboard = await fetchClassDashboard(
           stored,
           organisationId,
@@ -261,7 +270,7 @@ export default function TeacherClassDetailPage() {
               <tbody>
                 {dashboard.roster.map((student) => (
                   <tr key={student.studentUserId} className="border-b border-black/5">
-                    <td className="py-2">{student.studentUserId}</td>
+                    <td className="py-2">{personName(people, student.studentUserId, t("organisation.manage.unknownPerson"))}</td>
                     <td className="py-2">{student.evidenceCount}</td>
                     <td className="py-2">{formatDate(student.latestActivityAt)}</td>
                     <td className="py-2">
@@ -298,7 +307,7 @@ export default function TeacherClassDetailPage() {
                 <ul className="space-y-3">
                   {insights.masteryDistribution.map((item) => (
                     <li key={item.microSkillId} className="rounded border border-black/5 p-3 space-y-1">
-                      <p className="text-sm font-medium">{t("teacher.class.ei.microSkill", { id: item.microSkillId })}</p>
+                      <p className="text-sm font-medium">{t("teacher.class.ei.microSkill", { id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")) })}</p>
                       <p className="text-xs text-black/60">
                         {t("teacher.class.ei.levelSummary", {
                           mastered: item.levelCounts.Mastered ?? 0,
@@ -312,7 +321,7 @@ export default function TeacherClassDetailPage() {
                       {item.linkedEvidenceIds.length > 0 ? (
                         <p className="text-xs text-black/60">
                           {t("teacher.class.ei.linkedEvidence", {
-                            ids: item.linkedEvidenceIds.join(", "),
+                            ids: String(item.linkedEvidenceIds.length),
                           })}
                         </p>
                       ) : null}
@@ -337,16 +346,13 @@ export default function TeacherClassDetailPage() {
                         })}{" "}
                         ·{" "}
                         <Link href={`/students/${gap.studentUserId}/profile`} className="underline">
-                          {gap.studentUserId}
+                          {personName(people, gap.studentUserId, t("organisation.manage.unknownPerson"))}
                         </Link>
                       </p>
                       <p className="text-xs text-black/60">
-                        {t("teacher.class.ei.microSkill", { id: gap.microSkillId })}
+                        {t("teacher.class.ei.microSkill", { id: learningLabel(learningNames, gap.microSkillId, t("assessments.review.unknownSkill")) })}
                       </p>
                       <p className="text-sm">{gap.explanation}</p>
-                      <p className="text-xs text-black/60">
-                        {t("teacher.class.ei.evidence", { id: gap.evidenceId })}
-                      </p>
                       {organisationId ? (
                         <Link
                           href={createInterventionHref(gap, organisationId, classId)}
@@ -382,14 +388,11 @@ export default function TeacherClassDetailPage() {
                       </p>
                       <p className="text-xs text-black/60">
                         {t("teacher.class.ei.trendMeta", {
-                          id: trend.microSkillId,
+                          id: learningLabel(learningNames, trend.microSkillId, t("assessments.review.unknownSkill")),
                           date: new Date(trend.latestAt).toLocaleDateString(),
                         })}
                       </p>
                       <p className="text-sm">{trend.explanation}</p>
-                      <p className="text-xs text-black/60">
-                        {t("teacher.class.ei.evidence", { id: trend.evidenceId })}
-                      </p>
                     </li>
                   ))}
                 </ul>
@@ -409,16 +412,11 @@ export default function TeacherClassDetailPage() {
                     >
                       <p className="text-sm font-medium">
                         <Link href={`/students/${student.studentUserId}/profile`} className="underline">
-                          {student.studentUserId}
+                          {personName(people, student.studentUserId, t("organisation.manage.unknownPerson"))}
                         </Link>{" "}
                         — {student.reason}
                       </p>
                       <p className="text-sm">{student.explanation}</p>
-                      {student.evidenceId ? (
-                        <p className="text-xs text-black/60">
-                          {t("teacher.class.ei.evidence", { id: student.evidenceId })}
-                        </p>
-                      ) : null}
                     </li>
                   ))}
                 </ul>

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadGapLabels, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchIntervention,
@@ -26,6 +27,8 @@ export default function InterventionDetailPage() {
   const interventionId = params.interventionId;
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [intervention, setIntervention] = useState<Intervention | null>(null);
   const [notes, setNotes] = useState("");
   const [outcome, setOutcome] = useState("");
@@ -42,7 +45,7 @@ export default function InterventionDetailPage() {
     }
 
     Promise.all([fetchProfile(token), fetchIntervention(token, interventionId)])
-      .then(([profile, loaded]) => {
+      .then(async ([profile, loaded]) => {
         const canManage =
           profile.roles.includes("SchoolLeader") ||
           (profile.roles.includes("Teacher") && profile.id === loaded.assignedTeacherUserId);
@@ -56,6 +59,15 @@ export default function InterventionDetailPage() {
         setIntervention(loaded);
         setNotes(loaded.notes);
         setOutcome(loaded.outcome ?? "");
+        const [directory, names] = await Promise.all([
+          loadPeople(token),
+          loadLearningNames(token, loaded.organisationId),
+        ]);
+        setPeople(directory);
+        setLabels({
+          ...names,
+          ...(await loadGapLabels(token, [loaded.studentUserId], names)),
+        });
       })
       .catch(() => {
         setError(t("teacher.interventions.detail.loadError"));
@@ -156,14 +168,16 @@ export default function InterventionDetailPage() {
           <p>
             <span className="font-medium">{t("teacher.interventions.studentLabel")}</span>{" "}
             <Link href={`/students/${intervention.studentUserId}/profile`} className="underline">
-              {intervention.studentUserId}
+              {personName(people, intervention.studentUserId, t("organisation.manage.unknownPerson"))}
             </Link>
           </p>
           <p>
-            <span className="font-medium">{t("teacher.interventions.detail.learningGap")}</span> {intervention.learningGapId}
+            <span className="font-medium">{t("teacher.interventions.detail.learningGap")}</span>{" "}
+            {learningLabel(labels, intervention.learningGapId, t("assessments.review.unknownSkill"))}
           </p>
           <p>
-            <span className="font-medium">{t("teacher.interventions.detail.assignedTeacher")}</span> {intervention.assignedTeacherUserId}
+            <span className="font-medium">{t("teacher.interventions.detail.assignedTeacher")}</span>{" "}
+            {personName(people, intervention.assignedTeacherUserId, t("organisation.manage.unknownPerson"))}
           </p>
           <p>
             <span className="font-medium">{t("teacher.interventions.detail.plannedActions")}</span> {intervention.plannedActions}

@@ -18,9 +18,15 @@ public sealed record DirectoryUserResponse(
 
 public sealed record ParentTeacherResponse(string Id, string Name);
 
+public sealed record ParentChildNameResponse(string Id, string Name);
+
 public interface IParentClassTeacherSource
 {
     Task<IReadOnlyList<string>> ListTeacherUserIdsAsync(
+        string bearerToken,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> ListLinkedStudentUserIdsAsync(
         string bearerToken,
         CancellationToken cancellationToken = default);
 }

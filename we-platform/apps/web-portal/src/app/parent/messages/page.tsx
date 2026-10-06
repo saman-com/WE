@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, listParentTeachers, personName, type ParentTeacher, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listParentChildren, listParentTeachers, personName, type ParentTeacher, type UserProfile } from "@/lib/auth";
 import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -27,6 +27,7 @@ export default function ParentMessagesPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
   const [teachers, setTeachers] = useState<ParentTeacher[]>([]);
+  const [childNames, setChildNames] = useState<ParentTeacher[]>([]);
   const [threads, setThreads] = useState<MessageInboxThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageInboxThread | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -50,11 +51,13 @@ export default function ParentMessagesPage() {
           return;
         }
         setProfile(loaded);
-        const [linked, classTeachers] = await Promise.all([
+        const [linked, classTeachers, namedChildren] = await Promise.all([
           fetchLinkedChildren(token),
           listParentTeachers(token).catch(() => [] as ParentTeacher[]),
+          listParentChildren(token).catch(() => [] as ParentTeacher[]),
         ]);
         setTeachers(classTeachers);
+        setChildNames(namedChildren);
         setChildren(linked);
         if (linked.length > 0) {
           setNewStudentId(linked[0].studentUserId);
@@ -69,7 +72,7 @@ export default function ParentMessagesPage() {
   }, [router, t]);
 
   function displayName(userId: string): string {
-    return personName(teachers, userId, t("organisation.manage.unknownPerson"));
+    return personName([...childNames, ...teachers], userId, t("organisation.manage.unknownPerson"));
   }
 
   async function openThread(thread: MessageInboxThread) {

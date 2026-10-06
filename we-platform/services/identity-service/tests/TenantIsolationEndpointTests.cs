@@ -120,6 +120,43 @@ public class TenantIsolationEndpointTests : IClassFixture<IdentityWebApplication
         Assert.DoesNotContain(teachersB, teacher => teacher.Id == IdentityDataSeeder.TeacherUserId);
     }
 
+    [Fact]
+    public async Task ParentChildNames_AreLimitedToTheCallerTenant()
+    {
+        // Probe: identity-service:parent-children
+        _factory.ParentTeachers.ChildUserIds =
+        [
+            IdentityDataSeeder.StudentUserId,
+            IdentityDataSeeder.StudentBUserId
+        ];
+
+        using var schoolA = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/children-names",
+            IdentityDataSeeder.ParentUserId,
+            DefaultTenant.Id,
+            PlatformRoles.Parent);
+        var responseA = await _client.SendAsync(schoolA);
+        Assert.Equal(HttpStatusCode.OK, responseA.StatusCode);
+        var childrenA = await responseA.Content.ReadFromJsonAsync<List<ParentChildNameResponse>>();
+        Assert.NotNull(childrenA);
+        Assert.Contains(childrenA, child => child.Id == IdentityDataSeeder.StudentUserId);
+        Assert.DoesNotContain(childrenA, child => child.Id == IdentityDataSeeder.StudentBUserId);
+
+        using var schoolB = TestJwt.Authorized(
+            HttpMethod.Get,
+            "/api/v1/parents/me/children-names",
+            IdentityDataSeeder.ParentUserId,
+            Guid.Parse(IdentityDataSeeder.SchoolBTenantId),
+            PlatformRoles.Parent);
+        var responseB = await _client.SendAsync(schoolB);
+        Assert.Equal(HttpStatusCode.OK, responseB.StatusCode);
+        var childrenB = await responseB.Content.ReadFromJsonAsync<List<ParentChildNameResponse>>();
+        Assert.NotNull(childrenB);
+        Assert.Contains(childrenB, child => child.Id == IdentityDataSeeder.StudentBUserId);
+        Assert.DoesNotContain(childrenB, child => child.Id == IdentityDataSeeder.StudentUserId);
+    }
+
     private async Task<string> LoginAndGetTokenAsync(string email, string password)
     {
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, password));

@@ -1033,6 +1033,16 @@
     {
       "service": "identity-service",
       "method": "GET",
+      "route": "/api/v1/parents/me/children-names",
+      "ids": [],
+      "kind": "isolation",
+      "reason": "query-or-body-tenant-scope",
+      "file": "services/identity-service/src/Api/Program.cs",
+      "probe": "identity-service:parent-children"
+    },
+    {
+      "service": "identity-service",
+      "method": "GET",
       "route": "/api/v1/users",
       "ids": [],
       "kind": "exempt",

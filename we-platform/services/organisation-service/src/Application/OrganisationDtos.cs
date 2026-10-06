@@ -111,4 +111,5 @@ public sealed record ParentChildProgressResponse(
     IReadOnlyList<ParentMasterySummary> Mastery,
     IReadOnlyList<StudentWorkspaceFeedbackSummary> Feedback,
     IReadOnlyList<ParentAssessmentSummary> Assessments,
-    IReadOnlyList<ParentInterventionSummary> ActiveInterventions);
+    IReadOnlyList<ParentInterventionSummary> ActiveInterventions,
+    Guid? OrganisationId);

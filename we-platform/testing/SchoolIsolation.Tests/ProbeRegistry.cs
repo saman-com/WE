@@ -25,6 +25,7 @@ internal static class ProbeRegistry
         "evidence-service:evidence-list",
         "evidence-service:evidence-resource",
         "federation-service:federation-school",
+        "identity-service:parent-children",
         "identity-service:parent-teachers",
         "intervention-service:intervention-list",
         "intervention-service:intervention-resource",

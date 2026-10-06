@@ -60,7 +60,7 @@ public static class CurriculumEndpoints
         CurriculumDbContext db,
         ITenantContext tenantContext)
     {
-        if (!principal.CanManageCurriculum())
+        if (!principal.CanReadCurriculum())
         {
             return Results.Forbid();
         }
@@ -422,7 +422,7 @@ public static class CurriculumEndpoints
         CurriculumDbContext db,
         ITenantContext tenantContext)
     {
-        if (!principal.CanManageCurriculum())
+        if (!principal.CanReadCurriculum())
         {
             return Results.Forbid();
         }
@@ -1504,6 +1504,12 @@ public static class CurriculumEndpoints
 
     private static bool IsValidStatus(string? status) =>
         !string.IsNullOrWhiteSpace(status) && CurriculumStatuses.All.Contains(status.Trim());
+
+    private static bool CanReadCurriculum(this ClaimsPrincipal principal) =>
+        principal.CanManageCurriculum()
+        || principal.IsInRole(PlatformRoles.Student)
+        || principal.IsInRole(PlatformRoles.Parent)
+        || principal.IsInRole(PlatformRoles.SchoolLeader);
 
     private static bool CanManageCurriculum(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher)

@@ -28,8 +28,15 @@ public sealed class FakeParentClassTeacherSource : IParentClassTeacherSource
 {
     public IReadOnlyList<string> TeacherUserIds { get; set; } = [];
 
+    public IReadOnlyList<string> ChildUserIds { get; set; } = [];
+
     public Task<IReadOnlyList<string>> ListTeacherUserIdsAsync(
         string bearerToken,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(TeacherUserIds);
+
+    public Task<IReadOnlyList<string>> ListLinkedStudentUserIdsAsync(
+        string bearerToken,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(ChildUserIds);
 }

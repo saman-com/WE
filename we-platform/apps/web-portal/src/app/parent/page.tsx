@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listParentChildren, personName, type ParentTeacher, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadLearningNames } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -24,6 +25,8 @@ export default function ParentWorkspacePage() {
   const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [children, setChildren] = useState<ParentChildLink[]>([]);
+  const [childNames, setChildNames] = useState<ParentTeacher[]>([]);
+  const [learningNames, setLearningNames] = useState<Record<string, string>>({});
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [progress, setProgress] = useState<ParentChildProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,12 +54,19 @@ export default function ParentWorkspacePage() {
           return;
         }
         setChildren(linked);
+        const named = await listParentChildren(token).catch(() => [] as ParentTeacher[]);
+        if (!cancelled) {
+          setChildNames(named);
+        }
         if (linked.length > 0) {
           const firstChild = linked[0].studentUserId;
           setSelectedStudentId(firstChild);
           const childProgress = await fetchChildProgress(token, firstChild);
           if (!cancelled) {
             setProgress(childProgress);
+            if (childProgress.organisationId) {
+              setLearningNames(await loadLearningNames(token, childProgress.organisationId));
+            }
           }
         }
       })
@@ -88,6 +98,9 @@ export default function ParentWorkspacePage() {
     try {
       const childProgress = await fetchChildProgress(token, studentUserId);
       setProgress(childProgress);
+      if (childProgress.organisationId) {
+        setLearningNames(await loadLearningNames(token, childProgress.organisationId));
+      }
     } catch {
       setError(t("parent.home.childProgressError"));
     }
@@ -154,7 +167,9 @@ export default function ParentWorkspacePage() {
                         : "border-black/20"
                     }`}
                   >
-                    {t("parent.home.childLabel", { id: child.studentUserId.slice(0, 8) })}
+                    {t("parent.home.childLabel", {
+                      id: personName(childNames, child.studentUserId, t("organisation.manage.unknownPerson")),
+                    })}
                   </button>
                 ))}
               </div>
@@ -173,7 +188,11 @@ export default function ParentWorkspacePage() {
                       {progress.mastery.map((item) => (
                         <li key={item.microSkillId} className="text-sm">
                           {t("parent.home.skillLine", {
-                            id: item.microSkillId.slice(0, 8),
+                            id: learningLabel(
+                              learningNames,
+                              item.microSkillId,
+                              t("assessments.review.unknownSkill")
+                            ),
                             level: item.masteryLevel,
                           })}
                         </li>

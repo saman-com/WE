@@ -280,7 +280,8 @@ public static class ParentWorkspaceEndpoints
             mastery,
             feedback,
             assessments,
-            activeInterventions));
+            activeInterventions,
+            enrollments.Count == 0 ? null : enrollments[0].Class.OrganisationId));
     }
 
     private static async Task<IResult> CheckParentAccess(

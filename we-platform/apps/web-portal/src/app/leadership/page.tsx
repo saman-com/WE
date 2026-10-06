@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadGapLabels, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchClassLeadershipSummary,
@@ -104,6 +105,8 @@ export default function LeadershipDashboardPage() {
   const [orgEffectiveness, setOrgEffectiveness] = useState<OrganisationEffectivenessResponse | null>(null);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -147,6 +150,37 @@ export default function LeadershipDashboardPage() {
         setError(t("common.sessionExpired"));
       });
   }, [router, t]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("we_access_token");
+    if (!token || !selectedOrgId) {
+      return;
+    }
+
+    let cancelled = false;
+    Promise.all([loadPeople(token), loadLearningNames(token, selectedOrgId)])
+      .then(async ([directory, names]) => {
+        const gapLabels = await loadGapLabels(
+          token,
+          interventions.map((item) => item.studentUserId),
+          names
+        );
+        if (!cancelled) {
+          setPeople(directory);
+          setLabels({ ...names, ...gapLabels });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPeople([]);
+          setLabels({});
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrgId, interventions]);
 
   async function handleSelectOrganisation(organisationId: string) {
     const token = localStorage.getItem("we_access_token");
@@ -438,8 +472,8 @@ export default function LeadershipDashboardPage() {
                     <tbody>
                       {orgLongitudinal.studentSummaries.map((summary) => (
                         <tr key={summary.studentUserId} className="border-b border-black/5">
-                          <td className="py-2 pr-4 font-mono text-xs">
-                            {summary.studentUserId}
+                          <td className="py-2 pr-4">
+                            {personName(people, summary.studentUserId, t("organisation.manage.unknownPerson"))}
                           </td>
                           <td className="py-2 pr-4">{summary.cumulativeMicroSkills}</td>
                           <td className="py-2 pr-4">{summary.interventionCount}</td>
@@ -680,11 +714,15 @@ export default function LeadershipDashboardPage() {
                           href={`/students/${item.studentUserId}/profile`}
                           className="underline"
                         >
-                          {item.studentUserId}
+                          {personName(people, item.studentUserId, t("organisation.manage.unknownPerson"))}
                         </Link>
                       </td>
-                      <td className="py-3 pr-4 font-mono text-xs">{item.learningGapId}</td>
-                      <td className="py-3 pr-4">{item.assignedTeacherUserId}</td>
+                      <td className="py-3 pr-4">
+                        {learningLabel(labels, item.learningGapId, t("assessments.review.unknownSkill"))}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {personName(people, item.assignedTeacherUserId, t("organisation.manage.unknownPerson"))}
+                      </td>
                       <td className="py-3 pr-4">
                         <DataText>{item.className}</DataText>
                         <span className="text-black/50"> ({item.yearLevelName})</span>
@@ -743,7 +781,9 @@ export default function LeadershipDashboardPage() {
                         href={`/students/${student.userId}/profile`}
                         className="underline"
                       >
-                        {t("dashboard.classes.viewProfile", { studentUserId: student.userId })}
+                        {t("dashboard.classes.viewProfile", {
+                          studentUserId: personName(people, student.userId, t("organisation.manage.unknownPerson")),
+                        })}
                       </Link>
                     </li>
                   ))}

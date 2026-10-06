@@ -33,4 +33,36 @@ describe("Longitudinal charts empty states", () => {
       screen.getByText("No intervention history in analytics store yet.")
     ).toBeInTheDocument();
   });
+
+  it("shows the skill name for a gap and never a GUID", () => {
+    const gapId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const { container } = renderWithI18n(
+      <>
+        <GapHistoryTimeline
+          events={[
+            {
+              learningGapId: gapId,
+              eventType: "Opened",
+              occurredAt: "2026-10-01T00:00:00Z",
+            },
+          ]}
+          gapNames={{ [gapId]: "Read an equation" }}
+        />
+        <InterventionOutcomesTimeline
+          outcomes={[
+            {
+              interventionId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+              learningGapId: gapId,
+              status: "Active",
+              createdAt: "2026-10-02T00:00:00Z",
+            },
+          ]}
+          gapNames={{ [gapId]: "Read an equation" }}
+        />
+      </>
+    );
+
+    expect(screen.getAllByText(/Read an equation/).length).toBe(2);
+    expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
 });

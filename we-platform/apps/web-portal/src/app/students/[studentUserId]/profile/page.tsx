@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
 import { fetchStudentInterventions, type StudentInterventions } from "@/lib/interventions";
@@ -32,6 +33,8 @@ export default function StudentProfilePage() {
   const studentUserId = params.studentUserId;
 
   const [viewer, setViewer] = useState<UserProfile | null>(null);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
+  const [learningNames, setLearningNames] = useState<Record<string, string>>({});
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [evidenceHasMore, setEvidenceHasMore] = useState(false);
   const [evidenceCursor, setEvidenceCursor] = useState<string | null>(null);
@@ -75,6 +78,11 @@ export default function StudentProfilePage() {
         setProfile(studentProfile);
         setEvidenceHasMore(studentProfile.hasMore);
         setEvidenceCursor(studentProfile.nextCursor);
+        setPeople(await loadPeople(stored));
+        const organisationId = studentProfile.enrollments[0]?.organisationId;
+        if (organisationId) {
+          setLearningNames(await loadLearningNames(stored, organisationId));
+        }
 
         const isTeacherOrAdmin =
           loaded.roles.includes("SystemAdministrator") || loaded.roles.includes("Teacher");
@@ -222,6 +230,15 @@ export default function StudentProfilePage() {
     );
   }
 
+  const gapNames: Record<string, string> = {};
+  for (const gap of gaps?.gaps ?? []) {
+    gapNames[gap.id] = learningLabel(
+      learningNames,
+      gap.microSkillId || gap.learningObjectiveId || "",
+      t("assessments.review.unknownSkill")
+    );
+  }
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -235,7 +252,10 @@ export default function StudentProfilePage() {
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <h2 className="font-medium">{t("student.profile.studentTitle")}</h2>
           <p>
-            <span className="font-medium">{t("dashboard.profile.userIdLabel")}</span> {profile.studentUserId}
+            <span className="font-medium">{t("dashboard.profile.nameLabel")}</span>{" "}
+            <DataText>
+              {personName(people, profile.studentUserId, viewer.name || t("organisation.manage.unknownPerson"))}
+            </DataText>
           </p>
           {viewer.id === profile.studentUserId ? (
             <>
@@ -364,7 +384,7 @@ export default function StudentProfilePage() {
                           ? "student.profile.mastery.metaOne"
                           : "student.profile.mastery.metaOther",
                         {
-                          id: item.microSkillId,
+                          id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
                           count: item.evidenceCount,
                           confidence: item.confidenceScore,
                         }
@@ -387,8 +407,8 @@ export default function StudentProfilePage() {
               </p>
             </div>
             <MasteryTrendChart points={longitudinal.masteryTrend} />
-            <GapHistoryTimeline events={longitudinal.gapHistory} />
-            <InterventionOutcomesTimeline outcomes={longitudinal.interventionOutcomes} />
+            <GapHistoryTimeline events={longitudinal.gapHistory} gapNames={gapNames} />
+            <InterventionOutcomesTimeline outcomes={longitudinal.interventionOutcomes} gapNames={gapNames} />
           </div>
         ) : null}
 
@@ -410,9 +430,13 @@ export default function StudentProfilePage() {
                       })}
                     </p>
                     <p className="text-xs text-black/60">
-                      {t("student.profile.microSkill", { id: item.microSkillId })}
+                      {t("student.profile.microSkill", {
+                        id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
+                      })}
                       {item.learningObjectiveId
-                        ? ` · ${t("student.profile.gaps.lo", { id: item.learningObjectiveId })}`
+                        ? ` · ${t("student.profile.gaps.lo", {
+                            id: learningLabel(learningNames, item.learningObjectiveId, t("assessments.review.unknownSkill")),
+                          })}`
                         : null}
                     </p>
                     <p className="text-xs text-black/60">
@@ -452,7 +476,9 @@ export default function StudentProfilePage() {
                       {item.status} — {item.plannedActions}
                     </p>
                     <p className="text-xs text-black/60">
-                      {t("teacher.interventions.gapLabel", { id: item.learningGapId })}
+                      {t("teacher.interventions.gapLabel", {
+                        id: learningLabel(gapNames, item.learningGapId, t("assessments.review.unknownSkill")),
+                      })}
                       {item.outcome
                         ? ` · ${t("student.profile.interventions.outcome", { outcome: item.outcome })}`
                         : null}
@@ -488,7 +514,9 @@ export default function StudentProfilePage() {
                       })}
                     </p>
                     <p className="text-xs text-black/60">
-                      {t("student.profile.microSkill", { id: item.microSkillId })}
+                      {t("student.profile.microSkill", {
+                        id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
+                      })}
                     </p>
                     <p className="text-sm">{item.reason}</p>
                   </li>

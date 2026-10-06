@@ -48,6 +48,7 @@ export type ParentChildProgress = {
   feedback: ParentFeedbackSummary[];
   assessments: ParentAssessmentSummary[];
   activeInterventions: ParentInterventionSummary[];
+  organisationId: string | null;
 };
 
 async function parentRequest<T>(

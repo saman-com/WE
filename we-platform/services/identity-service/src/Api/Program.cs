@@ -170,6 +170,52 @@ app.MapGet("/api/v1/parents/me/teachers", [Authorize(Roles = PlatformRoles.Paren
     return Results.Ok(teachers);
 });
 
+app.MapGet("/api/v1/parents/me/children-names", [Authorize(Roles = PlatformRoles.Parent)] async (
+    ITenantContext tenantContext,
+    UserManager<ApplicationUser> userManager,
+    IParentClassTeacherSource teacherSource,
+    HttpContext httpContext) =>
+{
+    if (tenantContext.TenantId is null)
+    {
+        return Results.Forbid();
+    }
+
+    var bearerToken = ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString());
+    if (bearerToken is null)
+    {
+        return Results.Forbid();
+    }
+
+    var childIds = await teacherSource.ListLinkedStudentUserIdsAsync(bearerToken, httpContext.RequestAborted);
+    var allowedIds = childIds
+        .Where(id => !string.IsNullOrWhiteSpace(id))
+        .Distinct(StringComparer.Ordinal)
+        .ToList();
+    if (allowedIds.Count == 0)
+    {
+        return Results.Ok(Array.Empty<ParentChildNameResponse>());
+    }
+
+    var users = await userManager.Users
+        .Where(user => user.TenantId == tenantContext.TenantId && allowedIds.Contains(user.Id))
+        .ToListAsync();
+
+    var children = new List<ParentChildNameResponse>();
+    foreach (var user in users.OrderBy(user => user.DisplayName, StringComparer.Ordinal))
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        if (!roles.Contains(PlatformRoles.Student))
+        {
+            continue;
+        }
+
+        children.Add(new ParentChildNameResponse(user.Id, user.DisplayName));
+    }
+
+    return Results.Ok(children);
+});
+
 app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin},{PlatformRoles.Teacher},{PlatformRoles.Student},{PlatformRoles.SchoolLeader}")] async (
     ITenantContext tenantContext,
     UserManager<ApplicationUser> userManager) =>
