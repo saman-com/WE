@@ -9,6 +9,7 @@ export type LeadershipKpiSummary = {
   studentsNeedingAttention: number | null;
   assessmentCompletionRate: number;
   masteryLevelCounts: Record<string, number>;
+  studentsNeedingAttentionReason?: string | null;
 };
 
 export type YearLevelDashboardSummary = {

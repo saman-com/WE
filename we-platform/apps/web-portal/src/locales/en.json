@@ -736,6 +736,8 @@
   "leadership.kpi.activeLearningGaps": "Active learning gaps",
   "leadership.kpi.studentsNeedingAttention": "Students needing attention",
   "leadership.kpi.notAvailable": "Not available",
+  "leadership.kpi.attention.highSeverityGap": "High-severity gap",
+  "leadership.kpi.attention.strugglingDiagnostic": "Struggling diagnostic",
   "leadership.kpi.assessmentCompletion": "Assessment completion",
   "leadership.report.generated": "School summary report generated on demand from leadership EI data.",
   "leadership.report.generateError": "Unable to generate school summary report.",

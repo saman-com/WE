@@ -11,7 +11,8 @@ public sealed record LeadershipKpiSummary(
     int? ActiveLearningGaps,
     int? StudentsNeedingAttention,
     decimal AssessmentCompletionRate,
-    IReadOnlyDictionary<string, int> MasteryLevelCounts);
+    IReadOnlyDictionary<string, int> MasteryLevelCounts,
+    string? StudentsNeedingAttentionReason = null);
 
 public sealed record YearLevelDashboardSummary(
     Guid YearLevelId,
@@ -134,7 +135,8 @@ public sealed record ClassAggregationResult(
     int? ActiveLearningGaps,
     int? StudentsNeedingAttention,
     decimal AssessmentCompletionRate,
-    IReadOnlyDictionary<string, int> MasteryLevelCounts);
+    IReadOnlyDictionary<string, int> MasteryLevelCounts,
+    string? AttentionReason);
 
 public static class LeadershipDashboardAggregator
 {
@@ -168,7 +170,8 @@ public static class LeadershipDashboardAggregator
             gaps,
             needingAttention,
             assessmentCompletionRate,
-            masteryCounts);
+            masteryCounts,
+            AttentionReason(input.EiInsights));
     }
 
     public static LeadershipKpiSummary RollUpKpis(IReadOnlyList<ClassAggregationResult> classes)
@@ -194,7 +197,8 @@ public static class LeadershipDashboardAggregator
             SumOrUnavailable(classes.Select(c => c.ActiveLearningGaps)),
             SumOrUnavailable(classes.Select(c => c.StudentsNeedingAttention)),
             avgCompletion,
-            masteryCounts);
+            masteryCounts,
+            RollUpAttentionReason(classes));
     }
 
     public static IReadOnlyList<YearLevelDashboardSummary> RollUpYearLevels(
@@ -227,6 +231,44 @@ public static class LeadershipDashboardAggregator
             .OrderBy(c => c.YearLevelName)
             .ThenBy(c => c.ClassName)
             .ToList();
+
+    private static string? AttentionReason(ClassEiInsightsData? insights)
+    {
+        if (insights is null)
+        {
+            return null;
+        }
+
+        if (insights.StudentsNeedingAttention.Any(item =>
+                item.Reason.Contains("High severity", StringComparison.OrdinalIgnoreCase)
+                || item.Reason.Contains("high-severity", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "high-severity-gap";
+        }
+
+        if (insights.StudentsNeedingAttention.Any(item =>
+                item.Reason.Contains("Struggling", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "struggling-diagnostic";
+        }
+
+        return null;
+    }
+
+    private static string? RollUpAttentionReason(IReadOnlyList<ClassAggregationResult> classes)
+    {
+        if (classes.Any(schoolClass => schoolClass.AttentionReason == "high-severity-gap"))
+        {
+            return "high-severity-gap";
+        }
+
+        if (classes.Any(schoolClass => schoolClass.AttentionReason == "struggling-diagnostic"))
+        {
+            return "struggling-diagnostic";
+        }
+
+        return null;
+    }
 
     private static int? SumOrUnavailable(IEnumerable<int?> values)
     {

@@ -120,7 +120,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
             ],
             [],
             [
-                new StudentNeedingAttentionData(studentId, "Active learning gap", "High severity gap.", null)
+                new StudentNeedingAttentionData(studentId, "High severity learning gap", "High severity gap.", null)
             ]);
 
         var dashboard = await SendAsAsync<LeadershipDashboardResponse>(
@@ -137,6 +137,7 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         Assert.Equal(1, dashboard.Kpis.ActiveInterventions);
         Assert.Equal(1, dashboard.Kpis.ActiveLearningGaps);
         Assert.Equal(1, dashboard.Kpis.StudentsNeedingAttention);
+        Assert.Equal("high-severity-gap", dashboard.Kpis.StudentsNeedingAttentionReason);
         Assert.Contains(dashboard.Kpis.MasteryLevelCounts, pair => pair.Key == "Developing" && pair.Value == 1);
         Assert.Single(dashboard.YearLevels);
         Assert.Equal("Year 7", dashboard.YearLevels[0].YearLevelName);
@@ -209,6 +210,43 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
         var comparison = Assert.Single(dashboard.ClassComparisons);
         Assert.Null(comparison.ActiveLearningGaps);
         Assert.Null(comparison.StudentsNeedingAttention);
+    }
+
+    [Fact]
+    public void AttentionLabel_IsHighSeverityGapOrStrugglingDiagnostic()
+    {
+        var high = AggregateAttention("High severity learning gap");
+        var struggling = AggregateAttention("Struggling diagnostic trend");
+
+        Assert.Equal("high-severity-gap", high.AttentionReason);
+        Assert.Equal("struggling-diagnostic", struggling.AttentionReason);
+        Assert.Equal(
+            "high-severity-gap",
+            LeadershipDashboardAggregator.RollUpKpis([struggling, high]).StudentsNeedingAttentionReason);
+        Assert.Equal(
+            "struggling-diagnostic",
+            LeadershipDashboardAggregator.RollUpKpis([struggling]).StudentsNeedingAttentionReason);
+    }
+
+    private static ClassAggregationResult AggregateAttention(string reason)
+    {
+        var classId = Guid.CreateVersion7();
+        var organisationId = Guid.CreateVersion7();
+        return LeadershipDashboardAggregator.AggregateClass(new ClassAggregationInput(
+            classId,
+            "4A",
+            Guid.CreateVersion7(),
+            "Year 4",
+            ["student"],
+            [],
+            0,
+            new ClassEiInsightsData(
+                organisationId,
+                classId,
+                [],
+                [],
+                [],
+                [new StudentNeedingAttentionData("student", reason, "Needs attention.", null)])));
     }
 
     [Fact]

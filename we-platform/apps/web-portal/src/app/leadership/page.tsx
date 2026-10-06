@@ -392,6 +392,7 @@ export default function LeadershipDashboardPage() {
           <KpiCard
             label={t("leadership.kpi.studentsNeedingAttention")}
             value={metricText(dashboard.kpis.studentsNeedingAttention, t("leadership.kpi.notAvailable"))}
+            detail={attentionDetail(dashboard.kpis.studentsNeedingAttentionReason, t)}
           />
           <KpiCard
             label={t("leadership.kpi.assessmentCompletion")}
@@ -807,11 +808,33 @@ function metricText(value: number | null, unavailable: string) {
   return value === null ? unavailable : String(value);
 }
 
-function KpiCard({ label, value }: { label: string; value: number | string }) {
+function attentionDetail(
+  reason: string | null | undefined,
+  t: (key: string) => string
+) {
+  if (reason === "high-severity-gap") {
+    return t("leadership.kpi.attention.highSeverityGap");
+  }
+  if (reason === "struggling-diagnostic") {
+    return t("leadership.kpi.attention.strugglingDiagnostic");
+  }
+  return null;
+}
+
+function KpiCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: number | string;
+  detail?: string | null;
+}) {
   return (
     <div className="rounded-lg border border-black/10 p-4">
       <p className="text-xs text-black/60">{label}</p>
       <p className="text-xl font-semibold mt-1">{value}</p>
+      {detail ? <p className="text-xs text-black/60 mt-1">{detail}</p> : null}
     </div>
   );
 }

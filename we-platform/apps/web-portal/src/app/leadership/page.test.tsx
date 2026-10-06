@@ -232,4 +232,42 @@ describe("leadership dashboard", () => {
     expect(attention.parentElement).toHaveTextContent("Not available");
     expect(attention.parentElement?.textContent ?? "").not.toContain("0");
   });
+
+  it("labels students needing attention in English and Arabic", async () => {
+    const dashboard = {
+      organisationId,
+      organisationName: "Demo school",
+      kpis: {
+        totalStudents: 1,
+        totalClasses: 1,
+        activeInterventions: 1,
+        activeLearningGaps: 1,
+        studentsNeedingAttention: 1,
+        assessmentCompletionRate: 0.5,
+        masteryLevelCounts: {},
+        studentsNeedingAttentionReason: "high-severity-gap",
+      },
+      yearLevels: [],
+      classComparisons: [],
+    };
+    vi.mocked(fetchLeadershipDashboard).mockResolvedValue(dashboard);
+
+    const { unmount } = render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+    const attention = await screen.findByText("Students needing attention");
+    expect(attention.parentElement).toHaveTextContent("High-severity gap");
+    unmount();
+
+    localStorage.setItem("we_locale", "ar");
+    render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+    expect(await screen.findByText("فجوة عالية الخطورة")).toBeInTheDocument();
+    expect(screen.getByText("طلاب يحتاجون إلى اهتمام")).toBeInTheDocument();
+  });
 });
