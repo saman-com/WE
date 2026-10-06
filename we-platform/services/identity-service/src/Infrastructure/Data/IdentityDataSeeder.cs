@@ -36,6 +36,13 @@ public static class IdentityDataSeeder
     public const string StudentBEmail = "student-b@schoolb.local";
     public const string StudentBPassword = "Password123!";
     public const string StudentBUserId = "88888888-8888-8888-8888-888888888888";
+    public const string LoadTenantId = "00000000-0000-4000-8000-0000000000a1";
+    public const string LoadTeacherEmail = "load-teacher@load.local";
+    public const string LoadTeacherPassword = "Password123!";
+    public const string LoadTeacherUserId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    public const string LoadStudentEmail = "load-student@load.local";
+    public const string LoadStudentPassword = "Password123!";
+    public const string LoadStudentUserId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -112,6 +119,22 @@ public static class IdentityDataSeeder
             PlatformRoles.Student,
             StudentBUserId,
             Guid.Parse(SchoolBTenantId));
+        await EnsureUserAsync(
+            userManager,
+            LoadTeacherEmail,
+            LoadTeacherPassword,
+            "Load Test Teacher",
+            PlatformRoles.Teacher,
+            LoadTeacherUserId,
+            Guid.Parse(LoadTenantId));
+        await EnsureUserAsync(
+            userManager,
+            LoadStudentEmail,
+            LoadStudentPassword,
+            "Load Test Student",
+            PlatformRoles.Student,
+            LoadStudentUserId,
+            Guid.Parse(LoadTenantId));
 
         logger.LogInformation("Identity seed data applied.");
     }

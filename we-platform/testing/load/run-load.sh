@@ -91,6 +91,12 @@ print_thresholds() {
   return 0
 }
 
+if printf '%s\n' "${SCENARIOS[@]}" | grep -qx 'approve-evidence'; then
+  echo "Ensuring the load-test tenant (writes do not use the demo school)"
+  "$ROOT/scripts/ensure-load-tenant.sh"
+  echo
+fi
+
 for vu in $VUS_LIST; do
   for scenario in "${SCENARIOS[@]}"; do
     script="$ROOT/scenarios/${scenario}.js"

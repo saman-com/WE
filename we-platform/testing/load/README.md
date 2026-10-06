@@ -21,13 +21,13 @@ Delivery-readiness scripts against the local docker-compose stack. Thresholds re
 | `scenarios/login.js` | student / teacher | `POST /api/v1/auth/login` |
 | `scenarios/student-home.js` | student | `auth/me`, student workspace, learning profile, assessments list, mastery |
 | `scenarios/teacher-class.js` | teacher | class dashboard, EI insights, orgs/classes |
-| `scenarios/approve-evidence.js` | teacher + student | create → publish → submit → `POST /api/v1/evidence` (skips gracefully as N/A if write path fails) |
+| `scenarios/approve-evidence.js` | load-test teacher + student | create → publish → submit → `POST /api/v1/evidence` in the load-test tenant (`lib/load-tenant.js`), not the demo school |
 | `scenarios/leadership.js` | SchoolLeader | leadership dashboard / interventions / year-level / class summary |
 | `scenarios/authority.js` | EducationAuthorityOfficer | national-reporting policy dashboards |
 
 ### Evidence approve setup
 
-Seed alone leaves **Algebra sheet** already approved (duplicate submission → 409). The load script therefore creates a **unique assessment per iteration**, has the demo student submit, then approves. Custom counters:
+Seed alone leaves **Algebra sheet** already approved (duplicate submission → 409). The load script therefore creates a **unique assessment per iteration** in its own tenant and class (`scripts/ensure-load-tenant.sh`, also invoked by `run-load.sh`), has the load-test student submit, then approves. It does not write into the demo school. Rows already written there are removed with `scripts/cleanup-load-evidence.sh` from `we-platform/`. Custom counters:
 
 - `evidence_approve_ok` — successful `201`
 - `evidence_approve_na` — skipped / conflict / upstream failure

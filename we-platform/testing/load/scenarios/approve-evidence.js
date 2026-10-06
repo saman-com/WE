@@ -2,7 +2,8 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 import { login } from '../lib/auth.js';
-import { urls, demo, authHeaders } from '../lib/config.js';
+import { urls, authHeaders } from '../lib/config.js';
+import { loadTenant } from '../lib/load-tenant.js';
 import { options as baseOptions } from '../lib/options.js';
 
 export const options = baseOptions;
@@ -13,15 +14,16 @@ const evidenceSkipped = new Counter('evidence_approve_na');
 /**
  * Scenario: teacher approves evidence (POST /api/v1/evidence).
  *
- * Setup: run ./scripts/seed-demo.sh so org/class/micro-skills exist.
+ * Setup: testing/load/scripts/ensure-load-tenant.sh (also run by run-load.sh).
+ * Writes stay in the load-test tenant. They must not use the demo school.
  *
- * Each iteration creates a unique published assessment, has the demo student
- * submit, then POSTs evidence approval — avoids conflict on already-approved
- * seed submissions (Algebra sheet). On any setup failure, records N/A and skips.
+ * Each iteration creates a unique published assessment, has the load-test
+ * student submit, then POSTs evidence approval. On any setup failure, records
+ * N/A and skips.
  */
 export function setup() {
-  const teacherToken = login(demo.emails.teacher);
-  const studentToken = login(demo.emails.student);
+  const teacherToken = login(loadTenant.emails.teacher, loadTenant.password);
+  const studentToken = login(loadTenant.emails.student, loadTenant.password);
   if (!teacherToken || !studentToken) {
     throw new Error('Teacher/student login failed — is identity-service up?');
   }
@@ -31,7 +33,7 @@ export function setup() {
 export default function (data) {
   const teacherHeaders = authHeaders(data.teacherToken);
   const studentHeaders = authHeaders(data.studentToken);
-  const { organisationId, classId, studentUserId, microSkills } = demo;
+  const { organisationId, classId, studentUserId, microSkills } = loadTenant;
   const title = `Load evidence VU${__VU}-I${__ITER}-${Date.now()}`;
 
   // 1. Create assessment
