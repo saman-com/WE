@@ -36,6 +36,24 @@ public sealed class HttpOrganisationAccessChecker(
             cancellationToken);
     }
 
+    public Task<bool> SchoolLeaderCanViewStudentAsync(
+        string schoolLeaderUserId,
+        string studentUserId,
+        string bearerToken,
+        CancellationToken cancellationToken = default)
+    {
+        if (!tenantContext.HasTenant)
+        {
+            return Task.FromResult(false);
+        }
+
+        return CheckAccessCachedAsync(
+            AccessCacheKeys.LeaderStudent(tenantContext.TenantId!.Value, schoolLeaderUserId, studentUserId),
+            $"/api/v1/access/school-leader/{Uri.EscapeDataString(schoolLeaderUserId)}/student/{Uri.EscapeDataString(studentUserId)}",
+            bearerToken,
+            cancellationToken);
+    }
+
     public Task<bool> ParentCanViewStudentAsync(
         string parentUserId,
         string studentUserId,

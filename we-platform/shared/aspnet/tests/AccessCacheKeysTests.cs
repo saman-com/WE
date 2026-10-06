@@ -19,6 +19,7 @@ public sealed class AccessCacheKeysTests
             AccessCacheKeys.ParentStudent(schoolA, "parent-1", "student-1"),
             AccessCacheKeys.LeaderOrganisation(schoolA, "leader-1"),
             AccessCacheKeys.LeaderClass(schoolA, "leader-1", classId),
+            AccessCacheKeys.LeaderStudent(schoolA, "leader-1", "student-1"),
         };
 
         var keysB = new[]
@@ -29,6 +30,7 @@ public sealed class AccessCacheKeysTests
             AccessCacheKeys.ParentStudent(schoolB, "parent-1", "student-1"),
             AccessCacheKeys.LeaderOrganisation(schoolB, "leader-1"),
             AccessCacheKeys.LeaderClass(schoolB, "leader-1", classId),
+            AccessCacheKeys.LeaderStudent(schoolB, "leader-1", "student-1"),
         };
 
         Assert.Equal(keysA.Length, keysB.Length);

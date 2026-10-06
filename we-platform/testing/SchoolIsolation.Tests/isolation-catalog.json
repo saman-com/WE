@@ -1370,6 +1370,19 @@
     {
       "service": "organisation-service",
       "method": "GET",
+      "route": "/api/v1/access/school-leader/{leaderUserId}/student/{studentUserId}",
+      "ids": [
+        "leaderUserId",
+        "studentUserId"
+      ],
+      "kind": "isolation",
+      "reason": "path-resource-id",
+      "file": "services/organisation-service/src/Api/ParentWorkspaceEndpoints.cs",
+      "probe": "organisation-service:person-resource"
+    },
+    {
+      "service": "organisation-service",
+      "method": "GET",
       "route": "/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}",
       "ids": [
         "teacherUserId",

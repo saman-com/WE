@@ -25,6 +25,8 @@ public static class ParentWorkspaceEndpoints
             .RequireAuthorization();
         app.MapGet("/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}", CheckTeacherAccess)
             .RequireAuthorization();
+        app.MapGet("/api/v1/access/school-leader/{leaderUserId}/student/{studentUserId}", CheckSchoolLeaderAccess)
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> LinkParentToStudent(
@@ -357,6 +359,31 @@ public static class ParentWorkspaceEndpoints
         return Results.Forbid();
     }
 
+    private static async Task<IResult> CheckSchoolLeaderAccess(
+        string leaderUserId,
+        string studentUserId,
+        ClaimsPrincipal principal,
+        OrganisationDbContext db)
+    {
+        if (string.IsNullOrWhiteSpace(leaderUserId) || string.IsNullOrWhiteSpace(studentUserId))
+        {
+            return Results.BadRequest();
+        }
+
+        if (!principal.IsAdmin() && !(principal.IsSchoolLeader() && principal.UserId() == leaderUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var studentInLedSchool = await db.OrganisationLeaders.AnyAsync(leader =>
+            leader.LeaderUserId == leaderUserId
+            && db.ClassEnrollments.Any(enrollment =>
+                enrollment.StudentUserId == studentUserId
+                && enrollment.TenantId == leader.OrganisationId));
+
+        return studentInLedSchool ? Results.Ok() : Results.Forbid();
+    }
+
     private static Task<bool> TeacherIsAssignedToStudentAsync(
         OrganisationDbContext db,
         string teacherUserId,
@@ -385,6 +412,9 @@ public static class ParentWorkspaceEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
 
     private static string? ExtractBearerToken(string authorizationHeader)
     {

@@ -109,7 +109,8 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
         { "GET", "/api/v1/parents/me/children/{studentUserId}/progress", TestJwt.ParentRole },
         { "GET", "/api/v1/parents/{parentUserId}/children", TestJwt.ParentRole },
         { "GET", "/api/v1/access/parent/{parentUserId}/student/{studentUserId}", TestJwt.ParentRole },
-        { "GET", "/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}", TestJwt.TeacherRole }
+        { "GET", "/api/v1/access/teacher/{teacherUserId}/student/{studentUserId}", TestJwt.TeacherRole },
+        { "GET", "/api/v1/access/school-leader/{leaderUserId}/student/{studentUserId}", TestJwt.SchoolLeaderRole }
     };
 
     [Theory]
@@ -125,6 +126,8 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
         var parentB = Guid.NewGuid().ToString();
         var teacherA = Guid.NewGuid().ToString();
         var teacherB = Guid.NewGuid().ToString();
+        var leaderA = Guid.NewGuid().ToString();
+        var leaderB = Guid.NewGuid().ToString();
 
         var orgA = await CreateOrganisationAsAdminAsync(adminA, "Person School A", UniqueCode("PSA"));
         var orgB = await CreateOrganisationAsAdminAsync(adminB, "Person School B", UniqueCode("PSB"));
@@ -138,14 +141,51 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
         await AssignTeacherAsync(adminB, orgB.Id, classB.Id, teacherB);
         await LinkParentToStudentAsync(adminA, orgA.Id, parentA, studentA);
         await LinkParentToStudentAsync(adminB, orgB.Id, parentB, studentB);
+        await AssignSchoolLeaderAsync(adminA, orgA.Id, leaderA);
+        await AssignSchoolLeaderAsync(adminB, orgB.Id, leaderB);
 
-        var (callerB, tenantB) = RoleContext(role, studentB, parentB, teacherB, orgB.Id);
-        var pathIntoA = ExpandPerson(template, studentA, parentA, teacherA);
+        var (callerB, tenantB) = RoleContext(role, studentB, parentB, teacherB, leaderB, orgB.Id);
+        var pathIntoA = ExpandPerson(template, studentA, parentA, teacherA, leaderA);
         await AssertDeniedAsync(method, pathIntoA, callerB, tenantB, role);
 
-        var (callerA, tenantA) = RoleContext(role, studentA, parentA, teacherA, orgA.Id);
-        var pathIntoB = ExpandPerson(template, studentB, parentB, teacherB);
+        var (callerA, tenantA) = RoleContext(role, studentA, parentA, teacherA, leaderA, orgA.Id);
+        var pathIntoB = ExpandPerson(template, studentB, parentB, teacherB, leaderB);
         await AssertDeniedAsync(method, pathIntoB, callerA, tenantA, role);
+    }
+
+    [Fact]
+    public async Task SchoolLeader_CanReadStudentInOwnSchool_OtherSchoolParentAndStudentDenied()
+    {
+        // Probe: organisation-service:person-resource
+        var adminA = Guid.NewGuid().ToString();
+        var adminB = Guid.NewGuid().ToString();
+        var studentA = Guid.NewGuid().ToString();
+        var parentA = Guid.NewGuid().ToString();
+        var leaderA = Guid.NewGuid().ToString();
+        var leaderB = Guid.NewGuid().ToString();
+
+        var orgA = await CreateOrganisationAsAdminAsync(adminA, "Leader Access A", UniqueCode("LAA"));
+        var orgB = await CreateOrganisationAsAdminAsync(adminB, "Leader Access B", UniqueCode("LAB"));
+        var yearA = await CreateYearLevelAsAdminAsync(adminA, orgA.Id, "Year 9", 9);
+        var classA = await CreateClassAsAdminAsync(adminA, orgA.Id, yearA.Id, "9A", UniqueCode("9A"));
+        await EnrollStudentAsync(adminA, orgA.Id, classA.Id, studentA);
+        await LinkParentToStudentAsync(adminA, orgA.Id, parentA, studentA);
+        await AssignSchoolLeaderAsync(adminA, orgA.Id, leaderA);
+        await AssignSchoolLeaderAsync(adminB, orgB.Id, leaderB);
+
+        var path = $"/api/v1/access/school-leader/{leaderA}/student/{studentA}";
+
+        using var own = TestJwt.Authorized(HttpMethod.Get, path, leaderA, orgA.Id, TestJwt.SchoolLeaderRole);
+        Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(own)).StatusCode);
+
+        using var otherSchool = TestJwt.Authorized(HttpMethod.Get, path, leaderB, orgB.Id, TestJwt.SchoolLeaderRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(otherSchool)).StatusCode);
+
+        using var parent = TestJwt.Authorized(HttpMethod.Get, path, parentA, orgA.Id, TestJwt.ParentRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(parent)).StatusCode);
+
+        using var student = TestJwt.Authorized(HttpMethod.Get, path, studentA, orgA.Id, TestJwt.StudentRole);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(student)).StatusCode);
     }
 
     [Fact]
@@ -232,12 +272,14 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
         string studentId,
         string parentId,
         string teacherId,
+        string leaderId,
         Guid tenantId) =>
         role switch
         {
             TestJwt.StudentRole => (studentId, tenantId),
             TestJwt.ParentRole => (parentId, tenantId),
             TestJwt.TeacherRole => (teacherId, tenantId),
+            TestJwt.SchoolLeaderRole => (leaderId, tenantId),
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, null)
         };
 
@@ -291,11 +333,17 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
             .Replace("{classId}", classId.ToString(), StringComparison.Ordinal)
             .Replace("{userId}", userId, StringComparison.Ordinal);
 
-    private static string ExpandPerson(string template, string studentUserId, string parentUserId, string teacherUserId) =>
+    private static string ExpandPerson(
+        string template,
+        string studentUserId,
+        string parentUserId,
+        string teacherUserId,
+        string leaderUserId) =>
         template
             .Replace("{studentUserId}", studentUserId, StringComparison.Ordinal)
             .Replace("{parentUserId}", parentUserId, StringComparison.Ordinal)
-            .Replace("{teacherUserId}", teacherUserId, StringComparison.Ordinal);
+            .Replace("{teacherUserId}", teacherUserId, StringComparison.Ordinal)
+            .Replace("{leaderUserId}", leaderUserId, StringComparison.Ordinal);
 
     private async Task<OrganisationResponse> CreateOrganisationAsAdminAsync(string adminId, string name, string code)
     {
@@ -353,6 +401,19 @@ public class TenantIsolationEndpointTests : IClassFixture<OrganisationWebApplica
             organisationId,
             TestJwt.AdminRole);
         request.Content = JsonContent.Create(new EnrollStudentRequest(studentId));
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+
+    private async Task AssignSchoolLeaderAsync(string adminId, Guid organisationId, string leaderId)
+    {
+        using var request = TestJwt.Authorized(
+            HttpMethod.Post,
+            $"/api/v1/organisations/{organisationId}/leaders",
+            adminId,
+            organisationId,
+            TestJwt.AdminRole);
+        request.Content = JsonContent.Create(new AssignSchoolLeaderRequest(leaderId));
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
     }

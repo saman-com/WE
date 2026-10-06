@@ -91,6 +91,18 @@ public static class DiagnosticEndpoints
             return allowed ? null : Results.Forbid();
         }
 
+        if (principal.IsSchoolLeader())
+        {
+            var token = ExtractBearerToken(authorizationHeader);
+            if (token is null)
+            {
+                return Results.Forbid();
+            }
+
+            var allowed = await accessChecker.SchoolLeaderCanViewStudentAsync(userId, studentUserId, token);
+            return allowed ? null : Results.Forbid();
+        }
+
         return Results.Forbid();
     }
 
@@ -127,4 +139,7 @@ public static class DiagnosticEndpoints
 
     private static bool IsTeacher(this ClaimsPrincipal principal) =>
         principal.IsInRole(PlatformRoles.Teacher);
+
+    private static bool IsSchoolLeader(this ClaimsPrincipal principal) =>
+        principal.IsInRole(PlatformRoles.SchoolLeader);
 }

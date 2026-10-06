@@ -28,6 +28,9 @@ public static class AccessCacheKeys
     public static string LeaderClass(Guid schoolId, string schoolLeaderUserId, Guid classId) =>
         $"access:school:{schoolId}:leader:{schoolLeaderUserId}:class:{classId}";
 
+    public static string LeaderStudent(Guid schoolId, string schoolLeaderUserId, string studentUserId) =>
+        $"access:school:{schoolId}:leader:{schoolLeaderUserId}:student:{studentUserId}";
+
     public static bool IncludesSchool(string cacheKey, Guid schoolId) =>
         cacheKey.Contains($"school:{schoolId}", StringComparison.Ordinal);
 }
