@@ -1,3 +1,5 @@
+import { readApiError } from "@/lib/api-error";
+
 const federationApiUrl =
   process.env.NEXT_PUBLIC_FEDERATION_API_URL ?? "http://localhost:8099";
 
@@ -53,7 +55,7 @@ async function federationRequest<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Federation request failed (${response.status}).`);
+    throw await readApiError(response, "federation.configuration_provision_failed");
   }
 
   return response.json() as Promise<T>;

@@ -1,5 +1,7 @@
 namespace FederationService.Application;
 
+public sealed record ApiErrorResponse(string Code);
+
 public record CreateFederationSchoolRequest(string Name, string Code);
 
 public record FederationSchoolResponse(

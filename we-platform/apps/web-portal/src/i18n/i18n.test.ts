@@ -207,6 +207,7 @@ describe("API error code translation", () => {
     expect(errorKeys).toEqual([
       "errors.auth.invalid_credentials",
       "errors.auth.unauthorized",
+      "errors.federation.duplicate_school_code",
       "errors.unknown",
       "errors.users.email_taken",
       "errors.users.invalid",

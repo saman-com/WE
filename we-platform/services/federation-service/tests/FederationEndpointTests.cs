@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FederationService.Application;
 using FederationService.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
@@ -128,6 +129,45 @@ public class FederationEndpointTests : IClassFixture<FederationWebApplicationFac
             new FederationPolicyDto("shared-curriculum", "blocked")
         ]));
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(policiesPut)).StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSchool_DuplicateCode_ReturnsDuplicateCodeError()
+    {
+        var federationId = Guid.CreateVersion7();
+        var adminId = Guid.NewGuid().ToString();
+        var code = UniqueCode("DUP");
+
+        using var first = TestJwt.FederationAuthorized(
+            HttpMethod.Post,
+            "/api/v1/federation/schools",
+            adminId,
+            federationId);
+        first.Content = JsonContent.Create(new CreateFederationSchoolRequest("First School", code));
+        var firstResponse = await _client.SendAsync(first);
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        using var second = TestJwt.FederationAuthorized(
+            HttpMethod.Post,
+            "/api/v1/federation/schools",
+            adminId,
+            federationId);
+        second.Content = JsonContent.Create(new CreateFederationSchoolRequest("Second School", code));
+        var secondResponse = await _client.SendAsync(second);
+
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+        var body = await secondResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("federation.duplicate_school_code", body.GetProperty("code").GetString());
+
+        using var listRequest = TestJwt.FederationAuthorized(
+            HttpMethod.Get,
+            "/api/v1/federation/schools",
+            adminId,
+            federationId);
+        var schools = await (await _client.SendAsync(listRequest)).Content
+            .ReadFromJsonAsync<List<FederationSchoolResponse>>();
+        Assert.NotNull(schools);
+        Assert.Single(schools, school => school.Code == code);
     }
 
     [Fact]

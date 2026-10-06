@@ -1,6 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text;
 using FederationService.Application;
+using FederationService.Domain;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using WePlatform.Tenancy;
 
 namespace FederationService.Infrastructure;
 
@@ -23,7 +30,7 @@ public sealed class HttpRegionalConfigurationProvisioner(
             client.BaseAddress = new Uri(baseUrl);
         }
 
-        var request = new
+        var requestBody = new
         {
             academicCalendar = new
             {
@@ -58,10 +65,47 @@ public sealed class HttpRegionalConfigurationProvisioner(
             }
         };
 
-        using var response = await client.PutAsJsonAsync(
-            $"/api/v1/regional-configuration?tenantId={schoolTenantId}",
-            request,
-            cancellationToken);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"/api/v1/regional-configuration?tenantId={schoolTenantId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateSchoolTenantToken(schoolTenantId));
+        request.Content = JsonContent.Create(requestBody);
+
+        using var response = await client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    private string CreateSchoolTenantToken(Guid schoolTenantId)
+    {
+        var jwtSection = configuration.GetSection("Jwt");
+        var issuer = jwtSection["Issuer"];
+        var audience = jwtSection["Audience"];
+        var key = jwtSection["Key"];
+        if (string.IsNullOrWhiteSpace(issuer)
+            || string.IsNullOrWhiteSpace(audience)
+            || string.IsNullOrWhiteSpace(key))
+        {
+            throw new HttpRequestException("Configuration service credentials are not configured.");
+        }
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, "federation-service"),
+            new Claim(ClaimTypes.NameIdentifier, "federation-service"),
+            new Claim(ClaimTypes.Role, PlatformRoles.SystemAdministrator),
+            new Claim(TenantClaimTypes.TenantId, schoolTenantId.ToString())
+        };
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var token = new JwtSecurityToken(
+            issuer,
+            audience,
+            claims,
+            expires: DateTime.UtcNow.AddMinutes(5),
+            signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256));
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

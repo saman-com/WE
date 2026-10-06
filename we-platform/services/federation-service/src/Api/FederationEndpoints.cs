@@ -58,7 +58,9 @@ public static class FederationEndpoints
         if (await db.FederationSchools.AnyAsync(
                 school => school.FederationId == federationId && school.Code == normalizedCode))
         {
-            return Results.Conflict();
+            return Results.Json(
+                new ApiErrorResponse("federation.duplicate_school_code"),
+                statusCode: StatusCodes.Status409Conflict);
         }
 
         var tenantId = Guid.CreateVersion7();
@@ -69,7 +71,7 @@ public static class FederationEndpoints
         catch (HttpRequestException)
         {
             return Results.Json(
-                new { error = "configuration_provision_failed" },
+                new ApiErrorResponse("federation.configuration_provision_failed"),
                 statusCode: StatusCodes.Status502BadGateway);
         }
 
@@ -95,7 +97,7 @@ public static class FederationEndpoints
         {
             db.Entry(school).State = EntityState.Detached;
             return Results.Json(
-                new { error = "configuration_provision_failed" },
+                new ApiErrorResponse("federation.configuration_provision_failed"),
                 statusCode: StatusCodes.Status502BadGateway);
         }
 

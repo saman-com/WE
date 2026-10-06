@@ -1,8 +1,11 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FederationAdminPage from "@/app/admin/federation/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { ApiError } from "@/lib/api-error";
 import type { UserProfile } from "@/lib/auth";
+import { createFederationSchool } from "@/lib/federation";
 
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
 const tenantId = "01a10e0a-1038-7cc4-aec9-7c08fe126deb";
@@ -78,5 +81,28 @@ describe("federation admin display", () => {
     expect(document.body.textContent).not.toMatch(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
     );
+  });
+
+  it("says the school code is already in use when create returns a duplicate", async () => {
+    vi.mocked(createFederationSchool).mockRejectedValue(
+      new ApiError("federation.duplicate_school_code", 409)
+    );
+    const user = userEvent.setup();
+    render(
+      <I18nProvider>
+        <FederationAdminPage />
+      </I18nProvider>
+    );
+
+    await screen.findByText("North Federation School (DFED)");
+    await user.click(screen.getAllByRole("button", { name: "Add a school" })[0]);
+    await user.type(screen.getByLabelText("School name"), "QA School");
+    await user.type(screen.getByLabelText("School code"), "DFED");
+    await user.click(screen.getByRole("button", { name: "Create school" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "That school code is already in use."
+    );
+    expect(screen.queryByText("The school was not added. Configuration could not be saved.")).not.toBeInTheDocument();
   });
 });

@@ -26,7 +26,7 @@ function isFederationAdmin(profile: UserProfile): boolean {
 
 export default function FederationAdminPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [schools, setSchools] = useState<FederationSchool[]>([]);
   const [metrics, setMetrics] = useState<FederationMetrics | null>(null);
@@ -125,7 +125,11 @@ export default function FederationAdminPage() {
       setSchoolCode("");
       await reload(token);
       setSuccess(t("admin.federation.provisioned"));
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "federation.duplicate_school_code") {
+        setError(translateError(err.code));
+        return;
+      }
       setError(t("admin.federation.provisionFailed"));
     }
   }
