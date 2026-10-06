@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login, fetchProfile } from "@/lib/auth";
 import { ApiError } from "@/lib/api-error";
+import { roleHome } from "@/lib/role-home";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export default function LoginPage() {
@@ -23,13 +24,7 @@ export default function LoginPage() {
       const result = await login(email, password);
       localStorage.setItem("we_access_token", result.accessToken);
       const profile = await fetchProfile(result.accessToken);
-      if (profile.roles.includes("Student")) {
-        router.push("/student");
-      } else if (profile.roles.includes("Teacher")) {
-        router.push("/teacher");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push(roleHome(profile.roles));
     } catch (err) {
       if (err instanceof ApiError) {
         setError(translateError(err.code, "login.errorFailed"));
