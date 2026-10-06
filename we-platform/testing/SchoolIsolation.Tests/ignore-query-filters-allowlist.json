@@ -220,6 +220,13 @@
       "line": 56
     },
     {
+      "file": "services/intervention-service/src/Infrastructure/Messaging/InterventionEventBackfill.cs",
+      "method": "ExecuteAsync",
+      "occurrence": 1,
+      "reason": "startup-republish-every-tenant-so-the-warehouse-receives-interventions",
+      "line": 17
+    },
+    {
       "file": "services/intervention-service/src/Api/InterventionEndpoints.cs",
       "method": "ListInterventions",
       "occurrence": 1,
