@@ -35,10 +35,14 @@ test.describe("c. Parent and teacher messages", () => {
     const notifyPage = await notifyContext.newPage();
     await notifyPage.goto("/notifications");
     await expect(notifyPage.getByRole("heading", { name: /notifications/i })).toBeVisible();
-    const markRead = notifyPage.getByRole("button", { name: /mark read/i }).first();
+    const ownNotification = notifyPage.locator("li").filter({ hasText: reply });
+    const markRead = ownNotification.getByRole("button", { name: /mark read/i });
     await expect(markRead).toBeVisible({ timeout: 30_000 });
+    const unreadBefore = await notifyPage.getByRole("button", { name: /mark read/i }).count();
     await markRead.click();
     await expect(markRead).toBeHidden({ timeout: 15_000 });
+    await expect(notifyPage.getByRole("button", { name: /mark read/i })).toHaveCount(unreadBefore - 1);
+    await expect(ownNotification).toContainText(reply);
     await notifyContext.close();
   });
 });
