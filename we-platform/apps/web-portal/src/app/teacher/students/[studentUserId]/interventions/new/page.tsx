@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
+import { learningLabel, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import { fetchStudentGaps, type LearningGap } from "@/lib/gaps";
 import {
@@ -89,7 +89,8 @@ export default function CreateInterventionPage() {
 
         setViewer(loaded);
         const names = organisationId ? await loadLearningNames(token, organisationId) : {};
-        setPeople(await loadPeople(token));
+        const directory = await loadPeople(token);
+        setPeople(directory);
         setLearningNames(names);
         const studentGaps = await fetchStudentGaps(token, studentUserId);
         const resolvedContext = resolveGapContext(
@@ -106,7 +107,15 @@ export default function CreateInterventionPage() {
             resolvedContext.microSkillId,
             t("assessments.review.unknownSkill")
           );
-          setPlannedActions(buildSuggestedInterventionActions(resolvedContext, skillName));
+          setPlannedActions(
+            replaceVisibleIds(
+              buildSuggestedInterventionActions(resolvedContext, skillName),
+              directory,
+              names,
+              t("organisation.manage.unknownPerson"),
+              t("assessments.review.unknownSkill")
+            )
+          );
         }
       })
       .catch(() => {

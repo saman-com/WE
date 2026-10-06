@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
+import { learningLabel, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
 import { fetchStudentInterventions, type StudentInterventions } from "@/lib/interventions";
@@ -390,7 +390,15 @@ export default function StudentProfilePage() {
                         }
                       )}
                     </p>
-                    <p className="text-sm">{item.explanation}</p>
+                    <p className="text-sm">
+                      {replaceVisibleIds(
+                        item.explanation,
+                        people,
+                        { ...learningNames, ...gapNames },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      )}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -446,7 +454,15 @@ export default function StudentProfilePage() {
                         mark: item.mark,
                       })}
                     </p>
-                    <p className="text-sm">{item.explanation}</p>
+                    <p className="text-sm">
+                      {replaceVisibleIds(
+                        item.explanation,
+                        people,
+                        { ...learningNames, ...gapNames },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      )}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -473,7 +489,14 @@ export default function StudentProfilePage() {
                 {interventions.interventions.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
                     <p className="text-sm font-medium">
-                      {item.status} — {item.plannedActions}
+                      {item.status} —{" "}
+                      {replaceVisibleIds(
+                        item.plannedActions,
+                        people,
+                        { ...learningNames, ...gapNames },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      )}
                     </p>
                     <p className="text-xs text-black/60">
                       {t("teacher.interventions.gapLabel", {
@@ -483,7 +506,17 @@ export default function StudentProfilePage() {
                         ? ` · ${t("student.profile.interventions.outcome", { outcome: item.outcome })}`
                         : null}
                     </p>
-                    {item.notes ? <p className="text-sm">{item.notes}</p> : null}
+                    {item.notes ? (
+                      <p className="text-sm">
+                        {replaceVisibleIds(
+                          item.notes,
+                          people,
+                          { ...learningNames, ...gapNames },
+                          t("organisation.manage.unknownPerson"),
+                          t("assessments.review.unknownSkill")
+                        )}
+                      </p>
+                    ) : null}
                     {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
                       <Link href={`/teacher/interventions/${item.id}`} className="text-xs underline">
                         {t("student.profile.interventions.viewDetail")}
@@ -518,7 +551,15 @@ export default function StudentProfilePage() {
                         id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
                       })}
                     </p>
-                    <p className="text-sm">{item.reason}</p>
+                    <p className="text-sm">
+                      {replaceVisibleIds(
+                        item.reason,
+                        people,
+                        { ...learningNames, ...gapNames },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      )}
+                    </p>
                   </li>
                 ))}
               </ul>

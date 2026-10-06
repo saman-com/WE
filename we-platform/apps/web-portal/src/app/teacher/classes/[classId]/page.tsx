@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataText } from "@/components/data-text";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadLearningNames, loadPeople } from "@/lib/display-names";
+import { learningLabel, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchClassEiInsights,
@@ -221,9 +221,12 @@ export default function TeacherClassDetailPage() {
   }
 
   function named(text: string) {
-    return text.replace(
-      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-      (id) => learningNames[id] || personName(people, id, t("organisation.manage.unknownPerson"))
+    return replaceVisibleIds(
+      text,
+      people,
+      learningNames,
+      t("organisation.manage.unknownPerson"),
+      t("assessments.review.unknownSkill")
     );
   }
 

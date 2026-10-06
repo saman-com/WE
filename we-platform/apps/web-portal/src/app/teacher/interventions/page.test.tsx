@@ -48,6 +48,17 @@ vi.mock("@/lib/display-names", () => ({
   loadLearningNames: (...args: unknown[]) => loadLearningNames(...args),
   loadGapLabels: (...args: unknown[]) => loadGapLabels(...args),
   learningLabel: (names: Record<string, string>, id: string, unknown: string) => names[id] || unknown,
+  replaceVisibleIds: (
+    text: string,
+    people: Array<{ id: string; name?: string }>,
+    names: Record<string, string>,
+    _unknownPerson: string,
+    unknownSkill: string
+  ) =>
+    text.replace(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      (id) => names[id] || people.find((person) => person.id === id)?.name || unknownSkill
+    ),
 }));
 
 vi.mock("@/lib/organisation", () => ({
@@ -184,6 +195,7 @@ describe("Teacher interventions list (UX-001 §10)", () => {
       { id: studentId, name: "Demo Student", email: "student@school.local", roles: ["Student"] },
     ]);
     loadGapLabels.mockResolvedValue({ [gapId]: "Read an equation" });
+    loadLearningNames.mockResolvedValue({ [gapId]: "Read an equation" });
     fetchStudentInterventions.mockResolvedValue({
       studentUserId: studentId,
       interventions: [
@@ -192,7 +204,7 @@ describe("Teacher interventions list (UX-001 §10)", () => {
           studentUserId: studentId,
           learningGapId: gapId,
           status: "Active",
-          plannedActions: "Guided algebra practice",
+          plannedActions: `Practice for ${studentId} on ${gapId}.`,
         }),
       ],
     });
@@ -211,6 +223,7 @@ describe("Teacher interventions list (UX-001 §10)", () => {
     const { container } = renderPage();
 
     expect(await screen.findByText("Demo Student")).toBeInTheDocument();
+    expect(screen.getByText("Practice for Demo Student on Read an equation.")).toBeInTheDocument();
     expect(screen.getByText(/Gap: Read an equation/)).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });

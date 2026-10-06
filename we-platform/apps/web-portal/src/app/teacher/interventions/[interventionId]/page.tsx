@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadGapLabels, loadLearningNames, loadPeople } from "@/lib/display-names";
+import { learningLabel, loadGapLabels, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchIntervention,
@@ -180,7 +180,14 @@ export default function InterventionDetailPage() {
             {personName(people, intervention.assignedTeacherUserId, t("organisation.manage.unknownPerson"))}
           </p>
           <p>
-            <span className="font-medium">{t("teacher.interventions.detail.plannedActions")}</span> {intervention.plannedActions}
+            <span className="font-medium">{t("teacher.interventions.detail.plannedActions")}</span>{" "}
+            {replaceVisibleIds(
+              intervention.plannedActions,
+              people,
+              labels,
+              t("organisation.manage.unknownPerson"),
+              t("assessments.review.unknownSkill")
+            )}
           </p>
           {intervention.plannedStartAt ? (
             <p className="text-sm text-black/60">
@@ -194,7 +201,14 @@ export default function InterventionDetailPage() {
           ) : null}
           {intervention.outcome ? (
             <p>
-              <span className="font-medium">{t("teacher.interventions.detail.outcome")}</span> {intervention.outcome}
+              <span className="font-medium">{t("teacher.interventions.detail.outcome")}</span>{" "}
+              {replaceVisibleIds(
+                intervention.outcome,
+                people,
+                labels,
+                t("organisation.manage.unknownPerson"),
+                t("assessments.review.unknownSkill")
+              )}
             </p>
           ) : null}
         </div>
@@ -221,7 +235,17 @@ export default function InterventionDetailPage() {
               </button>
             </>
           ) : (
-            <p className="text-sm">{intervention.notes || t("teacher.interventions.detail.noNotesRecorded")}</p>
+            <p className="text-sm">
+              {intervention.notes
+                ? replaceVisibleIds(
+                    intervention.notes,
+                    people,
+                    labels,
+                    t("organisation.manage.unknownPerson"),
+                    t("assessments.review.unknownSkill")
+                  )
+                : t("teacher.interventions.detail.noNotesRecorded")}
+            </p>
           )}
           {feedback ? (
             <p

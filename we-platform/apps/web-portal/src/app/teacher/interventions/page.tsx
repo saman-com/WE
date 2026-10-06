@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
-import { learningLabel, loadGapLabels, loadLearningNames, loadPeople } from "@/lib/display-names";
+import { learningLabel, loadGapLabels, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import {
   fetchStudentInterventions,
@@ -35,6 +35,7 @@ export default function TeacherInterventionsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [people, setPeople] = useState<DirectoryUser[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [learningNames, setLearningNames] = useState<Record<string, string>>({});
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InterventionStatus | "All">("All");
@@ -60,6 +61,7 @@ export default function TeacherInterventionsPage() {
           Object.assign(names, await loadLearningNames(token, organisation.id));
         }
         setPeople(await loadPeople(token));
+        setLearningNames(names);
         const classesByOrg = await Promise.all(
           organisations.map(async (organisation) => {
             const classes = await listClasses(token, organisation.id);
@@ -167,7 +169,13 @@ export default function TeacherInterventionsPage() {
               <li key={item.id} className="rounded-lg border border-black/10 p-4 space-y-2">
                 <div className="flex items-start justify-between gap-4">
                   <Link href={`/teacher/interventions/${item.id}`} className="font-medium underline">
-                    {item.plannedActions}
+                    {replaceVisibleIds(
+                      item.plannedActions,
+                      people,
+                      { ...learningNames, ...labels },
+                      t("organisation.manage.unknownPerson"),
+                      t("assessments.review.unknownSkill")
+                    )}
                   </Link>
                   <span className={`text-xs rounded px-2 py-0.5 ${statusBadgeClass(item.status)}`}>
                     {item.status}
@@ -183,7 +191,17 @@ export default function TeacherInterventionsPage() {
                     id: learningLabel(labels, item.learningGapId, t("assessments.review.unknownSkill")),
                   })}
                 </p>
-                <p className="text-sm text-black/70 line-clamp-2">{item.notes || t("teacher.interventions.noNotesYet")}</p>
+                <p className="text-sm text-black/70 line-clamp-2">
+                  {item.notes
+                    ? replaceVisibleIds(
+                        item.notes,
+                        people,
+                        { ...learningNames, ...labels },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      )
+                    : t("teacher.interventions.noNotesYet")}
+                </p>
                 <p className="text-xs text-black/50">
                   {t("teacher.interventions.updated", {
                     date: new Date(item.updatedAt).toLocaleString(),

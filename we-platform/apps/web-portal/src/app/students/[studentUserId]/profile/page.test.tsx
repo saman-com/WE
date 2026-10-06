@@ -41,6 +41,17 @@ vi.mock("@/lib/display-names", () => ({
   loadPeople: (...args: unknown[]) => loadPeople(...args),
   loadLearningNames: (...args: unknown[]) => loadLearningNames(...args),
   learningLabel: (names: Record<string, string>, id: string, unknown: string) => names[id] || unknown,
+  replaceVisibleIds: (
+    text: string,
+    people: Array<{ id: string; name?: string }>,
+    names: Record<string, string>,
+    _unknownPerson: string,
+    unknownSkill: string
+  ) =>
+    text.replace(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      (id) => names[id] || people.find((person) => person.id === id)?.name || unknownSkill
+    ),
 }));
 
 vi.mock("@/lib/student-learning", () => ({

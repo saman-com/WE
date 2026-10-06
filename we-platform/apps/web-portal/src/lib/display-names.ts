@@ -1,4 +1,4 @@
-import { listDirectoryUsers, type DirectoryUser } from "@/lib/auth";
+import { listDirectoryUsers, personName, type DirectoryUser } from "@/lib/auth";
 import {
   collectMicroSkillNames,
   getCurriculumTree,
@@ -84,4 +84,23 @@ export function learningLabel(
   unknown: string
 ): string {
   return names[id] || unknown;
+}
+
+const visibleId = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+export function replaceVisibleIds(
+  text: string,
+  people: ReadonlyArray<{ id: string; name?: string; email?: string }>,
+  learningNames: Record<string, string>,
+  unknownPerson: string,
+  unknownSkill: string
+): string {
+  return text.replace(visibleId, (id) => {
+    const skill = learningNames[id];
+    if (skill) {
+      return skill;
+    }
+    const person = personName(people, id, "");
+    return person || unknownSkill || unknownPerson;
+  });
 }
