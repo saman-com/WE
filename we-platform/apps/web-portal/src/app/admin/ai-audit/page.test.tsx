@@ -28,6 +28,16 @@ const { logs, directory } = vi.hoisted(() => {
         providerName: "Mock",
         createdAt: "2026-10-06T00:00:00.000Z",
       },
+      {
+        id: "log-2",
+        callerUserId: "assessment-service",
+        promptId: "assessment-feedback",
+        promptVersion: "1",
+        contextScope: "assessment",
+        outcome: "blocked",
+        providerName: "Mock",
+        createdAt: "2026-10-06T00:00:00.000Z",
+      },
     ],
   };
 });
@@ -72,8 +82,10 @@ describe("AI audit callers", () => {
 
     expect((await screen.findAllByText("Demo Teacher")).length).toBeGreaterThan(0);
     expect(screen.queryByText(callerId)).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Showing 1 entry.");
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 2 entries.");
     expect(screen.getAllByText("Succeeded").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Assessment (system)").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Unknown person")).not.toBeInTheDocument();
     expect(screen.queryByText("success")).not.toBeInTheDocument();
   });
 });

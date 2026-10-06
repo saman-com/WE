@@ -43,6 +43,12 @@ export default function FederationAdminPage() {
   const [tab, setTab] = useState("overview");
   const [people, setPeople] = useState<DirectoryUser[]>([]);
 
+  function namedCode(prefix: string, code: string) {
+    const key = `${prefix}.${code}`;
+    const label = t(key);
+    return label === key ? code : label;
+  }
+
   async function reload(token: string) {
     const [loadedSchools, loadedMetrics, loadedPolicies] = await Promise.all([
       listFederationSchools(token),
@@ -262,7 +268,7 @@ export default function FederationAdminPage() {
                 <ul className="mt-3 space-y-1 text-sm">
                   {policies.map((policy) => (
                     <li key={policy.policyKey}>
-                      {policy.policyKey}: {policy.policyValue}
+                      {`${namedCode("admin.federation.policyKey", policy.policyKey)}: ${namedCode("admin.federation.policyValue", policy.policyValue)}`}
                     </li>
                   ))}
                 </ul>

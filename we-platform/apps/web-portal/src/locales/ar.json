@@ -368,6 +368,9 @@
   "admin.federation.adminUserId": "مدير المدرسة",
   "admin.federation.policyKey": "مفتاح السياسة",
   "admin.federation.policyValue": "قيمة السياسة",
+  "admin.federation.policyKey.shared-curriculum": "منهج مشترك",
+  "admin.federation.policyValue.enabled": "مفعّل",
+  "admin.federation.policyValue.disabled": "معطّل",
 
   "admin.aiAudit.loadError": "تعذّر تحميل سجلات تدقيق الذكاء الاصطناعي.",
   "admin.aiAudit.loading": "جارٍ تحميل سجلات تدقيق الذكاء الاصطناعي...",
@@ -390,6 +393,8 @@
   "admin.aiAudit.outcome.failed": "فشل",
   "admin.aiAudit.outcome.validation_failed": "فشل التحقق",
   "admin.aiAudit.unknownCaller": "شخص غير معروف",
+  "admin.aiAudit.serviceCaller": "{service} (نظام)",
+  "admin.aiAudit.service.assessment-service": "التقييم",
 
   "admin.regional.saved": "تم حفظ الإعدادات الإقليمية لمدرستك.",
   "admin.regional.saveError": "تعذّر حفظ الإعدادات الإقليمية.",

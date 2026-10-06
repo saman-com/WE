@@ -82,7 +82,7 @@ for (const role of roles) {
         await expect(page.getByText("Algebra check")).toHaveCount(2);
       }
       if (role === "federation") {
-        await expect(page.getByText("shared-curriculum").first()).toBeVisible();
+        await expect(page.getByText("Shared curriculum: Enabled").first()).toBeVisible();
         await expect(page.getByText("No metrics available.")).toHaveCount(0);
         await page.getByRole("button", { name: "Add a school" }).click();
         await expect(page.getByLabel("School name")).toBeVisible();

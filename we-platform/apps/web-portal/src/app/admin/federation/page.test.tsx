@@ -72,6 +72,8 @@ describe("federation admin display", () => {
     );
 
     expect(await screen.findByText("North Federation School (DFED)")).toBeInTheDocument();
+    expect(screen.getByText("Shared curriculum: Enabled")).toBeInTheDocument();
+    expect(screen.queryByText("shared-curriculum: enabled")).not.toBeInTheDocument();
     expect(screen.queryByText(tenantId)).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i

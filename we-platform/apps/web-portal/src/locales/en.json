@@ -368,6 +368,9 @@
   "admin.federation.adminUserId": "School admin",
   "admin.federation.policyKey": "Policy key",
   "admin.federation.policyValue": "Policy value",
+  "admin.federation.policyKey.shared-curriculum": "Shared curriculum",
+  "admin.federation.policyValue.enabled": "Enabled",
+  "admin.federation.policyValue.disabled": "Disabled",
 
   "admin.aiAudit.loadError": "Unable to load AI audit logs.",
   "admin.aiAudit.loading": "Loading AI audit logs...",
@@ -390,6 +393,8 @@
   "admin.aiAudit.outcome.failed": "Failed",
   "admin.aiAudit.outcome.validation_failed": "Validation failed",
   "admin.aiAudit.unknownCaller": "Unknown person",
+  "admin.aiAudit.serviceCaller": "{service} (system)",
+  "admin.aiAudit.service.assessment-service": "Assessment",
 
   "admin.regional.saved": "Regional configuration saved for your school.",
   "admin.regional.saveError": "Unable to save regional configuration.",

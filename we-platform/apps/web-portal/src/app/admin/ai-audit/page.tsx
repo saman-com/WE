@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FocusCard, LearningFrame, PrimaryButton } from "@/components/learning-frame";
-import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { searchAiAuditLogs, type AiAuditLogEntry } from "@/lib/ai-gateway";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -26,6 +26,24 @@ export default function AiAuditAdminPage() {
     const key = `admin.aiAudit.outcome.${value}`;
     const label = t(key);
     return label === key ? value : label;
+  }
+
+  function callerLabel(callerUserId: string) {
+    const match = directory.find((person) => person.id === callerUserId);
+    if (match?.name) {
+      return match.name;
+    }
+    if (match?.email) {
+      return match.email;
+    }
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callerUserId)) {
+      return t("admin.aiAudit.unknownCaller");
+    }
+    const serviceKey = `admin.aiAudit.service.${callerUserId}`;
+    const serviceName = t(serviceKey);
+    return t("admin.aiAudit.serviceCaller", {
+      service: serviceName === serviceKey ? callerUserId : serviceName,
+    });
   }
 
   useEffect(() => {
@@ -178,7 +196,7 @@ export default function AiAuditAdminPage() {
                 <li key={entry.id}>
                   <FocusCard>
                     <p className="font-medium">{entry.promptId}</p>
-                    <p className="text-sm">{personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}</p>
+                    <p className="text-sm">{callerLabel(entry.callerUserId)}</p>
                     <p className="text-sm">{outcomeLabel(entry.outcome)}</p>
                     <p className="text-sm text-black/60">{entry.providerName}</p>
                     <p className="text-sm text-black/60">
@@ -207,7 +225,7 @@ export default function AiAuditAdminPage() {
                         {new Date(entry.createdAt).toLocaleString()}
                       </td>
                       <td className="p-3">
-                        {personName(directory, entry.callerUserId, t("admin.aiAudit.unknownCaller"))}
+                        {callerLabel(entry.callerUserId)}
                       </td>
                       <td className="p-3">{entry.promptId}</td>
                       <td className="p-3">{outcomeLabel(entry.outcome)}</td>
