@@ -1,4 +1,5 @@
 import { listDirectoryUsers, personName, type DirectoryUser } from "@/lib/auth";
+import { withoutStoredIds } from "@/lib/interventions";
 import {
   collectMicroSkillNames,
   getCurriculumTree,
@@ -86,8 +87,6 @@ export function learningLabel(
   return names[id] || unknown;
 }
 
-const visibleId = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-
 export function replaceVisibleIds(
   text: string,
   people: ReadonlyArray<{ id: string; name?: string; email?: string }>,
@@ -95,12 +94,13 @@ export function replaceVisibleIds(
   unknownPerson: string,
   unknownSkill: string
 ): string {
-  return text.replace(visibleId, (id) => {
-    const skill = learningNames[id];
-    if (skill) {
-      return skill;
+  const names = { ...learningNames };
+  for (const person of people) {
+    const name = personName(people, person.id, "");
+    if (name) {
+      names[person.id] = name;
     }
-    const person = personName(people, id, "");
-    return person || unknownSkill || unknownPerson;
-  });
+  }
+  const cleaned = withoutStoredIds(text, names);
+  return cleaned || unknownSkill || unknownPerson;
 }
