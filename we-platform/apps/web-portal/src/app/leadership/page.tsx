@@ -385,10 +385,13 @@ export default function LeadershipDashboardPage() {
           <KpiCard label={t("leadership.kpi.students")} value={dashboard.kpis.totalStudents} />
           <KpiCard label={t("leadership.kpi.classes")} value={dashboard.kpis.totalClasses} />
           <KpiCard label={t("leadership.kpi.activeInterventions")} value={dashboard.kpis.activeInterventions} />
-          <KpiCard label={t("leadership.kpi.activeLearningGaps")} value={dashboard.kpis.activeLearningGaps} />
+          <KpiCard
+            label={t("leadership.kpi.activeLearningGaps")}
+            value={metricText(dashboard.kpis.activeLearningGaps, t("leadership.kpi.notAvailable"))}
+          />
           <KpiCard
             label={t("leadership.kpi.studentsNeedingAttention")}
-            value={dashboard.kpis.studentsNeedingAttention}
+            value={metricText(dashboard.kpis.studentsNeedingAttention, t("leadership.kpi.notAvailable"))}
           />
           <KpiCard
             label={t("leadership.kpi.assessmentCompletion")}
@@ -580,7 +583,7 @@ export default function LeadershipDashboardPage() {
                     {t("leadership.classes.line", {
                       students: schoolClass.studentCount,
                       interventions: schoolClass.activeInterventions,
-                      gaps: schoolClass.activeLearningGaps,
+                      gaps: metricText(schoolClass.activeLearningGaps, t("leadership.kpi.notAvailable")),
                       completion: formatPercent(schoolClass.assessmentCompletionRate),
                     })}
                   </p>
@@ -798,6 +801,10 @@ export default function LeadershipDashboardPage() {
       </div>
     </div>
   );
+}
+
+function metricText(value: number | null, unavailable: string) {
+  return value === null ? unavailable : String(value);
 }
 
 function KpiCard({ label, value }: { label: string; value: number | string }) {

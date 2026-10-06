@@ -735,6 +735,7 @@
   "leadership.kpi.activeInterventions": "التدخلات النشطة",
   "leadership.kpi.activeLearningGaps": "فجوات التعلّم النشطة",
   "leadership.kpi.studentsNeedingAttention": "طلاب يحتاجون إلى اهتمام",
+  "leadership.kpi.notAvailable": "غير متاح",
   "leadership.kpi.assessmentCompletion": "إكمال التقييمات",
   "leadership.report.generated": "تم إنشاء تقرير ملخص المدرسة عند الطلب من بيانات الذكاء التعليمي للقيادة.",
   "leadership.report.generateError": "تعذّر إنشاء تقرير ملخص المدرسة.",

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LeadershipDashboardPage from "@/app/leadership/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import type { UserProfile } from "@/lib/auth";
+import { fetchLeadershipDashboard } from "@/lib/leadership-dashboard";
 
 const { studentId, teacherId, gapId, organisationId, classId } = vi.hoisted(() => ({
   studentId: "22222222-2222-2222-2222-222222222222",
@@ -183,5 +184,52 @@ describe("leadership dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Year 11 Mathematics (Year 11)" }));
     expect(await screen.findByRole("link", { name: "View profile — Demo Student" })).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it("shows Not available instead of 0 when EI metrics fail", async () => {
+    const unavailable = {
+      organisationId,
+      organisationName: "Demo school",
+      kpis: {
+        totalStudents: 1,
+        totalClasses: 1,
+        activeInterventions: 1,
+        activeLearningGaps: null,
+        studentsNeedingAttention: null,
+        assessmentCompletionRate: 1,
+        masteryLevelCounts: {},
+      },
+      yearLevels: [],
+      classComparisons: [
+        {
+          classId,
+          className: "Year 11 Mathematics",
+          yearLevelId: "year-11",
+          yearLevelName: "Year 11",
+          studentCount: 1,
+          activeInterventions: 1,
+          activeLearningGaps: null,
+          studentsNeedingAttention: null,
+          assessmentCompletionRate: 1,
+        },
+      ],
+    };
+    // React may invoke the load effect twice in development.
+    vi.mocked(fetchLeadershipDashboard).mockResolvedValueOnce(unavailable);
+    vi.mocked(fetchLeadershipDashboard).mockResolvedValueOnce(unavailable);
+
+    render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+
+    const gaps = await screen.findByText("Active learning gaps");
+    expect(gaps.parentElement).toHaveTextContent("Not available");
+    expect(gaps.parentElement?.textContent ?? "").not.toContain("0");
+
+    const attention = screen.getByText("Students needing attention");
+    expect(attention.parentElement).toHaveTextContent("Not available");
+    expect(attention.parentElement?.textContent ?? "").not.toContain("0");
   });
 });

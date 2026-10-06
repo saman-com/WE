@@ -5,8 +5,8 @@ export type LeadershipKpiSummary = {
   totalStudents: number;
   totalClasses: number;
   activeInterventions: number;
-  activeLearningGaps: number;
-  studentsNeedingAttention: number;
+  activeLearningGaps: number | null;
+  studentsNeedingAttention: number | null;
   assessmentCompletionRate: number;
   masteryLevelCounts: Record<string, number>;
 };
@@ -17,7 +17,7 @@ export type YearLevelDashboardSummary = {
   classCount: number;
   studentCount: number;
   activeInterventions: number;
-  activeLearningGaps: number;
+  activeLearningGaps: number | null;
 };
 
 export type ClassComparisonSummary = {
@@ -27,8 +27,8 @@ export type ClassComparisonSummary = {
   yearLevelName: string;
   studentCount: number;
   activeInterventions: number;
-  activeLearningGaps: number;
-  studentsNeedingAttention: number;
+  activeLearningGaps: number | null;
+  studentsNeedingAttention: number | null;
   assessmentCompletionRate: number;
 };
 

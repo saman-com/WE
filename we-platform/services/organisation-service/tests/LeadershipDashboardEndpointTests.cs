@@ -182,6 +182,36 @@ public class LeadershipDashboardEndpointTests : IClassFixture<OrganisationWebApp
     }
 
     [Fact]
+    public async Task SchoolLeader_DashboardLeavesEiMetricsUnset_WhenInsightsCallFails()
+    {
+        var adminId = Guid.NewGuid().ToString();
+        var leaderId = Guid.NewGuid().ToString();
+        var studentId = Guid.NewGuid().ToString();
+
+        var org = await CreateOrganisationAsAdminAsync(adminId, "Unavailable EI School", UniqueCode("UEI"));
+        var year = await CreateYearLevelAsAdminAsync(adminId, org.Id, "Year 3", 3);
+        var schoolClass = await CreateClassAsAdminAsync(adminId, org.Id, year.Id, "3A", UniqueCode("3A"));
+        await EnrollStudentAsync(adminId, org.Id, schoolClass.Id, studentId);
+        await AssignSchoolLeaderAsync(adminId, org.Id, leaderId);
+
+        var dashboard = await SendAsAsync<LeadershipDashboardResponse>(
+            HttpMethod.Get,
+            $"/api/v1/organisations/{org.Id}/leadership/dashboard",
+            leaderId,
+            org.Id,
+            TestJwt.SchoolLeaderRole);
+
+        Assert.Null(dashboard.Kpis.ActiveLearningGaps);
+        Assert.Null(dashboard.Kpis.StudentsNeedingAttention);
+        Assert.NotEqual(0, dashboard.Kpis.ActiveLearningGaps);
+        Assert.NotEqual(0, dashboard.Kpis.StudentsNeedingAttention);
+        Assert.Equal(1, dashboard.Kpis.TotalStudents);
+        var comparison = Assert.Single(dashboard.ClassComparisons);
+        Assert.Null(comparison.ActiveLearningGaps);
+        Assert.Null(comparison.StudentsNeedingAttention);
+    }
+
+    [Fact]
     public async Task SchoolLeader_DashboardNumbers_MatchComputedExpectationsFromSeededOrgClassData()
     {
         var adminId = Guid.NewGuid().ToString();

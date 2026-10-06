@@ -8,8 +8,8 @@ public sealed record LeadershipKpiSummary(
     int TotalStudents,
     int TotalClasses,
     int ActiveInterventions,
-    int ActiveLearningGaps,
-    int StudentsNeedingAttention,
+    int? ActiveLearningGaps,
+    int? StudentsNeedingAttention,
     decimal AssessmentCompletionRate,
     IReadOnlyDictionary<string, int> MasteryLevelCounts);
 
@@ -19,7 +19,7 @@ public sealed record YearLevelDashboardSummary(
     int ClassCount,
     int StudentCount,
     int ActiveInterventions,
-    int ActiveLearningGaps);
+    int? ActiveLearningGaps);
 
 public sealed record ClassComparisonSummary(
     Guid ClassId,
@@ -28,8 +28,8 @@ public sealed record ClassComparisonSummary(
     string YearLevelName,
     int StudentCount,
     int ActiveInterventions,
-    int ActiveLearningGaps,
-    int StudentsNeedingAttention,
+    int? ActiveLearningGaps,
+    int? StudentsNeedingAttention,
     decimal AssessmentCompletionRate);
 
 public sealed record LeadershipDashboardResponse(
@@ -131,8 +131,8 @@ public sealed record ClassAggregationResult(
     string YearLevelName,
     int StudentCount,
     int ActiveInterventions,
-    int ActiveLearningGaps,
-    int StudentsNeedingAttention,
+    int? ActiveLearningGaps,
+    int? StudentsNeedingAttention,
     decimal AssessmentCompletionRate,
     IReadOnlyDictionary<string, int> MasteryLevelCounts);
 
@@ -141,8 +141,8 @@ public static class LeadershipDashboardAggregator
     public static ClassAggregationResult AggregateClass(ClassAggregationInput input)
     {
         var studentCount = input.StudentUserIds.Count;
-        var gaps = input.EiInsights?.ActiveLearningGaps.Count ?? 0;
-        var needingAttention = input.EiInsights?.StudentsNeedingAttention.Count ?? 0;
+        int? gaps = input.EiInsights is null ? null : input.EiInsights.ActiveLearningGaps.Count;
+        int? needingAttention = input.EiInsights is null ? null : input.EiInsights.StudentsNeedingAttention.Count;
 
         var masteryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (input.EiInsights is not null)
@@ -191,8 +191,8 @@ public static class LeadershipDashboardAggregator
             totalStudents,
             classes.Count,
             classes.Sum(c => c.ActiveInterventions),
-            classes.Sum(c => c.ActiveLearningGaps),
-            classes.Sum(c => c.StudentsNeedingAttention),
+            SumOrUnavailable(classes.Select(c => c.ActiveLearningGaps)),
+            SumOrUnavailable(classes.Select(c => c.StudentsNeedingAttention)),
             avgCompletion,
             masteryCounts);
     }
@@ -207,7 +207,7 @@ public static class LeadershipDashboardAggregator
                 group.Count(),
                 group.Sum(c => c.StudentCount),
                 group.Sum(c => c.ActiveInterventions),
-                group.Sum(c => c.ActiveLearningGaps)))
+                SumOrUnavailable(group.Select(c => c.ActiveLearningGaps))))
             .OrderBy(y => y.YearLevelName)
             .ToList();
 
@@ -227,6 +227,22 @@ public static class LeadershipDashboardAggregator
             .OrderBy(c => c.YearLevelName)
             .ThenBy(c => c.ClassName)
             .ToList();
+
+    private static int? SumOrUnavailable(IEnumerable<int?> values)
+    {
+        var sum = 0;
+        foreach (var value in values)
+        {
+            if (value is null)
+            {
+                return null;
+            }
+
+            sum += value.Value;
+        }
+
+        return sum;
+    }
 
     private static decimal CalculateAssessmentCompletionRate(
         IReadOnlyList<AssessmentSummaryData> assessments,
