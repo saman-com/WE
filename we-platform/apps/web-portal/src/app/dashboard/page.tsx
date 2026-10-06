@@ -28,6 +28,16 @@ export default function DashboardPage() {
       .then(async (loaded) => {
         setProfile(loaded);
         listDirectoryUsers(token).then(setPeople).catch(() => setPeople([]));
+        const canListOrganisations = loaded.roles.some((role) =>
+          role === "Teacher" ||
+          role === "Student" ||
+          role === "SchoolLeader" ||
+          role === "SystemAdministrator"
+        );
+        if (!canListOrganisations) {
+          setClasses([]);
+          return;
+        }
         try {
           const organisations = await listOrganisations(token);
           const scoped = await Promise.all(

@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardPage from "@/app/dashboard/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { listOrganisations } from "@/lib/organisation";
 import type { UserProfile } from "@/lib/auth";
 
 const { studentUserId } = vi.hoisted(() => ({
@@ -77,5 +78,24 @@ describe("dashboard profile", () => {
     const assessments = screen.getByRole("link", { name: "My assessments" });
     expect(workspace.className).toContain("block");
     expect(assessments.className).toContain("block");
+  });
+
+  it("does not load organisations for a parent", async () => {
+    vi.mocked(listOrganisations).mockClear();
+    fetchProfile.mockResolvedValue({
+      id: "33333333-3333-3333-3333-333333333333",
+      email: "parent@school.local",
+      name: "Demo Parent",
+      roles: ["Parent"],
+    });
+
+    render(
+      <I18nProvider>
+        <DashboardPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("Demo Parent")).toBeInTheDocument();
+    expect(listOrganisations).not.toHaveBeenCalled();
   });
 });
