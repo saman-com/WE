@@ -206,7 +206,7 @@ export default function OrganisationSetupPage() {
     }
   }
 
-  async function saveAccount(action: () => Promise<void>) {
+  async function saveAccount(action: () => Promise<unknown>) {
     if (!token) {
       return;
     }
