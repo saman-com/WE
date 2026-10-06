@@ -164,7 +164,7 @@ describe("Teacher class insights empty states (UX-001 §9)", () => {
           microSkillId: skillId,
           levelCounts: { Developing: 1 },
           totalStudents: 1,
-          explanation: "Still building fluency.",
+          explanation: `${studentId}: Aggregated 1 evidence source with weighted average 5/5.`,
           linkedEvidenceIds: [evidenceId],
         },
       ],

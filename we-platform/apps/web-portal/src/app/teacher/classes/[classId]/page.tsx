@@ -220,6 +220,13 @@ export default function TeacherClassDetailPage() {
     }
   }
 
+  function named(text: string) {
+    return text.replace(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      (id) => learningNames[id] || personName(people, id, t("organisation.manage.unknownPerson"))
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -317,7 +324,7 @@ export default function TeacherClassDetailPage() {
                           total: item.totalStudents,
                         })}
                       </p>
-                      <p className="text-sm">{item.explanation}</p>
+                      <p className="text-sm">{named(item.explanation)}</p>
                       {item.linkedEvidenceIds.length > 0 ? (
                         <p className="text-xs text-black/60">
                           {t("teacher.class.ei.linkedEvidence", {
@@ -352,7 +359,7 @@ export default function TeacherClassDetailPage() {
                       <p className="text-xs text-black/60">
                         {t("teacher.class.ei.microSkill", { id: learningLabel(learningNames, gap.microSkillId, t("assessments.review.unknownSkill")) })}
                       </p>
-                      <p className="text-sm">{gap.explanation}</p>
+                      <p className="text-sm">{named(gap.explanation)}</p>
                       {organisationId ? (
                         <Link
                           href={createInterventionHref(gap, organisationId, classId)}
@@ -392,7 +399,7 @@ export default function TeacherClassDetailPage() {
                           date: new Date(trend.latestAt).toLocaleDateString(),
                         })}
                       </p>
-                      <p className="text-sm">{trend.explanation}</p>
+                      <p className="text-sm">{named(trend.explanation)}</p>
                     </li>
                   ))}
                 </ul>
@@ -416,7 +423,7 @@ export default function TeacherClassDetailPage() {
                         </Link>{" "}
                         — {student.reason}
                       </p>
-                      <p className="text-sm">{student.explanation}</p>
+                      <p className="text-sm">{named(student.explanation)}</p>
                     </li>
                   ))}
                 </ul>

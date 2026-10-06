@@ -112,7 +112,7 @@ export default function CreateInterventionPage() {
       .catch(() => {
         setError(t("teacher.interventions.new.loadError"));
       });
-  }, [router, studentUserId, preselectedGapId, searchParams, t]);
+  }, [router, studentUserId, preselectedGapId, organisationId, searchParams, t]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
