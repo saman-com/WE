@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile, type UserProfile } from "@/lib/auth";
+import { fetchProfile, listDirectoryUsers, personName, type DirectoryUser, type UserProfile } from "@/lib/auth";
 import { roleHome } from "@/lib/role-home";
 import { listClasses, listOrganisations, type SchoolClass } from "@/lib/organisation";
 import { DataText } from "@/components/data-text";
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [people, setPeople] = useState<DirectoryUser[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("we_access_token");
@@ -26,6 +27,7 @@ export default function DashboardPage() {
     fetchProfile(token)
       .then(async (loaded) => {
         setProfile(loaded);
+        listDirectoryUsers(token).then(setPeople).catch(() => setPeople([]));
         try {
           const organisations = await listOrganisations(token);
           const scoped = await Promise.all(
@@ -91,16 +93,9 @@ export default function DashboardPage() {
             <span className="font-medium">{t("dashboard.profile.emailLabel")}</span>{" "}
             <DataText>{profile.email}</DataText>
           </p>
-          <p>
-            <span className="font-medium">{t("dashboard.profile.userIdLabel")}</span>{" "}
-            {profile.id}
-          </p>
-          <p>
-            <span className="font-medium">{t("dashboard.profile.rolesLabel")}</span>{" "}
-            {profile.roles.join(", ")}
-          </p>
         </div>
 
+        <nav className="flex flex-col gap-2">
         <Link href="/notifications" className="text-sm underline block">
           {t("dashboard.nav.notifications")}
         </Link>
@@ -113,7 +108,7 @@ export default function DashboardPage() {
 
         {profile.roles.includes("SystemAdministrator") ? (
           <>
-            <Link href="/organisation" className="text-sm underline">
+            <Link href="/organisation" className="text-sm underline block">
               {t("dashboard.nav.organisationSetup")}
             </Link>
             <Link href="/admin/ai-audit" className="text-sm underline block">
@@ -128,13 +123,13 @@ export default function DashboardPage() {
         {profile.roles.includes("SystemAdministrator") ||
         profile.roles.includes("Teacher") ? (
           <>
-            <Link href="/teacher" className="text-sm underline">
+            <Link href="/teacher" className="text-sm underline block">
               {t("dashboard.nav.teacherWorkspace")}
             </Link>
-            <Link href="/curriculum" className="text-sm underline">
+            <Link href="/curriculum" className="text-sm underline block">
               {t("dashboard.nav.curriculum")}
             </Link>
-            <Link href="/assessments" className="text-sm underline">
+            <Link href="/assessments" className="text-sm underline block">
               {t("dashboard.nav.assessments")}
             </Link>
           </>
@@ -142,10 +137,10 @@ export default function DashboardPage() {
 
         {profile.roles.includes("Student") ? (
           <>
-            <Link href="/student" className="text-sm underline">
+            <Link href="/student" className="text-sm underline block">
               {t("dashboard.nav.studentWorkspace")}
             </Link>
-            <Link href="/student/assessments" className="text-sm underline">
+            <Link href="/student/assessments" className="text-sm underline block">
               {t("dashboard.nav.myAssessments")}
             </Link>
           </>
@@ -153,7 +148,7 @@ export default function DashboardPage() {
 
         {profile.roles.includes("Parent") ? (
           <>
-            <Link href="/parent" className="text-sm underline">
+            <Link href="/parent" className="text-sm underline block">
               {t("dashboard.nav.parentWorkspace")}
             </Link>
             <Link href="/parent/messages" className="text-sm underline block">
@@ -178,6 +173,7 @@ export default function DashboardPage() {
             {t("dashboard.nav.policyDashboards")}
           </Link>
         ) : null}
+        </nav>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
           <h2 className="font-medium">{t("dashboard.classes.title")}</h2>
@@ -198,7 +194,13 @@ export default function DashboardPage() {
                             href={`/students/${studentUserId}/profile`}
                             className="text-sm underline"
                           >
-                            {t("dashboard.classes.viewProfile", { studentUserId })}
+                            {t("dashboard.classes.viewProfile", {
+                              studentUserId: personName(
+                                people,
+                                studentUserId,
+                                t("organisation.manage.unknownPerson")
+                              ),
+                            })}
                           </Link>
                         </li>
                       ))}

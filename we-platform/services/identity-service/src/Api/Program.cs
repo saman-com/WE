@@ -124,7 +124,7 @@ app.MapGet("/api/v1/auth/me", [Authorize] async (
 app.MapGet("/api/v1/auth/admin", [Authorize(Roles = PlatformRoles.SystemAdministrator)]
     () => Results.Ok(new { message = "admin access granted" }));
 
-app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin},{PlatformRoles.Teacher}")] async (
+app.MapGet("/api/v1/users", [Authorize(Roles = $"{PlatformRoles.SystemAdministrator},{PlatformRoles.FederationAdmin},{PlatformRoles.Teacher},{PlatformRoles.Student},{PlatformRoles.SchoolLeader}")] async (
     ITenantContext tenantContext,
     UserManager<ApplicationUser> userManager) =>
 {
