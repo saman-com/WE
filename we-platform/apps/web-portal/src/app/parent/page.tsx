@@ -187,17 +187,19 @@ export default function ParentWorkspacePage() {
                   ) : (
                     <ul className="space-y-2">
                       {progress.mastery.map((item) => (
-                        <li key={item.microSkillId} className="text-sm">
-                          {t("parent.home.skillLead")}{" "}
-                          <DataText>
-                            {learningLabel(
-                              learningNames,
-                              item.microSkillId,
-                              t("assessments.review.unknownSkill")
-                            )}
-                          </DataText>
-                          {" — "}
-                          {codeLabel(t, item.masteryLevel)}
+                        <li key={item.microSkillId} className="space-y-1 text-sm">
+                          <p>
+                            {t("parent.home.skillLead")} {codeLabel(t, item.masteryLevel)}
+                          </p>
+                          <p>
+                            <DataText>
+                              {learningLabel(
+                                learningNames,
+                                item.microSkillId,
+                                t("assessments.review.unknownSkill")
+                              )}
+                            </DataText>
+                          </p>
                         </li>
                       ))}
                     </ul>

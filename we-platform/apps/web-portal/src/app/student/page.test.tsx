@@ -143,6 +143,9 @@ describe("Student home empty states (UX-001 §8)", () => {
     );
     expect(feedback.closest("bdi")).not.toHaveTextContent("في الطريق");
     expect(feedback.closest("p")).not.toHaveTextContent("في الطريق");
-    expect(screen.getByText("في الطريق")).toBeInTheDocument();
+    const status = screen.getByText(/ما زال يحتاج تمرينًا/);
+    expect(status.tagName).toBe("P");
+    expect(status).toHaveTextContent("في الطريق");
+    expect(status).not.toHaveTextContent("letter alone");
   });
 });

@@ -213,7 +213,10 @@ describe("Teacher class insights empty states (UX-001 §9)", () => {
     const { container } = renderPage();
 
     expect(await screen.findAllByText("Demo Student")).not.toHaveLength(0);
-    expect(screen.getAllByText("Micro-skill: Read an equation").length).toBeGreaterThan(0);
+    const skill = screen.getAllByText("Read an equation")[0];
+    expect(skill.closest("bdi")).toBeTruthy();
+    expect(skill.closest("p")).not.toHaveTextContent("Micro-skill");
+    expect(screen.getAllByText("Micro-skill").length).toBeGreaterThan(0);
     expect(screen.getByText("Linked evidence: 1")).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });

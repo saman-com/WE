@@ -285,11 +285,13 @@ function Today({
       <div className="space-y-4">
         {focus ? (
           <div className="space-y-1">
-            <p className="text-sm font-semibold">{t("student.focus.stillShaky")}</p>
+            <p className="text-sm font-semibold">
+              {t("student.focus.stillShaky")}{" "}
+              <span className="font-normal text-black/60">{levelLabel(focus.level)}</span>
+            </p>
             <p className="text-sm">
               <DataText>{focus.label}</DataText>
             </p>
-            <p className="text-sm text-black/60">{levelLabel(focus.level)}</p>
           </div>
         ) : null}
         <PrimaryLink href={taskHref(task)}>{t("student.focus.openTask")}</PrimaryLink>

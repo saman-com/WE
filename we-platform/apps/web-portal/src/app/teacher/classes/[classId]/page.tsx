@@ -28,7 +28,7 @@ import {
   type ReportResponse,
 } from "@/lib/reports";
 import { useI18n } from "@/i18n/I18nProvider";
-import { codeLabel } from "@/lib/code-labels";
+import { codeLabel, localizeStoredText } from "@/lib/code-labels";
 
 function isTeacher(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -222,13 +222,20 @@ export default function TeacherClassDetailPage() {
   }
 
   function named(text: string) {
-    return replaceVisibleIds(
-      text,
-      people,
-      learningNames,
-      t("organisation.manage.unknownPerson"),
-      t("assessments.review.unknownSkill")
+    return localizeStoredText(
+      replaceVisibleIds(
+        text,
+        people,
+        learningNames,
+        t("organisation.manage.unknownPerson"),
+        t("assessments.review.unknownSkill")
+      ),
+      t
     );
+  }
+
+  function skillName(id: string) {
+    return learningLabel(learningNames, id, t("assessments.review.unknownSkill"));
   }
 
   if (error) {
@@ -318,7 +325,7 @@ export default function TeacherClassDetailPage() {
                 <ul className="space-y-3">
                   {insights.masteryDistribution.map((item) => (
                     <li key={item.microSkillId} className="rounded border border-black/5 p-3 space-y-1">
-                      <p className="text-sm font-medium">{t("teacher.class.ei.microSkill", { id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")) })}</p>
+                      <StoredTitle label={t("teacher.class.ei.microSkill")} value={skillName(item.microSkillId)} />
                       <p className="text-xs text-black/60">
                         {t("teacher.class.ei.levelSummary", {
                           mastered: item.levelCounts.Mastered ?? 0,
@@ -328,7 +335,9 @@ export default function TeacherClassDetailPage() {
                           total: item.totalStudents,
                         })}
                       </p>
-                      <p className="text-sm">{named(item.explanation)}</p>
+                      <p className="text-sm">
+                        <DataText>{named(item.explanation)}</DataText>
+                      </p>
                       {item.linkedEvidenceIds.length > 0 ? (
                         <p className="text-xs text-black/60">
                           {t("teacher.class.ei.linkedEvidence", {
@@ -360,10 +369,10 @@ export default function TeacherClassDetailPage() {
                           {personName(people, gap.studentUserId, t("organisation.manage.unknownPerson"))}
                         </Link>
                       </p>
-                      <p className="text-xs text-black/60">
-                        {t("teacher.class.ei.microSkill", { id: learningLabel(learningNames, gap.microSkillId, t("assessments.review.unknownSkill")) })}
+                      <StoredTitle label={t("teacher.class.ei.microSkill")} value={skillName(gap.microSkillId)} />
+                      <p className="text-sm">
+                        <DataText>{named(gap.explanation)}</DataText>
                       </p>
-                      <p className="text-sm">{named(gap.explanation)}</p>
                       {organisationId ? (
                         <Link
                           href={createInterventionHref(gap, organisationId, classId)}
@@ -397,13 +406,15 @@ export default function TeacherClassDetailPage() {
                           { status: codeLabel(t, trend.status), count: trend.occurrenceCount }
                         )}
                       </p>
+                      <StoredTitle label={t("teacher.class.ei.microSkill")} value={skillName(trend.microSkillId)} />
                       <p className="text-xs text-black/60">
                         {t("teacher.class.ei.trendMeta", {
-                          id: learningLabel(learningNames, trend.microSkillId, t("assessments.review.unknownSkill")),
                           date: new Date(trend.latestAt).toLocaleDateString(),
                         })}
                       </p>
-                      <p className="text-sm">{named(trend.explanation)}</p>
+                      <p className="text-sm">
+                        <DataText>{named(trend.explanation)}</DataText>
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -425,9 +436,11 @@ export default function TeacherClassDetailPage() {
                         <Link href={`/students/${student.studentUserId}/profile`} className="underline">
                           {personName(people, student.studentUserId, t("organisation.manage.unknownPerson"))}
                         </Link>{" "}
-                        — {student.reason}
+                        — {localizeStoredText(student.reason, t)}
                       </p>
-                      <p className="text-sm">{named(student.explanation)}</p>
+                      <p className="text-sm">
+                        <DataText>{named(student.explanation)}</DataText>
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -586,6 +599,17 @@ export default function TeacherClassDetailPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function StoredTitle({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium">{label}</p>
+      <p className="text-sm">
+        <DataText>{value}</DataText>
+      </p>
     </div>
   );
 }

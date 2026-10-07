@@ -25,7 +25,7 @@ import {
   MasteryTrendChart,
 } from "@/components/longitudinal-charts";
 import { useI18n } from "@/i18n/I18nProvider";
-import { codeLabel } from "@/lib/code-labels";
+import { codeLabel, localizeStoredText } from "@/lib/code-labels";
 
 export default function StudentProfilePage() {
   const router = useRouter();
@@ -385,20 +385,32 @@ export default function StudentProfilePage() {
                           ? "student.profile.mastery.metaOne"
                           : "student.profile.mastery.metaOther",
                         {
-                          id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
                           count: item.evidenceCount,
                           confidence: item.confidenceScore,
                         }
                       )}
                     </p>
-                    <p className="text-sm">
-                      {replaceVisibleIds(
-                        item.explanation,
-                        people,
-                        { ...learningNames, ...gapNames },
-                        t("organisation.manage.unknownPerson"),
+                    <StoredTitle
+                      label={t("student.profile.microSkill")}
+                      value={learningLabel(
+                        learningNames,
+                        item.microSkillId,
                         t("assessments.review.unknownSkill")
                       )}
+                    />
+                    <p className="text-sm">
+                      <DataText>
+                        {localizeStoredText(
+                          replaceVisibleIds(
+                            item.explanation,
+                            people,
+                            { ...learningNames, ...gapNames },
+                            t("organisation.manage.unknownPerson"),
+                            t("assessments.review.unknownSkill")
+                          ),
+                          t
+                        )}
+                      </DataText>
                     </p>
                   </li>
                 ))}
@@ -438,16 +450,24 @@ export default function StudentProfilePage() {
                         urgency: codeLabel(t, item.urgency),
                       })}
                     </p>
-                    <p className="text-xs text-black/60">
-                      {t("student.profile.microSkill", {
-                        id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
-                      })}
-                      {item.learningObjectiveId
-                        ? ` · ${t("student.profile.gaps.lo", {
-                            id: learningLabel(learningNames, item.learningObjectiveId, t("assessments.review.unknownSkill")),
-                          })}`
-                        : null}
-                    </p>
+                    <StoredTitle
+                      label={t("student.profile.microSkill")}
+                      value={learningLabel(
+                        learningNames,
+                        item.microSkillId,
+                        t("assessments.review.unknownSkill")
+                      )}
+                    />
+                    {item.learningObjectiveId ? (
+                      <StoredTitle
+                        label={t("student.profile.gaps.lo")}
+                        value={learningLabel(
+                          learningNames,
+                          item.learningObjectiveId,
+                          t("assessments.review.unknownSkill")
+                        )}
+                      />
+                    ) : null}
                     <p className="text-xs text-black/60">
                       {t("student.profile.gaps.expectedDemonstrated", {
                         expected: codeLabel(t, item.expectedMastery),
@@ -456,13 +476,18 @@ export default function StudentProfilePage() {
                       })}
                     </p>
                     <p className="text-sm">
-                      {replaceVisibleIds(
-                        item.explanation,
-                        people,
-                        { ...learningNames, ...gapNames },
-                        t("organisation.manage.unknownPerson"),
-                        t("assessments.review.unknownSkill")
-                      )}
+                      <DataText>
+                        {localizeStoredText(
+                          replaceVisibleIds(
+                            item.explanation,
+                            people,
+                            { ...learningNames, ...gapNames },
+                            t("organisation.manage.unknownPerson"),
+                            t("assessments.review.unknownSkill")
+                          ),
+                          t
+                        )}
+                      </DataText>
                     </p>
                   </li>
                 ))}
@@ -489,33 +514,48 @@ export default function StudentProfilePage() {
               <ul className="space-y-3">
                 {interventions.interventions.map((item) => (
                   <li key={item.id} className="rounded border border-black/5 p-3 space-y-1">
-                    <p className="text-sm font-medium">
-                      {codeLabel(t, item.status)} —{" "}
-                      {replaceVisibleIds(
-                        item.plannedActions,
-                        people,
-                        { ...learningNames, ...gapNames },
-                        t("organisation.manage.unknownPerson"),
+                    <p className="text-sm font-medium">{codeLabel(t, item.status)}</p>
+                    <p className="text-sm">
+                      <DataText>
+                        {localizeStoredText(
+                          replaceVisibleIds(
+                            item.plannedActions,
+                            people,
+                            { ...learningNames, ...gapNames },
+                            t("organisation.manage.unknownPerson"),
+                            t("assessments.review.unknownSkill")
+                          ),
+                          t
+                        )}
+                      </DataText>
+                    </p>
+                    <StoredTitle
+                      label={t("teacher.interventions.gapLabel")}
+                      value={learningLabel(
+                        gapNames,
+                        item.learningGapId,
                         t("assessments.review.unknownSkill")
                       )}
-                    </p>
-                    <p className="text-xs text-black/60">
-                      {t("teacher.interventions.gapLabel", {
-                        id: learningLabel(gapNames, item.learningGapId, t("assessments.review.unknownSkill")),
-                      })}
-                      {item.outcome
-                        ? ` · ${t("student.profile.interventions.outcome", { outcome: item.outcome })}`
-                        : null}
-                    </p>
+                    />
+                    {item.outcome ? (
+                      <p className="text-xs text-black/60">
+                        {t("student.profile.interventions.outcome", { outcome: item.outcome })}
+                      </p>
+                    ) : null}
                     {item.notes ? (
                       <p className="text-sm">
-                        {replaceVisibleIds(
-                          item.notes,
-                          people,
-                          { ...learningNames, ...gapNames },
-                          t("organisation.manage.unknownPerson"),
-                          t("assessments.review.unknownSkill")
-                        )}
+                        <DataText>
+                          {localizeStoredText(
+                            replaceVisibleIds(
+                              item.notes,
+                              people,
+                              { ...learningNames, ...gapNames },
+                              t("organisation.manage.unknownPerson"),
+                              t("assessments.review.unknownSkill")
+                            ),
+                            t
+                          )}
+                        </DataText>
                       </p>
                     ) : null}
                     {viewer.roles.includes("Teacher") || viewer.roles.includes("SystemAdministrator") ? (
@@ -547,19 +587,27 @@ export default function StudentProfilePage() {
                         mark: item.mark,
                       })}
                     </p>
-                    <p className="text-xs text-black/60">
-                      {t("student.profile.microSkill", {
-                        id: learningLabel(learningNames, item.microSkillId, t("assessments.review.unknownSkill")),
-                      })}
-                    </p>
-                    <p className="text-sm">
-                      {replaceVisibleIds(
-                        item.reason,
-                        people,
-                        { ...learningNames, ...gapNames },
-                        t("organisation.manage.unknownPerson"),
+                    <StoredTitle
+                      label={t("student.profile.microSkill")}
+                      value={learningLabel(
+                        learningNames,
+                        item.microSkillId,
                         t("assessments.review.unknownSkill")
                       )}
+                    />
+                    <p className="text-sm">
+                      <DataText>
+                        {localizeStoredText(
+                          replaceVisibleIds(
+                            item.reason,
+                            people,
+                            { ...learningNames, ...gapNames },
+                            t("organisation.manage.unknownPerson"),
+                            t("assessments.review.unknownSkill")
+                          ),
+                          t
+                        )}
+                      </DataText>
                     </p>
                   </li>
                 ))}
@@ -568,6 +616,17 @@ export default function StudentProfilePage() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function StoredTitle({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium">{label}</p>
+      <p className="text-sm">
+        <DataText>{value}</DataText>
+      </p>
     </div>
   );
 }

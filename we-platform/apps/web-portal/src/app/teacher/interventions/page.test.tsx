@@ -224,7 +224,10 @@ describe("Teacher interventions list (UX-001 §10)", () => {
 
     expect(await screen.findByText("Demo Student")).toBeInTheDocument();
     expect(screen.getByText("Practice for Demo Student on Read an equation.")).toBeInTheDocument();
-    expect(screen.getByText(/Gap: Read an equation/)).toBeInTheDocument();
+    const skill = screen.getByText("Read an equation");
+    expect(skill.closest("bdi")).toBeTruthy();
+    expect(skill.closest("p")).not.toHaveTextContent("Gap");
+    expect(screen.getByText("Gap")).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });
 

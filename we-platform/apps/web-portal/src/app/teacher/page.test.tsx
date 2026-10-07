@@ -93,7 +93,8 @@ describe("Teacher home (UX-001 §12)", () => {
     expect(screen.getByText("3 students enrolled")).toBeInTheDocument();
     expect(screen.getByText("1 student enrolled")).toBeInTheDocument();
 
-    const primary = screen.getByRole("link", { name: "Open Year 11 Mathematics" });
+    const primary = screen.getByRole("link", { name: "Open" });
+    expect(primary).not.toHaveTextContent("Year 11 Mathematics");
     expect(primary).toHaveAttribute("href", "/teacher/classes/c-maths?organisationId=org-1");
     expectMutedLinks();
   });
@@ -132,9 +133,8 @@ describe("Teacher home (UX-001 §12)", () => {
 
     renderHome();
 
-    expect(
-      await screen.findByRole("link", { name: "Open Year 11 Mathematics" })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Open" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open" })).not.toHaveTextContent("Year 11");
     expect(screen.queryByText(/Year 10 English/)).not.toBeInTheDocument();
   });
 
@@ -147,10 +147,11 @@ describe("Teacher home (UX-001 §12)", () => {
     renderHome();
 
     expect(await screen.findByRole("heading", { name: "الصفوف التي تدرّسها." })).toBeInTheDocument();
-    const openClass = screen.getByRole("link", { name: "فتح Year 11 Mathematics" });
-    const className = within(openClass).getByText("Year 11 Mathematics");
+    const openClass = screen.getByRole("link", { name: "فتح" });
+    expect(openClass).not.toHaveTextContent("Year 11 Mathematics");
+    const className = screen.getByText("Year 11 Mathematics (11MAT)");
     expect(className.tagName).toBe("BDI");
-    expect(className).not.toHaveTextContent("فتح");
+    expect(className.closest("a")).toBeNull();
     expect(screen.getByRole("link", { name: "التدخلات" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "رسائل أولياء الأمور" })).toBeInTheDocument();
   });

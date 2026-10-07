@@ -12,6 +12,7 @@ import {
   type InterventionStatus,
 } from "@/lib/interventions";
 import { listClasses, listOrganisations } from "@/lib/organisation";
+import { DataText } from "@/components/data-text";
 import { useI18n } from "@/i18n/I18nProvider";
 import { codeLabel } from "@/lib/code-labels";
 
@@ -182,15 +183,19 @@ export default function TeacherInterventionsPage() {
                     {codeLabel(t, item.status)}
                   </span>
                 </div>
-                <p className="text-xs text-black/60">
-                  {t("teacher.interventions.studentLabel")}{" "}
+                <p className="text-xs text-black/60">{t("teacher.interventions.studentLabel")}</p>
+                <p className="text-xs">
                   <Link href={`/students/${item.studentUserId}/profile`} className="underline">
-                    {personName(people, item.studentUserId, t("organisation.manage.unknownPerson"))}
+                    <DataText>
+                      {personName(people, item.studentUserId, t("organisation.manage.unknownPerson"))}
+                    </DataText>
                   </Link>
-                  {" · "}
-                  {t("teacher.interventions.gapLabel", {
-                    id: learningLabel(labels, item.learningGapId, t("assessments.review.unknownSkill")),
-                  })}
+                </p>
+                <p className="text-xs text-black/60">{t("teacher.interventions.gapLabel")}</p>
+                <p className="text-xs">
+                  <DataText>
+                    {learningLabel(labels, item.learningGapId, t("assessments.review.unknownSkill"))}
+                  </DataText>
                 </p>
                 <p className="text-sm text-black/70 line-clamp-2">
                   {item.notes

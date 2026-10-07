@@ -186,10 +186,14 @@ export default function ParentMessagesPage() {
                         : "border-black/20"
                     }`}
                   >
-                    {t("parent.messages.threadLabel", {
-                      child: displayName(thread.studentUserId),
-                      teacher: displayName(thread.teacherUserId),
-                    })}
+                    <span className="block">{t("parent.messages.childLabel")}</span>
+                    <span className="block">
+                      <DataText>{displayName(thread.studentUserId)}</DataText>
+                    </span>
+                    <span className="block">{t("parent.messages.teacherIdLabel")}</span>
+                    <span className="block">
+                      <DataText>{displayName(thread.teacherUserId)}</DataText>
+                    </span>
                   </button>
                 </li>
               ))}
