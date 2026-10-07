@@ -80,6 +80,23 @@ test.describe("d. AI feedback draft", () => {
     }
     await expect(feedbackInputs.first()).toHaveValue(editedFeedback);
 
+    // A later solid mark on every demo skill would replace the open gap the
+    // student home still has to show. Leave Isolate the variable at that gap.
+    const isolate = teacherPage
+      .getByText("Isolate the variable", { exact: true })
+      .locator("xpath=ancestor::div[contains(@class,'p-3')][1]");
+    const isolateMark = isolate.getByRole("spinbutton");
+    await isolateMark.click();
+    await isolateMark.fill("2");
+    if ((await isolateMark.inputValue()) !== "2") {
+      await isolateMark.clear();
+      await isolateMark.pressSequentially("2");
+    }
+    await expect(isolateMark).toHaveValue("2");
+    await isolate.getByLabel("Feedback").fill(
+      "You can substitute a number. The next step is getting the letter alone on one side."
+    );
+
     // Draft exists only for the teacher until approve — student UI must not show it yet.
     await studentPage.goto("/student/feedback");
     await expect(studentPage.getByText(editedFeedback)).toHaveCount(0);
