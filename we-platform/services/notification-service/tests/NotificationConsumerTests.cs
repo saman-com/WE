@@ -84,6 +84,39 @@ public class NotificationConsumerTests
     }
 
     [Fact]
+    public async Task AssessmentApprovedConsumer_NamesTheAssessmentSoTwoApprovalsDoNotShareABody()
+    {
+        var studentId = Guid.NewGuid().ToString();
+        var emailNotifier = new FakeEmailNotifier();
+        await using var provider = BuildProvider(emailNotifier);
+        var harness = new InMemoryTestHarness();
+        var consumerHarness = harness.Consumer(() =>
+            new AssessmentApprovedConsumer(provider.GetRequiredService<INotificationCreator>()));
+
+        await harness.Start();
+        try
+        {
+            var domainEvent = CreateAssessmentApproved(studentId, "Algebra sheet");
+            await harness.Bus.Publish(domainEvent);
+
+            Assert.True(await consumerHarness.Consumed.Any<AssessmentApproved>());
+
+            await using var scope = provider.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
+            var notification = await db.Notifications.IgnoreQueryFilters().SingleAsync();
+            Assert.Contains("Algebra sheet", notification.Title);
+            Assert.Contains("Algebra sheet", notification.Body);
+            Assert.NotEqual(
+                "Your teacher has approved assessment feedback. Review your results when ready.",
+                notification.Body);
+        }
+        finally
+        {
+            await harness.Stop();
+        }
+    }
+
+    [Fact]
     public async Task AssessmentApprovedConsumer_DoesNotRepeatFeedbackForTheSameAssessment()
     {
         var studentId = Guid.NewGuid().ToString();
@@ -180,7 +213,7 @@ public class NotificationConsumerTests
             [studentId]);
     }
 
-    private static AssessmentApproved CreateAssessmentApproved(string studentId)
+    private static AssessmentApproved CreateAssessmentApproved(string studentId, string assessmentTitle = "Term quiz")
     {
         var eventId = Guid.CreateVersion7();
         var microSkillId = Guid.CreateVersion7();
@@ -196,7 +229,8 @@ public class NotificationConsumerTests
             Guid.CreateVersion7(),
             Guid.NewGuid().ToString(),
             DateTimeOffset.UtcNow,
-            [new MicroSkillResult(microSkillId, 4, "Strong work.")]);
+            [new MicroSkillResult(microSkillId, 4, "Strong work.")],
+            assessmentTitle);
     }
 
     private static MessageSent CreateMessageSent(string recipientId)

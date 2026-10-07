@@ -16,7 +16,8 @@ public sealed record AssessmentApproved(
     Guid EvidenceId,
     string ApprovedByTeacherUserId,
     DateTimeOffset ApprovedAt,
-    IReadOnlyList<MicroSkillResult> MicroSkillResults)
+    IReadOnlyList<MicroSkillResult> MicroSkillResults,
+    string AssessmentTitle = "")
 {
     public const int CurrentVersion = 1;
     public const string EventType = nameof(AssessmentApproved);

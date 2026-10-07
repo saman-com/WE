@@ -84,6 +84,7 @@ public class DomainEventPublishingTests : IClassFixture<EvidenceWebApplicationFa
 
         var published = _eventPublisher.AssessmentApprovedEvents.Single(e => e.EvidenceId == evidence.Id);
         Assert.Equal(assessmentId, published.AssessmentId);
+        Assert.Equal("Assessment approval evidence", published.AssessmentTitle);
         Assert.Equal(studentId, published.StudentUserId);
         Assert.Equal(submissionId, published.SubmissionId);
         Assert.Equal(evidence.Id, published.EvidenceId);
