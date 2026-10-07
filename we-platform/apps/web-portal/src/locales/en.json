@@ -583,6 +583,7 @@
   "assessments.review.approvalFailed": "Approval failed.",
   "assessments.review.backToAssessments": "Back to assessments",
   "assessments.review.loading": "Loading submissions...",
+  "assessments.review.notFound": "This assessment was not found.",
   "assessments.review.microSkillsCount": "Micro-skills: {count}",
   "assessments.review.noSubmissions": "No student submissions yet.",
   "assessments.review.studentLabel": "Student",

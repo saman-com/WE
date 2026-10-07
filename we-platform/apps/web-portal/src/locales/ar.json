@@ -583,6 +583,7 @@
   "assessments.review.approvalFailed": "فشل الاعتماد.",
   "assessments.review.backToAssessments": "العودة إلى التقييمات",
   "assessments.review.loading": "جارٍ تحميل التسليمات...",
+  "assessments.review.notFound": "لم يُعثر على هذا التقييم.",
   "assessments.review.microSkillsCount": "المهارات الدقيقة: {count}",
   "assessments.review.noSubmissions": "لا توجد تسليمات من الطلاب بعد.",
   "assessments.review.studentLabel": "الطالب",

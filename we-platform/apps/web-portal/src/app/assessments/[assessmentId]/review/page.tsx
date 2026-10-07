@@ -22,6 +22,7 @@ import {
 import { fetchAllPages } from "@/lib/paging";
 import { collectMicroSkillNames, getCurriculumTree, listCurricula } from "@/lib/curriculum";
 import { useI18n } from "@/i18n/I18nProvider";
+import { ApiError } from "@/lib/api-error";
 
 function canReview(profile: UserProfile): boolean {
   return profile.roles.includes("Teacher");
@@ -43,6 +44,7 @@ export default function AssessmentReviewPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [denied, setDenied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -107,7 +109,11 @@ export default function AssessmentReviewPage() {
         }
         setDrafts(initialDrafts);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) {
+          setNotFound(true);
+          return;
+        }
         setError(t("assessments.review.loadError"));
       });
   // Catalogue lookup is stable; omit `t` so toast messages do not wipe AI drafts.
@@ -239,12 +245,16 @@ export default function AssessmentReviewPage() {
     }
   }
 
-  if (denied || (error && !profile)) {
+  if (notFound || denied || (error && !profile)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="space-y-4 text-center">
-          <p className="text-red-600" dir="auto">
-            {denied ? t("assessments.review.teachersOnly") : error}
+          <p className={notFound ? undefined : "text-red-600"} dir="auto">
+            {notFound
+              ? t("assessments.review.notFound")
+              : denied
+                ? t("assessments.review.teachersOnly")
+                : error}
           </p>
           <Link href="/assessments" className="underline">
             {t("assessments.review.backToAssessments")}

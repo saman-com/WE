@@ -2,6 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AssessmentReviewPage from "@/app/assessments/[assessmentId]/review/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { ApiError } from "@/lib/api-error";
+import { getAssessment } from "@/lib/assessment";
 import type { UserProfile } from "@/lib/auth";
 
 const { studentUserId, microSkillId, router } = vi.hoisted(() => ({
@@ -156,5 +158,40 @@ describe("assessment review labels", () => {
 
     expect(await screen.findByText("يمكن للمعلمين فقط اعتماد الأدلة.")).toBeInTheDocument();
     expect(screen.queryByText("Only teachers can approve evidence.")).not.toBeInTheDocument();
+  });
+
+  it("shows a translated not-found message when the assessment returns 404", async () => {
+    vi.mocked(getAssessment).mockRejectedValueOnce(new ApiError("not_found", 404));
+
+    render(
+      <I18nProvider>
+        <AssessmentReviewPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("This assessment was not found.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to assessments" })).toHaveAttribute(
+      "href",
+      "/assessments"
+    );
+    expect(screen.queryByText("Loading submissions...")).not.toBeInTheDocument();
+  });
+
+  it("shows the Arabic not-found message for a missing assessment", async () => {
+    localStorage.setItem("we_locale", "ar");
+    vi.mocked(getAssessment).mockRejectedValueOnce(new ApiError("not_found", 404));
+
+    render(
+      <I18nProvider>
+        <AssessmentReviewPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("لم يُعثر على هذا التقييم.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "العودة إلى التقييمات" })).toHaveAttribute(
+      "href",
+      "/assessments"
+    );
+    expect(screen.queryByText("جارٍ تحميل التسليمات...")).not.toBeInTheDocument();
   });
 });
