@@ -91,4 +91,18 @@ describe("parent home", () => {
     expect(skill.closest("li")).toHaveTextContent("نامٍ");
     expect(screen.queryByText(/Developing/)).not.toBeInTheDocument();
   });
+
+  it("keeps the child name outside the Arabic label", async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
+    render(
+      <I18nProvider>
+        <ParentWorkspacePage />
+      </I18nProvider>
+    );
+
+    const name = await screen.findByText("Demo Student");
+    expect(name.tagName).toBe("BDI");
+    expect(await screen.findByRole("button", { name: "الطفل Demo Student" })).toBeInTheDocument();
+    expect(name.parentElement).not.toHaveTextContent("الطفل");
+  });
 });
