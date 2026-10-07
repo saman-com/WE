@@ -113,13 +113,13 @@ export default function StudentFeedbackPage() {
                 </div>
                 <ul className="divide-y divide-black/10 border-y border-black/10">
                   {item.microSkillMarks.map((mark) => (
-                    <li key={mark.microSkillId} className="flex items-baseline justify-between gap-3 py-3">
-                      <span className="text-sm">
+                    <li key={mark.microSkillId} className="space-y-1 py-3">
+                      <p className="text-sm">
                         <DataText>{mark.feedback || t("student.feedback.markLabel")}</DataText>
-                      </span>
-                      <span className="shrink-0 text-sm text-black/60">
+                      </p>
+                      <p className="text-sm text-black/60">
                         {t(`student.focus.level.${levelFromMark(mark.mark)}`)}
-                      </span>
+                      </p>
                     </li>
                   ))}
                 </ul>

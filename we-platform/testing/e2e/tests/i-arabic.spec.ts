@@ -135,6 +135,20 @@ test.describe("i. Arabic locale", () => {
     await expect(feedback.locator("xpath=..")).not.toContainText(/[\u0600-\u06FF]/);
     await expectNoRawCodes(studentPage);
 
+    await studentPage.goto("/student/feedback");
+    await useArabic(studentPage);
+    const feedbackLine = studentPage.locator("bdi", { hasText: "Read an equation" }).first();
+    await expect(feedbackLine).toBeVisible();
+    await expect(feedbackLine).not.toContainText("قوي");
+    await expect(feedbackLine.locator("xpath=..")).not.toContainText("قوي");
+    const level = studentPage.getByText("قوي").first();
+    await expect(level).toBeVisible();
+    await expect(level).not.toContainText("Read an equation");
+    const sentence = studentPage.locator("bdi", { hasText: "the letter alone on one side" }).first();
+    await expect(sentence).toBeVisible();
+    await expect(sentence).not.toContainText("في الطريق");
+    await expect(sentence.locator("xpath=..")).not.toContainText("في الطريق");
+
     await studentPage.goto("/student/assessments");
     await useArabic(studentPage);
     const assessmentTitle = studentPage.locator("bdi", { hasText: "Algebra sheet" }).first();
