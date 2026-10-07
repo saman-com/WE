@@ -279,6 +279,55 @@ describe("leadership dashboard", () => {
     expect(attentionAr.parentElement).toHaveTextContent("وليس كل فجوة في صفحة الصف");
   });
 
+  it("translates every mastery status, including NotStarted", async () => {
+    vi.mocked(fetchLeadershipDashboard).mockResolvedValue({
+      organisationId,
+      organisationName: "Demo school",
+      kpis: {
+        totalStudents: 1,
+        totalClasses: 1,
+        activeInterventions: 0,
+        activeLearningGaps: 0,
+        studentsNeedingAttention: 0,
+        assessmentCompletionRate: 0,
+        masteryLevelCounts: {
+          NotStarted: 0,
+          Developing: 1,
+          Proficient: 2,
+          Mastered: 3,
+        },
+      },
+      yearLevels: [],
+      classComparisons: [],
+    });
+
+    const { unmount } = render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("Not started: 0")).toBeInTheDocument();
+    expect(screen.getByText("Developing: 1")).toBeInTheDocument();
+    expect(screen.getByText("Proficient: 2")).toBeInTheDocument();
+    expect(screen.getByText("Mastered: 3")).toBeInTheDocument();
+    expect(screen.queryByText(/NotStarted/)).not.toBeInTheDocument();
+    unmount();
+
+    localStorage.setItem("we_locale", "ar");
+    render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("لم يبدأ: 0")).toBeInTheDocument();
+    expect(screen.getByText("نامٍ: 1")).toBeInTheDocument();
+    expect(screen.getByText("ماهر: 2")).toBeInTheDocument();
+    expect(screen.getByText("متقن: 3")).toBeInTheDocument();
+    expect(screen.queryByText(/NotStarted/)).not.toBeInTheDocument();
+  });
+
   it("sends a system administrator back to organisation setup", async () => {
     fetchProfile.mockResolvedValue({
       id: "77777777-7777-7777-7777-777777777777",

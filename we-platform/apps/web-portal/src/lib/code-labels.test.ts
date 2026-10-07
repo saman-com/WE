@@ -9,6 +9,7 @@ const codes = [
   "Mastered",
   "Developing",
   "Proficient",
+  "NotStarted",
   "Medium",
   "Active",
   "Planned",
