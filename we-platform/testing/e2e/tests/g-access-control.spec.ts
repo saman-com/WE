@@ -57,7 +57,7 @@ test.describe("g. Access control", () => {
     const page = await context.newPage();
     await page.goto("/leadership");
     await expect(page).toHaveURL(/\/organisation$/);
-    await expect(page.getByText(/^Students$/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "School Leadership Dashboard" })).toHaveCount(0);
     await context.close();
   });
 
