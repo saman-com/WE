@@ -168,9 +168,12 @@ export default function ParentWorkspacePage() {
                         : "border-black/20"
                     }`}
                   >
-                    {t("parent.home.childLabel", {
-                      id: personName(childNames, child.studentUserId, t("organisation.manage.unknownPerson")),
-                    })}
+                    <span>{t("parent.home.childLabel")}</span>{" "}
+                    <span>
+                      <DataText>
+                        {personName(childNames, child.studentUserId, t("organisation.manage.unknownPerson"))}
+                      </DataText>
+                    </span>
                   </button>
                 ))}
               </div>

@@ -63,6 +63,7 @@ describe("Longitudinal charts empty states", () => {
     );
 
     expect(screen.getAllByText(/Read an equation/).length).toBe(2);
+    expect(screen.getByText("Gap opened")).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });
 });

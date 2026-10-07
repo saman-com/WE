@@ -3,6 +3,7 @@
 import type { MasteryTrendPoint } from "@/lib/longitudinal-analytics";
 import { formatPeriodKey } from "@/lib/longitudinal-analytics";
 import { useI18n } from "@/i18n/I18nProvider";
+import { DataText } from "@/components/data-text";
 import { codeLabel } from "@/lib/code-labels";
 
 type MasteryTrendChartProps = {
@@ -89,10 +90,19 @@ export function GapHistoryTimeline({ events, gapNames = {} }: GapHistoryTimeline
               }`}
             />
             <p className="text-sm font-medium">
-              {t("charts.gapHistory.event", { event: event.eventType.toLowerCase() })}
+              {t("charts.gapHistory.event", {
+                event:
+                  event.eventType === "Opened" || event.eventType === "Closed"
+                    ? t(`charts.gapHistory.${event.eventType}`)
+                    : event.eventType.toLowerCase(),
+              })}
             </p>
             <p className="text-xs text-black/60">
-              {gapNames[event.learningGapId] || t("assessments.review.unknownSkill")}
+              {gapNames[event.learningGapId] ? (
+                <DataText>{gapNames[event.learningGapId]}</DataText>
+              ) : (
+                t("assessments.review.unknownSkill")
+              )}
               {" · "}
               {new Date(event.occurredAt).toLocaleDateString()}
             </p>
