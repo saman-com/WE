@@ -274,11 +274,10 @@ describe("organisation manage view", () => {
       </I18nProvider>
     );
 
-    expect(
-      await screen.findByText("Only system administrators can set up organisations.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/teacher");
-    expect(screen.queryByRole("link", { name: "Back to login" })).not.toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/teacher");
+    });
+    expect(screen.queryByText("Only system administrators can set up organisations.")).not.toBeInTheDocument();
     expect(listOrganisations).not.toHaveBeenCalled();
   });
 

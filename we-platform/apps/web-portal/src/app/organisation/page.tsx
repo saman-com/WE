@@ -63,8 +63,6 @@ export default function OrganisationSetupPage() {
   const { t, translateError } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [homeHref, setHomeHref] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [schools, setSchools] = useState<Organisation[]>([]);
@@ -120,8 +118,7 @@ export default function OrganisationSetupPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!loaded.roles.includes("SystemAdministrator")) {
-          setHomeHref(roleHome(loaded.roles));
-          setError(t("organisation.adminOnly"));
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);
@@ -246,19 +243,6 @@ export default function OrganisationSetupPage() {
             person.name.toLowerCase().includes(accountQueryText) ||
             person.email.toLowerCase().includes(accountQueryText)
         );
-
-  if (error && !profile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <div className="space-y-4 text-center">
-          <p className="text-red-700">{error}</p>
-          <Link href={homeHref ?? "/login"} className="underline">
-            {homeHref ? t("common.backToHome") : t("common.backToLogin")}
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (!profile || !token) {
     return (

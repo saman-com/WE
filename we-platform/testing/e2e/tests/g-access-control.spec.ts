@@ -28,24 +28,14 @@ test.describe("g. Access control", () => {
     { role: "parent", path: "/teacher", kind: "redirect" },
     { role: "student", path: "/parent", kind: "redirect" },
     { role: "leader", path: "/admin/ai-audit", kind: "redirect" },
-    {
-      role: "authority",
-      path: "/organisation",
-      kind: "error",
-      error: /system administrators/i,
-    },
+    { role: "authority", path: "/organisation", kind: "redirect" },
     {
       role: "student",
       path: "/assessments",
       kind: "error",
       error: /assessment-management permission/i,
     },
-    {
-      role: "parent",
-      path: "/organisation",
-      kind: "error",
-      error: /system administrators/i,
-    },
+    { role: "parent", path: "/organisation", kind: "redirect" },
   ];
 
   for (const item of blockedCases) {

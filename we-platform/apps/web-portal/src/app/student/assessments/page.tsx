@@ -44,7 +44,6 @@ export default function StudentAssessmentsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [homeHref, setHomeHref] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -76,8 +75,7 @@ export default function StudentAssessmentsPage() {
     fetchProfile(stored)
       .then(async (loaded) => {
         if (!isStudent(loaded)) {
-          setHomeHref(roleHome(loaded.roles));
-          setError(t("student.assessments.studentsOnly"));
+          router.replace(roleHome(loaded.roles));
           return;
         }
         setProfile(loaded);
@@ -198,19 +196,6 @@ export default function StudentAssessmentsPage() {
     } finally {
       setBusy(false);
     }
-  }
-
-  if (error && !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="space-y-4 text-center">
-          <p className="text-red-600">{error}</p>
-          <Link href={homeHref ?? roleHome([])} className="underline">
-            {t("common.backToHome")}
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   if (!profile || !token) {

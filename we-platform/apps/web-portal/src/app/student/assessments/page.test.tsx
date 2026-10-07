@@ -7,6 +7,7 @@ import type { UserProfile } from "@/lib/auth";
 import type { Assessment, AssessmentSubmission } from "@/lib/assessment";
 import type { Organisation, SchoolClass } from "@/lib/organisation";
 
+const replace = vi.fn();
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
 const listOrganisations = vi.fn<(token: string) => Promise<Organisation[]>>();
 const listClasses = vi.fn<(token: string, organisationId: string) => Promise<SchoolClass[]>>();
@@ -14,7 +15,7 @@ const listAssessments = vi.fn();
 const getMySubmission = vi.fn<(token: string, assessmentId: string) => Promise<AssessmentSubmission | null>>();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ replace, push: vi.fn() }),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -50,6 +51,7 @@ const assessment: Assessment = {
 
 describe("student assessments submitted line", () => {
   beforeEach(() => {
+    replace.mockReset();
     localStorage.clear();
     localStorage.setItem("we_access_token", "token");
     localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
@@ -104,5 +106,26 @@ describe("student assessments submitted line", () => {
     expect(date).not.toHaveTextContent("تم التسليم");
     expect(line).not.toHaveTextContent(/\bsubmitted\b/);
     expect(line).toHaveTextContent("تم التسليم");
+  });
+
+  it("sends a signed-in teacher to the teacher home", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "teacher-1",
+      email: "teacher@school.local",
+      name: "Demo Teacher",
+      roles: ["Teacher"],
+    });
+
+    render(
+      <I18nProvider>
+        <StudentAssessmentsPage />
+      </I18nProvider>
+    );
+
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/teacher");
+    });
+    expect(screen.queryByText("This page is for students only.")).not.toBeInTheDocument();
+    expect(listOrganisations).not.toHaveBeenCalled();
   });
 });
