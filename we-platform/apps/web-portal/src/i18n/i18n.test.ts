@@ -85,6 +85,15 @@ describe("i18n translate", () => {
     expect(translate(arMessages, key, { count: 15 }, undefined, "ar")).toBe("يُعرض 15 سجلاً.");
     expect(translate(arMessages, key, { count: 100 }, undefined, "ar")).toBe("يُعرض 100 سجل.");
   });
+
+  it("applies an ICU plural inside a longer count line", () => {
+    const key = "teacher.class.ei.levelSummary";
+    expect(translate(enMessages, key, { mastered: 0, proficient: 0, developing: 0, notStarted: 0, total: 1 }, undefined, "en")).toContain("1 student");
+    expect(translate(enMessages, key, { mastered: 0, proficient: 0, developing: 0, notStarted: 0, total: 1 }, undefined, "en")).not.toContain("1 students");
+    expect(translate(enMessages, key, { mastered: 0, proficient: 0, developing: 0, notStarted: 0, total: 4 }, undefined, "en")).toContain("4 students");
+    expect(translate(arMessages, key, { mastered: 0, proficient: 0, developing: 0, notStarted: 0, total: 1 }, undefined, "ar")).toContain("طالب واحد");
+    expect(translate(arMessages, key, { mastered: 0, proficient: 0, developing: 0, notStarted: 0, total: 2 }, undefined, "ar")).toContain("طالبان");
+  });
 });
 
 describe("i18n locale preference and RTL", () => {
@@ -116,6 +125,31 @@ describe("i18n locale preference and RTL", () => {
 });
 
 describe("locale catalogues", () => {
+  it("uses ICU plurals for every count message", () => {
+    const countName =
+      "count|total|students|classes|gaps|interventions|yearLevels|submitted|reviewed|pending|n|mastery|assessments|occurrences|sources|entries|messages";
+    const countNoun = new RegExp(
+      `\\{(?:${countName})\\}\\s+(?:student|students|class|classes|gap|gaps|intervention|interventions|submission|submissions|occurrence|occurrences|source|sources|entry|entries|message|messages|year level|year levels)\\b`
+    );
+    const arabicCountNoun = new RegExp(
+      `\\{(?:${countName})\\}\\s+(?:طالب|طلاب|صف|صفوف|فجوة|فجوات|تدخل|تدخلات|تسليم|تسليمات|حدوث|مصدر|مصادر|رسالة|رسائل|مستوى|مستويات)`
+    );
+    const pluralClause = /\{[A-Za-z]+,\s*plural,\s*(?:[A-Za-z]+\s*\{[^{}]*\}\s*)+\}/g;
+
+    const bare = [
+      ["en", enMessages, countNoun],
+      ["ar", arMessages, arabicCountNoun],
+    ] as const;
+
+    for (const [locale, messages, pattern] of bare) {
+      for (const [key, value] of Object.entries(messages)) {
+        pluralClause.lastIndex = 0;
+        const outside = value.replace(pluralClause, "");
+        expect(outside, `${locale} ${key}`).not.toMatch(pattern);
+      }
+    }
+  });
+
   it("keeps English and Arabic key sets in lockstep", () => {
     const enKeys = Object.keys(enMessages).sort();
     const arKeys = Object.keys(arMessages).sort();

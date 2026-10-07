@@ -69,25 +69,26 @@ export function pluralCategory(locale: Locale, count: number): string {
   return value === 1 ? "one" : "other";
 }
 
-function applyPlural(template: string, params: TranslateParams, locale: Locale): string | null {
-  const match = template.match(/^\{(\w+),\s*plural,\s*([\s\S]+)\}$/);
-  if (!match) {
-    return null;
-  }
-  const raw = params[match[1]];
-  const count = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(count)) {
-    return null;
-  }
-  const branches: Record<string, string> = {};
-  for (const found of match[2].matchAll(/(\w+)\s*\{([^{}]*)\}/g)) {
-    branches[found[1]] = found[2];
-  }
-  const text = branches[pluralCategory(locale, count)] ?? branches.other;
-  if (text === undefined) {
-    return null;
-  }
-  return text.replaceAll("#", String(count));
+function applyPlurals(template: string, params: TranslateParams, locale: Locale): string {
+  return template.replace(
+    /\{(\w+),\s*plural,\s*((?:\w+\s*\{[^{}]*\}\s*)+)\}/g,
+    (full, name: string, body: string) => {
+      const raw = params[name];
+      const count = typeof raw === "number" ? raw : Number(raw);
+      if (!Number.isFinite(count)) {
+        return full;
+      }
+      const branches: Record<string, string> = {};
+      for (const found of body.matchAll(/(\w+)\s*\{([^{}]*)\}/g)) {
+        branches[found[1]] = found[2];
+      }
+      const text = branches[pluralCategory(locale, count)] ?? branches.other;
+      if (text === undefined) {
+        return full;
+      }
+      return text.replaceAll("#", String(count));
+    }
+  );
 }
 
 export function translate(
@@ -101,14 +102,11 @@ export function translate(
   if (!params) {
     return template;
   }
-  const plural = applyPlural(template, params, locale);
-  if (plural !== null) {
-    return plural;
-  }
+  const withPlurals = applyPlurals(template, params, locale);
   return Object.entries(params).reduce(
     (result, [name, value]) =>
       result.replaceAll(`{${name}}`, String(value)),
-    template
+    withPlurals
   );
 }
 

@@ -399,12 +399,10 @@ export default function TeacherClassDetailPage() {
                       className="rounded border border-black/5 p-3 space-y-1"
                     >
                       <p className="text-sm font-medium">
-                        {t(
-                          trend.occurrenceCount === 1
-                            ? "teacher.class.ei.occurrenceOne"
-                            : "teacher.class.ei.occurrenceOther",
-                          { status: codeLabel(t, trend.status), count: trend.occurrenceCount }
-                        )}
+                        {t("teacher.class.ei.occurrence", {
+                          status: codeLabel(t, trend.status),
+                          count: trend.occurrenceCount,
+                        })}
                       </p>
                       <StoredTitle label={t("teacher.class.ei.microSkill")} value={skillName(trend.microSkillId)} />
                       <p className="text-xs text-black/60">

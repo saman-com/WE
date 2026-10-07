@@ -380,15 +380,10 @@ export default function StudentProfilePage() {
                       })}
                     </p>
                     <p className="text-xs text-black/60">
-                      {t(
-                        item.evidenceCount === 1
-                          ? "student.profile.mastery.metaOne"
-                          : "student.profile.mastery.metaOther",
-                        {
-                          count: item.evidenceCount,
-                          confidence: item.confidenceScore,
-                        }
-                      )}
+                      {t("student.profile.mastery.evidence", {
+                        count: item.evidenceCount,
+                        confidence: item.confidenceScore,
+                      })}
                     </p>
                     <StoredTitle
                       label={t("student.profile.microSkill")}

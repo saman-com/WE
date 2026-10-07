@@ -164,16 +164,11 @@ export default function TeacherMessagesPage() {
                       <DataText>{thread.latestMessage.body}</DataText>
                     </span>
                     <span className="block text-xs opacity-70 mt-1">
-                      {t(
-                        thread.messageCount === 1
-                          ? "teacher.messages.threadMetaOne"
-                          : "teacher.messages.threadMetaOther",
-                        {
-                          student: personName(people, thread.studentUserId, t("organisation.manage.unknownPerson")),
-                          parent: personName(people, thread.parentUserId, t("organisation.manage.unknownPerson")),
-                          count: thread.messageCount,
-                        }
-                      )}
+                      {t("teacher.messages.threadMeta", {
+                        student: personName(people, thread.studentUserId, t("organisation.manage.unknownPerson")),
+                        parent: personName(people, thread.parentUserId, t("organisation.manage.unknownPerson")),
+                        count: thread.messageCount,
+                      })}
                     </span>
                   </button>
                 </li>
