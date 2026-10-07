@@ -52,6 +52,15 @@ test.describe("g. Access control", () => {
     });
   }
 
+  test("system administrator is sent home from leadership", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: storagePath("admin") });
+    const page = await context.newPage();
+    await page.goto("/leadership");
+    await expect(page).toHaveURL(/\/organisation$/);
+    await expect(page.getByText(/^Students$/)).toHaveCount(0);
+    await context.close();
+  });
+
   test("school A teacher cannot see school B student profile data", async ({ browser }) => {
     const context = await browser.newContext({ storageState: storagePath("teacher") });
     const page = await context.newPage();

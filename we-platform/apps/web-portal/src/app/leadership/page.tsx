@@ -118,7 +118,7 @@ export default function LeadershipDashboardPage() {
 
     fetchProfile(token)
       .then(async (loaded) => {
-        if (!isSchoolLeader(loaded) && !loaded.roles.includes("SystemAdministrator")) {
+        if (!isSchoolLeader(loaded)) {
           router.replace(roleHome(loaded.roles));
           return;
         }

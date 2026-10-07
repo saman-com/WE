@@ -23,6 +23,10 @@ function personName(
   return match?.name || match?.email || unknown;
 }
 
+const { replace } = vi.hoisted(() => ({
+  replace: vi.fn(),
+}));
+
 const fetchProfile = vi.fn<(token: string) => Promise<UserProfile>>();
 const loadPeople = vi.fn();
 const loadLearningNames = vi.fn();
@@ -30,7 +34,7 @@ const loadGapLabels = vi.fn();
 const fetchClassLeadershipSummary = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ replace, push: vi.fn() }),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -138,6 +142,7 @@ describe("leadership dashboard", () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem("we_access_token", "token");
+    replace.mockReset();
     fetchProfile.mockReset().mockResolvedValue({
       id: "55555555-5555-5555-5555-555555555555",
       email: "leader@school.local",
@@ -272,5 +277,26 @@ describe("leadership dashboard", () => {
     const attentionAr = await screen.findByText("طلاب يحتاجون إلى اهتمام");
     expect(attentionAr.parentElement).toHaveTextContent("فجوة عالية الخطورة");
     expect(attentionAr.parentElement).toHaveTextContent("وليس كل فجوة في صفحة الصف");
+  });
+
+  it("sends a system administrator back to organisation setup", async () => {
+    fetchProfile.mockResolvedValue({
+      id: "77777777-7777-7777-7777-777777777777",
+      email: "admin@school.local",
+      name: "Demo Admin",
+      roles: ["SystemAdministrator"],
+    });
+
+    render(
+      <I18nProvider>
+        <LeadershipDashboardPage />
+      </I18nProvider>
+    );
+
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/organisation");
+    });
+    expect(screen.queryByText("Students")).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo school")).not.toBeInTheDocument();
   });
 });
