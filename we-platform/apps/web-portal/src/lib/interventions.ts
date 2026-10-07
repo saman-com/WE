@@ -67,9 +67,27 @@ export type InterventionFacts = {
 export function interventionFacts(summary: string): InterventionFacts {
   const expected = summary.match(/Expected mastery:\s*([A-Za-z]+)/)?.[1] ?? null;
   const demonstrated = summary.match(/Demonstrated:\s*([A-Za-z]+)/)?.[1] ?? null;
-  const micro = summary.match(/micro-skill\s+(.+?)\s+marked/i)?.[1]?.trim() ?? "";
+  const marked = [...summary.matchAll(/micro-skill\s+([^:\n]+?)\s+marked/gi)];
+  const micro = marked.at(-1)?.[1]?.trim() ?? "";
   const skill = micro && !/^unknown skill$/i.test(micro) ? micro : summary.trim();
   return { skill, expected, demonstrated };
+}
+
+/**
+ * The evidence id is not a curriculum skill, so a saved sentence can already
+ * say "Unknown skill" where that id used to be. The gap's micro-skill name is
+ * the same lookup the create form uses.
+ */
+export function withResolvedSkill(
+  text: string,
+  skill: string | undefined,
+  unknownSkill: string
+): string {
+  const name = skill?.trim() ?? "";
+  if (!name || name.toLowerCase() === unknownSkill.trim().toLowerCase() || !text.includes(unknownSkill)) {
+    return text;
+  }
+  return text.replaceAll(`Evidence ${unknownSkill}`, name).replaceAll(unknownSkill, name);
 }
 
 export function withoutStoredIds(

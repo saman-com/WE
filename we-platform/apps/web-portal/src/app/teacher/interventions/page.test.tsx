@@ -66,10 +66,14 @@ vi.mock("@/lib/organisation", () => ({
   listClasses: (token: string, organisationId: string) => listClasses(token, organisationId),
 }));
 
-vi.mock("@/lib/interventions", () => ({
-  fetchStudentInterventions: (token: string, studentUserId: string) =>
-    fetchStudentInterventions(token, studentUserId),
-}));
+vi.mock("@/lib/interventions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/interventions")>("@/lib/interventions");
+  return {
+    ...actual,
+    fetchStudentInterventions: (token: string, studentUserId: string) =>
+      fetchStudentInterventions(token, studentUserId),
+  };
+});
 
 const teacher: UserProfile = {
   id: "teacher-chen",
@@ -229,6 +233,30 @@ describe("Teacher interventions list (UX-001 §10)", () => {
     expect(skill.closest("p")).not.toHaveTextContent("Gap");
     expect(screen.getByText("Gap")).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it("shows the gap skill instead of Evidence Unknown skill", async () => {
+    const skillId = "00000000-0000-4000-8000-000000001004";
+    loadLearningNames.mockResolvedValue({ [skillId]: "Isolate the variable" });
+    loadGapLabels.mockResolvedValue({ [gapId]: "Isolate the variable" });
+    fetchStudentInterventions.mockResolvedValue({
+      studentUserId: studentId,
+      interventions: [
+        intervention({
+          id: "i-gap",
+          studentUserId: studentId,
+          learningGapId: gapId,
+          status: "Active",
+          plannedActions:
+            "Evidence Unknown skill: micro-skill Isolate the variable marked 2/5. Expected mastery: Mastered. Demonstrated: Developing.",
+        }),
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Isolate the variable")).toBeInTheDocument();
+    expect(screen.queryByText(/Unknown skill/)).not.toBeInTheDocument();
   });
 
   it("sends a system administrator to the organisation home", async () => {

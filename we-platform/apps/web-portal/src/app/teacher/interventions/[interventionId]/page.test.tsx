@@ -57,10 +57,14 @@ vi.mock("@/lib/display-names", () => ({
     ),
 }));
 
-vi.mock("@/lib/interventions", () => ({
-  fetchIntervention: (token: string, id: string) => fetchIntervention(token, id),
-  patchIntervention: vi.fn(),
-}));
+vi.mock("@/lib/interventions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/interventions")>("@/lib/interventions");
+  return {
+    ...actual,
+    fetchIntervention: (token: string, id: string) => fetchIntervention(token, id),
+    patchIntervention: vi.fn(),
+  };
+});
 
 const intervention: Intervention = {
   id: "intervention-1",

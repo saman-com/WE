@@ -8,7 +8,7 @@ import { fetchProfile, personName, type DirectoryUser, type UserProfile } from "
 import { learningLabel, loadLearningNames, loadPeople, replaceVisibleIds } from "@/lib/display-names";
 import { fetchStudentDiagnostics, type StudentDiagnostics } from "@/lib/diagnostics";
 import { fetchStudentGaps, type StudentLearningGaps } from "@/lib/gaps";
-import { fetchStudentInterventions, type StudentInterventions } from "@/lib/interventions";
+import { fetchStudentInterventions, withResolvedSkill, type StudentInterventions } from "@/lib/interventions";
 import { fetchStudentMastery, type StudentMastery } from "@/lib/mastery";
 import { fetchStudentProfile, type StudentProfile } from "@/lib/student-learning";
 import {
@@ -513,11 +513,15 @@ export default function StudentProfilePage() {
                     <p className="text-sm">
                       <DataText>
                         {localizeStoredText(
-                          replaceVisibleIds(
-                            item.plannedActions,
-                            people,
-                            { ...learningNames, ...gapNames },
-                            t("organisation.manage.unknownPerson"),
+                          withResolvedSkill(
+                            replaceVisibleIds(
+                              item.plannedActions,
+                              people,
+                              { ...learningNames, ...gapNames },
+                              t("organisation.manage.unknownPerson"),
+                              t("assessments.review.unknownSkill")
+                            ),
+                            gapNames[item.learningGapId],
                             t("assessments.review.unknownSkill")
                           ),
                           t

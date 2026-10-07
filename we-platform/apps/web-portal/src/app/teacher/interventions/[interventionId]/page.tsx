@@ -9,6 +9,7 @@ import { roleHome } from "@/lib/role-home";
 import {
   fetchIntervention,
   patchIntervention,
+  withResolvedSkill,
   type Intervention,
   type InterventionStatus,
 } from "@/lib/interventions";
@@ -183,11 +184,15 @@ export default function InterventionDetailPage() {
           </p>
           <p>
             <span className="font-medium">{t("teacher.interventions.detail.plannedActions")}</span>{" "}
-            {replaceVisibleIds(
-              intervention.plannedActions,
-              people,
-              labels,
-              t("organisation.manage.unknownPerson"),
+            {withResolvedSkill(
+              replaceVisibleIds(
+                intervention.plannedActions,
+                people,
+                labels,
+                t("organisation.manage.unknownPerson"),
+                t("assessments.review.unknownSkill")
+              ),
+              labels[intervention.learningGapId],
               t("assessments.review.unknownSkill")
             )}
           </p>

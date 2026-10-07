@@ -144,4 +144,39 @@ describe("parent home", () => {
     expect(screen.getByText("متقن")).toBeInTheDocument();
     expect(screen.getAllByText("نامٍ").length).toBeGreaterThan(0);
   });
+
+  it("uses the marked micro-skill when the stored diagnostic says Evidence Unknown skill", async () => {
+    vi.mocked(fetchChildProgress).mockResolvedValue({
+      studentUserId: studentId,
+      organisationId,
+      mastery: [],
+      feedback: [],
+      assessments: [],
+      activeInterventions: [
+        {
+          id: "int-stored",
+          summary:
+            "Address medium severity / medium urgency gap in micro-skill Isolate the variable.\n\n" +
+            "Expected mastery: Mastered. Demonstrated: Developing (mark 2/5). " +
+            "Micro-skill Isolate the variable has a medium-severity gap. " +
+            "Based on diagnostic: Evidence Unknown skill: micro-skill Isolate the variable marked 2/5. " +
+            'Teacher feedback: "You can substitute a number.". Classification: Developing.\n\n' +
+            "Suggested actions: Provide scaffolded practice and monitor progress through the next assessment cycle.",
+          status: "Active",
+          plannedStartAt: null,
+          plannedEndAt: null,
+        },
+      ],
+    });
+
+    render(
+      <I18nProvider>
+        <ParentWorkspacePage />
+      </I18nProvider>
+    );
+
+    const skill = await screen.findByText("Isolate the variable");
+    expect(skill.tagName).toBe("BDI");
+    expect(screen.queryByText(/Unknown skill/)).not.toBeInTheDocument();
+  });
 });

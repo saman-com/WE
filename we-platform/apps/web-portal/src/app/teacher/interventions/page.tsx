@@ -8,6 +8,7 @@ import { learningLabel, loadGapLabels, loadLearningNames, loadPeople, replaceVis
 import { roleHome } from "@/lib/role-home";
 import {
   fetchStudentInterventions,
+  withResolvedSkill,
   type Intervention,
   type InterventionStatus,
 } from "@/lib/interventions";
@@ -171,11 +172,15 @@ export default function TeacherInterventionsPage() {
               <li key={item.id} className="rounded-lg border border-black/10 p-4 space-y-2">
                 <div className="flex items-start justify-between gap-4">
                   <Link href={`/teacher/interventions/${item.id}`} className="font-medium underline">
-                    {replaceVisibleIds(
-                      item.plannedActions,
-                      people,
-                      { ...learningNames, ...labels },
-                      t("organisation.manage.unknownPerson"),
+                    {withResolvedSkill(
+                      replaceVisibleIds(
+                        item.plannedActions,
+                        people,
+                        { ...learningNames, ...labels },
+                        t("organisation.manage.unknownPerson"),
+                        t("assessments.review.unknownSkill")
+                      ),
+                      labels[item.learningGapId],
                       t("assessments.review.unknownSkill")
                     )}
                   </Link>

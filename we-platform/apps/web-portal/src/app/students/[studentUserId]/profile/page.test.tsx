@@ -130,7 +130,10 @@ vi.mock("@/lib/mastery", () => ({
   }),
 }));
 
-vi.mock("@/lib/interventions", () => ({
+vi.mock("@/lib/interventions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/interventions")>("@/lib/interventions");
+  return {
+    ...actual,
   fetchStudentInterventions: vi.fn().mockResolvedValue({
     studentUserId: studentId,
     interventions: [
@@ -152,7 +155,8 @@ vi.mock("@/lib/interventions", () => ({
       },
     ],
   }),
-}));
+  };
+});
 
 vi.mock("@/lib/longitudinal-analytics", () => ({
   fetchStudentLongitudinal: vi.fn().mockResolvedValue({
