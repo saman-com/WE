@@ -5,6 +5,7 @@ import {
   InterventionOutcomesTimeline,
   MasteryTrendChart,
 } from "@/components/longitudinal-charts";
+import { LOCALE_STORAGE_KEY } from "@/i18n";
 import { I18nProvider } from "@/i18n/I18nProvider";
 
 function renderWithI18n(ui: React.ReactElement) {
@@ -65,5 +66,33 @@ describe("Longitudinal charts empty states", () => {
     expect(screen.getAllByText(/Read an equation/).length).toBe(2);
     expect(screen.getByText("Gap opened")).toBeInTheDocument();
     expect(container.textContent ?? "").not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it("translates opened and closed instead of leaving the English word in the Arabic line", async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
+    const gapId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    renderWithI18n(
+      <GapHistoryTimeline
+        events={[
+          {
+            learningGapId: gapId,
+            eventType: "Opened",
+            occurredAt: "2026-10-01T00:00:00Z",
+          },
+          {
+            learningGapId: gapId,
+            eventType: "Closed",
+            occurredAt: "2026-10-02T00:00:00Z",
+          },
+        ]}
+        gapNames={{ [gapId]: "Read an equation" }}
+      />
+    );
+
+    expect(await screen.findByText("الفجوة مفتوحة")).toBeInTheDocument();
+    expect(screen.getByText("الفجوة مغلقة")).toBeInTheDocument();
+    expect(screen.queryByText(/\bopened\b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bclosed\b/i)).not.toBeInTheDocument();
+    localStorage.removeItem(LOCALE_STORAGE_KEY);
   });
 });
