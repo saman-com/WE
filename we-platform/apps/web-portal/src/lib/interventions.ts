@@ -57,6 +57,21 @@ export type CreateInterventionFromGapParams = {
 
 const storedId = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
+export type InterventionFacts = {
+  skill: string;
+  expected: string | null;
+  demonstrated: string | null;
+};
+
+/** Pull the micro-skill name and mastery codes out of a stored diagnostic sentence. */
+export function interventionFacts(summary: string): InterventionFacts {
+  const expected = summary.match(/Expected mastery:\s*([A-Za-z]+)/)?.[1] ?? null;
+  const demonstrated = summary.match(/Demonstrated:\s*([A-Za-z]+)/)?.[1] ?? null;
+  const micro = summary.match(/micro-skill\s+(.+?)\s+marked/i)?.[1]?.trim() ?? "";
+  const skill = micro && !/^unknown skill$/i.test(micro) ? micro : summary.trim();
+  return { skill, expected, demonstrated };
+}
+
 export function withoutStoredIds(
   text: string,
   namesById: Record<string, string>

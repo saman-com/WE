@@ -163,12 +163,20 @@ export default function TeacherMessagesPage() {
                     <span className="font-medium">
                       <DataText>{thread.latestMessage.body}</DataText>
                     </span>
+                    <span className="block text-xs opacity-70 mt-1">{t("teacher.messages.studentLabel")}</span>
+                    <span className="block text-xs">
+                      <DataText>
+                        {personName(people, thread.studentUserId, t("organisation.manage.unknownPerson"))}
+                      </DataText>
+                    </span>
+                    <span className="block text-xs opacity-70 mt-1">{t("teacher.messages.parentLabel")}</span>
+                    <span className="block text-xs">
+                      <DataText>
+                        {personName(people, thread.parentUserId, t("organisation.manage.unknownPerson"))}
+                      </DataText>
+                    </span>
                     <span className="block text-xs opacity-70 mt-1">
-                      {t("teacher.messages.threadMeta", {
-                        student: personName(people, thread.studentUserId, t("organisation.manage.unknownPerson")),
-                        parent: personName(people, thread.parentUserId, t("organisation.manage.unknownPerson")),
-                        count: thread.messageCount,
-                      })}
+                      {t("teacher.messages.messageCount", { count: thread.messageCount })}
                     </span>
                   </button>
                 </li>

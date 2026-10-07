@@ -211,7 +211,7 @@
   "parent.home.childProgressError": "Unable to load this child's progress.",
   "parent.home.loading": "Loading parent workspace...",
   "parent.home.title": "Parent workspace",
-  "parent.home.welcome": "Welcome, {name}. View approved learning progress for your linked children.",
+  "parent.home.welcome": "Welcome. View approved learning progress for your linked children.",
   "parent.home.noChildren": "No children are linked to your account yet. Please contact your school administrator.",
   "parent.home.myChildren": "My children",
   "parent.home.childLabel": "Child",
@@ -227,6 +227,8 @@
   "parent.home.interventionsTitle": "Active interventions",
   "parent.home.interventionsEmpty": "No active interventions.",
   "parent.home.statusLine": "Status: {status}",
+  "parent.home.expectedLine": "Expected mastery",
+  "parent.home.demonstratedLine": "Demonstrated",
 
   "parent.messages.loadConversationError": "Unable to load this conversation.",
   "parent.messages.selectChildError": "Select a child and enter the teacher user ID.",
@@ -249,7 +251,9 @@
   "teacher.messages.subtitle": "Messages from parents of students in your classes.",
   "teacher.messages.inbox": "Inbox",
   "teacher.messages.empty": "No parent messages yet.",
-  "teacher.messages.threadMeta": "Student {student} — Parent {parent} — {count, plural, one {# message} other {# messages}}",
+  "teacher.messages.studentLabel": "Student",
+  "teacher.messages.parentLabel": "Parent",
+  "teacher.messages.messageCount": "{count, plural, one {# message} other {# messages}}",
   "teacher.messages.conversation": "Conversation",
   "teacher.messages.sendReply": "Send reply",
 

@@ -172,6 +172,14 @@ test.describe("i. Arabic locale", () => {
     await expectNoRawCodes(teacherPage);
     await teacherPage.goto("/teacher/interventions");
     await expectNoRawCodes(teacherPage);
+    await teacherPage.goto("/teacher/messages");
+    await useArabic(teacherPage);
+    const inboxStudent = teacherPage.locator("bdi", { hasText: "Demo Student" }).first();
+    await expect(inboxStudent).toBeVisible();
+    await expect(inboxStudent.locator("xpath=..")).not.toContainText("الطالب");
+    const inboxParent = teacherPage.locator("bdi", { hasText: "Demo Parent" }).first();
+    await expect(inboxParent).toBeVisible();
+    await expect(inboxParent.locator("xpath=..")).not.toContainText("ولي الأمر");
     await teacher.close();
 
     const parent = await browser.newContext({ storageState: storagePath("parent") });
@@ -179,6 +187,22 @@ test.describe("i. Arabic locale", () => {
     await parentPage.goto("/parent");
     await useArabic(parentPage);
     await expectNoRawCodes(parentPage);
+    const welcomeName = parentPage.locator("bdi", { hasText: "Demo Parent" }).first();
+    await expect(welcomeName).toBeVisible();
+    await expect(welcomeName.locator("xpath=..")).not.toContainText("مرحباً");
+    const interventionSkill = parentPage.locator("bdi", { hasText: "Isolate the variable" }).first();
+    await expect(interventionSkill).toBeVisible();
+    await expect(interventionSkill.locator("xpath=..")).not.toContainText(/[\u0600-\u06FF]/);
+    await expect(parentPage.getByText(/\b(Mastered|Developing)\b/)).toHaveCount(0);
+    await expect(parentPage.getByText("متقن").first()).toBeVisible();
+
+    await parentPage.goto("/dashboard");
+    await useArabic(parentPage);
+    const dashboardName = parentPage.locator("bdi", { hasText: "Demo Parent" }).first();
+    await expect(dashboardName).toBeVisible();
+    await expect(dashboardName.locator("xpath=..")).not.toContainText("الاسم");
+    await expect(parentPage.getByText("الاسم:")).toBeVisible();
+
     await parentPage.goto("/parent/messages");
     const childName = parentPage.locator("bdi", { hasText: "Demo Student" }).first();
     await expect(childName).toBeVisible();

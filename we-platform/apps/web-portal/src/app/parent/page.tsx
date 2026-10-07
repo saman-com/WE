@@ -7,6 +7,7 @@ import { fetchProfile, listParentChildren, personName, type ParentTeacher, type 
 import { learningLabel, loadLearningNames } from "@/lib/display-names";
 import { roleHome } from "@/lib/role-home";
 import { ApiError } from "@/lib/api-error";
+import { interventionFacts } from "@/lib/interventions";
 import {
   fetchChildProgress,
   fetchLinkedChildren,
@@ -134,8 +135,9 @@ export default function ParentWorkspacePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">{t("parent.home.title")}</h1>
-            <p className="text-sm text-black/60 mt-1">
-              {t("parent.home.welcome", { name: profile.name })}
+            <p className="text-sm text-black/60 mt-1">{t("parent.home.welcome")}</p>
+            <p className="text-sm">
+              <DataText>{profile.name}</DataText>
             </p>
           </div>
           <Link href="/dashboard" className="text-sm underline">
@@ -265,16 +267,32 @@ export default function ParentWorkspacePage() {
                     <p className="text-sm text-black/60">{t("parent.home.interventionsEmpty")}</p>
                   ) : (
                     <ul className="space-y-3">
-                      {progress.activeInterventions.map((item) => (
-                        <li key={item.id} className="border border-black/10 rounded p-3">
+                      {progress.activeInterventions.map((item) => {
+                        const facts = interventionFacts(item.summary);
+                        return (
+                        <li key={item.id} className="border border-black/10 rounded p-3 space-y-1">
+                          <p className="text-sm text-black/60">{t("parent.home.skillLead")}</p>
                           <p className="font-medium">
-                            <DataText>{item.summary}</DataText>
+                            <DataText>{facts.skill}</DataText>
                           </p>
+                          {facts.expected ? (
+                            <>
+                              <p className="text-sm text-black/60">{t("parent.home.expectedLine")}</p>
+                              <p className="text-sm">{codeLabel(t, facts.expected)}</p>
+                            </>
+                          ) : null}
+                          {facts.demonstrated ? (
+                            <>
+                              <p className="text-sm text-black/60">{t("parent.home.demonstratedLine")}</p>
+                              <p className="text-sm">{codeLabel(t, facts.demonstrated)}</p>
+                            </>
+                          ) : null}
                           <p className="text-sm text-black/60">
                             {t("parent.home.statusLine", { status: codeLabel(t, item.status) })}
                           </p>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   )}
                 </div>

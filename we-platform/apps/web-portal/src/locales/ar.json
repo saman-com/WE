@@ -211,7 +211,7 @@
   "parent.home.childProgressError": "تعذّر تحميل تقدم هذا الطفل.",
   "parent.home.loading": "جارٍ تحميل مساحة عمل ولي الأمر...",
   "parent.home.title": "مساحة عمل ولي الأمر",
-  "parent.home.welcome": "مرحباً، {name}. اطّلع على التقدم التعليمي المعتمد لأبنائك المرتبطين.",
+  "parent.home.welcome": "مرحباً. اطّلع على التقدم التعليمي المعتمد لأبنائك المرتبطين.",
   "parent.home.noChildren": "لا يوجد أطفال مرتبطون بحسابك بعد. يرجى التواصل مع إدارة المدرسة.",
   "parent.home.myChildren": "أبنائي",
   "parent.home.childLabel": "الطفل",
@@ -227,6 +227,8 @@
   "parent.home.interventionsTitle": "التدخلات النشطة",
   "parent.home.interventionsEmpty": "لا توجد تدخلات نشطة.",
   "parent.home.statusLine": "الحالة: {status}",
+  "parent.home.expectedLine": "الإتقان المتوقع",
+  "parent.home.demonstratedLine": "المستوى الظاهر",
 
   "parent.messages.loadConversationError": "تعذّر تحميل هذه المحادثة.",
   "parent.messages.selectChildError": "اختر طفلاً وأدخل معرّف المعلم.",
@@ -249,7 +251,9 @@
   "teacher.messages.subtitle": "رسائل من أولياء أمور الطلاب في صفوفك.",
   "teacher.messages.inbox": "صندوق الوارد",
   "teacher.messages.empty": "لا توجد رسائل من أولياء الأمور بعد.",
-  "teacher.messages.threadMeta": "الطالب {student} — ولي الأمر {parent} — {count, plural, zero {لا رسائل} one {رسالة واحدة} two {رسالتان} few {# رسائل} many {# رسالة} other {# رسالة}}",
+  "teacher.messages.studentLabel": "الطالب",
+  "teacher.messages.parentLabel": "ولي الأمر",
+  "teacher.messages.messageCount": "{count, plural, zero {لا رسائل} one {رسالة واحدة} two {رسالتان} few {# رسائل} many {# رسالة} other {# رسالة}}",
   "teacher.messages.conversation": "المحادثة",
   "teacher.messages.sendReply": "إرسال الرد",
 

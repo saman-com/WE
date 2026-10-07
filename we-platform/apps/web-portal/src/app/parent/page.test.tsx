@@ -4,6 +4,7 @@ import ParentWorkspacePage from "@/app/parent/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { LOCALE_STORAGE_KEY } from "@/i18n";
 import type { UserProfile } from "@/lib/auth";
+import { fetchChildProgress } from "@/lib/parent-workspace";
 
 const { studentId, skillId, organisationId } = vi.hoisted(() => ({
   studentId: "22222222-2222-2222-2222-222222222222",
@@ -104,5 +105,43 @@ describe("parent home", () => {
     expect(name.tagName).toBe("BDI");
     expect(await screen.findByRole("button", { name: "الطفل Demo Student" })).toBeInTheDocument();
     expect(name.parentElement).not.toHaveTextContent("الطفل");
+  });
+
+  it("keeps the welcome name and intervention skill outside the Arabic sentence", async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, "ar");
+    vi.mocked(fetchChildProgress).mockResolvedValue({
+      studentUserId: studentId,
+      organisationId,
+      mastery: [{ microSkillId: skillId, masteryLevel: "Developing" }],
+      feedback: [],
+      assessments: [],
+      activeInterventions: [
+        {
+          id: "int-1",
+          summary:
+            "Evidence Unknown skill: micro-skill Isolate the variable marked 2/5. Expected mastery: Mastered. Demonstrated: Developing.",
+          status: "Active",
+          plannedStartAt: null,
+          plannedEndAt: null,
+        },
+      ],
+    });
+
+    render(
+      <I18nProvider>
+        <ParentWorkspacePage />
+      </I18nProvider>
+    );
+
+    const welcome = await screen.findByText("Demo Parent");
+    expect(welcome.tagName).toBe("BDI");
+    expect(welcome.parentElement).not.toHaveTextContent("مرحباً");
+
+    const skill = screen.getByText("Isolate the variable");
+    expect(skill.tagName).toBe("BDI");
+    expect(skill.parentElement).not.toHaveTextContent(/[\u0600-\u06FF]/);
+    expect(screen.queryByText(/Mastered|Developing|Unknown skill/)).not.toBeInTheDocument();
+    expect(screen.getByText("متقن")).toBeInTheDocument();
+    expect(screen.getAllByText("نامٍ").length).toBeGreaterThan(0);
   });
 });

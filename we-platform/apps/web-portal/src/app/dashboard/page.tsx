@@ -104,12 +104,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="rounded-lg border border-black/10 p-6 space-y-2">
+          <p className="font-medium">{t("dashboard.profile.nameLabel")}</p>
           <p>
-            <span className="font-medium">{t("dashboard.profile.nameLabel")}</span>{" "}
             <DataText>{profile.name}</DataText>
           </p>
+          <p className="font-medium">{t("dashboard.profile.emailLabel")}</p>
           <p>
-            <span className="font-medium">{t("dashboard.profile.emailLabel")}</span>{" "}
             <DataText>{profile.email}</DataText>
           </p>
         </div>
