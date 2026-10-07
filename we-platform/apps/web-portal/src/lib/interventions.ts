@@ -68,8 +68,10 @@ export function interventionFacts(summary: string): InterventionFacts {
   const expected = summary.match(/Expected mastery:\s*([A-Za-z]+)/)?.[1] ?? null;
   const demonstrated = summary.match(/Demonstrated:\s*([A-Za-z]+)/)?.[1] ?? null;
   const marked = [...summary.matchAll(/micro-skill\s+([^:\n]+?)\s+marked/gi)];
-  const micro = marked.at(-1)?.[1]?.trim() ?? "";
-  const skill = micro && !/^unknown skill$/i.test(micro) ? micro : summary.trim();
+  const fromMarked = marked.at(-1)?.[1]?.trim() ?? "";
+  const fromGap = summary.match(/gap in\s+(?:micro-skill\s+)?([^.]+)\./i)?.[1]?.trim() ?? "";
+  const micro = [fromMarked, fromGap].find((name) => name && !/^unknown skill$/i.test(name)) ?? "";
+  const skill = micro || summary.trim();
   return { skill, expected, demonstrated };
 }
 

@@ -179,4 +179,34 @@ describe("parent home", () => {
     expect(skill.tagName).toBe("BDI");
     expect(screen.queryByText(/Unknown skill/)).not.toBeInTheDocument();
   });
+
+  it("uses the gap-in skill when the saved actions no longer contain a marked micro-skill", async () => {
+    vi.mocked(fetchChildProgress).mockResolvedValue({
+      studentUserId: studentId,
+      organisationId,
+      mastery: [],
+      feedback: [],
+      assessments: [],
+      activeInterventions: [
+        {
+          id: "int-created",
+          summary:
+            'Address medium severity / medium urgency gap in Isolate the variable. Expected mastery: Mastered. Demonstrated: Developing (mark 2/5). This micro-skill has a medium-severity gap. Based on diagnostic: Marked 2/5. Teacher feedback: "You can substitute a number.". Classification: Developing. Suggested actions: Provide scaffolded practice and monitor progress through the next assessment cycle.',
+          status: "Planned",
+          plannedStartAt: null,
+          plannedEndAt: null,
+        },
+      ],
+    });
+
+    render(
+      <I18nProvider>
+        <ParentWorkspacePage />
+      </I18nProvider>
+    );
+
+    const skill = await screen.findByText("Isolate the variable");
+    expect(skill.tagName).toBe("BDI");
+    expect(skill).not.toHaveTextContent(/Mastered|Developing/);
+  });
 });
