@@ -26,7 +26,16 @@ describe("learning frame tabs", () => {
 
     const nav = screen.getByRole("navigation");
     const row = nav.querySelector("div");
-    expect(row?.className).toContain("flex-wrap");
+    expect(row?.className).toContain("grid-cols-3");
+    expect(row?.className).toContain("w-full");
     expect(row?.className).not.toContain("overflow-x-auto");
+    expect(row?.className).not.toContain("flex-nowrap");
+    for (const label of ["Grading scale", "Assessment models", "Reporting templates", "Locale settings"]) {
+      const tabs = screen.getAllByRole("button", { name: label });
+      const phoneTab = tabs.find((tab) => tab.className.includes("whitespace-normal"));
+      expect(phoneTab).toBeTruthy();
+      expect(phoneTab?.className).not.toContain("truncate");
+      expect(phoneTab?.className).not.toContain("overflow-hidden");
+    }
   });
 });

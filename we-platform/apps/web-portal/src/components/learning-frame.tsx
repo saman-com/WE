@@ -67,18 +67,19 @@ export function LearningFrame({
           </div>
         ) : null}
 
-        <div className="mt-6 pb-24 md:pb-12">{children}</div>
+        <div className="mt-6 pb-40 md:pb-12">{children}</div>
       </div>
 
       {tabs && onTabChange ? (
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-black/10 bg-[#f4f1ea] px-3 py-2 md:hidden">
-          <div className="mx-auto flex max-w-5xl flex-wrap gap-2">
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-black/10 bg-[#f4f1ea] px-2 pt-2 pb-12 md:hidden">
+          <div className="mx-auto grid w-full grid-cols-3 gap-1">
             {tabs.map((tab) => (
               <TabButton
                 key={tab.id}
                 label={tab.label}
                 active={tab.id === activeTab}
                 onClick={() => onTabChange(tab.id)}
+                wrap
               />
             ))}
           </div>
@@ -92,19 +93,25 @@ function TabButton({
   label,
   active,
   onClick,
+  wrap = false,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  wrap?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={
-        active
-          ? "shrink-0 rounded-full bg-[#1c1917] px-3 py-1.5 text-sm text-white"
-          : "shrink-0 rounded-full px-3 py-1.5 text-sm text-black/60"
+        wrap
+          ? active
+            ? "min-w-0 whitespace-normal break-words rounded-lg bg-[#1c1917] px-2 py-1.5 text-center text-xs leading-snug text-white"
+            : "min-w-0 whitespace-normal break-words rounded-lg px-2 py-1.5 text-center text-xs leading-snug text-black/60"
+          : active
+            ? "shrink-0 rounded-full bg-[#1c1917] px-3 py-1.5 text-sm text-white"
+            : "shrink-0 rounded-full px-3 py-1.5 text-sm text-black/60"
       }
     >
       {label}
